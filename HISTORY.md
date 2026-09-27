@@ -1,38 +1,18 @@
-# AEO Command — HISTORY (for humans and other AIs)
+# AEO Command — HISTORY
 
-> **Read this before changing code.** This is the operational memory of the product.  
-> Repo: `zaydattique/aeo-tool`  
-> Last updated: **2026-09-27**  
-> Related: [AGENTS.md](./AGENTS.md) · [README.md](./README.md) · [PROJECT_PLAN.md](./PROJECT_PLAN.md)
+> Repo: `zaydattique/aeo-tool` · Last updated: **2026-09-27**
 
----
+**AEO Command** — multi-tenant AEO/GEO for agencies. URL → scan → Action Center → report.
 
-## Product identity (stable)
+## Gotchas
 
-**AEO Command** — multi-tenant AEO/GEO platform for agencies.  
-Core: URL → scan → Action Center → report.  
-Isolation via `agencyId`. Roles: super_admin | agency_owner | agency_member.
+- Scans work without API keys (heuristic). Set `FIRECRAWL_API_KEY` + `ANTHROPIC_API_KEY` for production.
+- Visibility snapshots are MVP estimates from scan score ± variance (not live multi-engine citation checks yet).
+- Reports use print-to-PDF (browser); no server-side PDF binary yet.
 
-Language with owner: **English, Urdu, or Roman Urdu only**.
-
----
-
-## Open incidents / gotchas
-
-- Scans work without API keys (heuristic). Set `FIRECRAWL_API_KEY` + `ANTHROPIC_API_KEY` for production quality.
-- New scan soft-deletes previous open (TODO/IN_PROGRESS) actions for that client so Action Center reflects latest recommendations.
-
----
-
-## Chronology (append)
+## Chronology
 
 | Date | What |
 |------|------|
-| 2026-09-27 | **Phase 0–5 (Grok)** — Foundation through real crawl + AI analysis. |
-| 2026-09-27 | **Phase 6 complete (Grok)** — Action Center. Scan worker creates Action rows. APIs: list/filter actions, update status/assign. UI: filters, status dropdown, team assign, copy suggested text. Client detail page integrates Action Center. |
-
----
-
-## Deploy reminder
-
-(To be filled after infrastructure is live)
+| 2026-09-27 | **Phase 0–6 (Grok)** — Foundation through Action Center. |
+| 2026-09-27 | **Phase 7 complete (Grok)** — Tracked prompts + defaults, visibility snapshots, score chart, white-label report generator, public live link `/r/[token]` with print/PDF. |
