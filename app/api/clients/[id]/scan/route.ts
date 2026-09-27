@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAgency, canManageClients } from "@/lib/session";
 import { enqueueSimulatedScan } from "@/lib/scan-worker";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function POST(
   _req: NextRequest,
@@ -16,6 +17,15 @@ export async function POST(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  // Burst protection: max 10 scan starts per agency per 10 minutes
+  const rl = rateLimit(`scan:${auth.agencyId}`, 10, 10 * 60 * 1000);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Too many scans started. Wait a few minutes." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } }
+    );
+  }
+
   const { id: clientId } = await params;
 
   const client = await prisma.client.findFirst({
@@ -26,7 +36,6 @@ export async function POST(
     return NextResponse.json({ error: "Client not found" }, { status: 404 });
   }
 
-  // Block if already scanning
   const activeScan = await prisma.scan.findFirst({
     where: {
       clientId,
@@ -45,7 +54,6 @@ export async function POST(
     );
   }
 
-  // Rate limit: scans per month from plan
   const agency = await prisma.agency.findUnique({
     where: { id: auth.agencyId },
     include: { plan: true },
@@ -104,7 +112,6 @@ export async function POST(
     return newScan;
   });
 
-  // Fire-and-forget simulated worker
   enqueueSimulatedScan(scan.id);
 
   return NextResponse.json({ scan }, { status: 201 });
