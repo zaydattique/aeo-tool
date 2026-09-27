@@ -22,11 +22,6 @@ Core promise: paste client URL → prioritized Action Center with exact steps �
 
 Strict multi-tenant isolation (`agencyId` on every business table). Roles: super_admin | agency_owner | agency_member.
 
-Domains:
-- Marketing: threezero.agency
-- Application: app.threezero.agency
-- Super Admin: admin.threezero.agency
-
 Language with owner: **English, Urdu, or Roman Urdu only**.
 
 ---
@@ -35,17 +30,20 @@ Language with owner: **English, Urdu, or Roman Urdu only**.
 
 None yet.
 
+**Note:** Scans work without API keys (heuristic mode). Set `FIRECRAWL_API_KEY` and `ANTHROPIC_API_KEY` for production-quality crawl + Claude analysis.
+
 ---
 
 ## Chronology (append)
 
 | Date | What |
 |------|------|
-| 2026-09-27 | **Phase 0 complete (Grok)** — Repo initialized. AGENTS.md, HISTORY.md, PROJECT_PLAN.md, README.md, .cursorrules, .gitignore. |
-| 2026-09-27 | **Phase 1 complete (Grok)** — Next.js 15 scaffold, Prisma skeleton, health endpoint, config files. |
-| 2026-09-27 | **Phase 2 complete (Grok)** — Full multi-tenant Prisma schema + seed (6 plans PK/INT). |
-| 2026-09-27 | **Phase 3 complete (Grok)** — Auth + onboarding. NextAuth JWT + credentials; signup/login/forgot/reset/invite; onboarding wizard; middleware; dashboard placeholder. |
-| 2026-09-27 | **Phase 4 complete (Grok)** — Client CRUD APIs with URL validation + plan limits. Start scan + status polling. Simulated scan worker (stages + progress). Dashboard client list with add form, live progress bar, client detail + scan history. |
+| 2026-09-27 | **Phase 0 complete (Grok)** — Repo initialized. |
+| 2026-09-27 | **Phase 1 complete (Grok)** — Next.js 15 scaffold. |
+| 2026-09-27 | **Phase 2 complete (Grok)** — Full multi-tenant Prisma schema + seed. |
+| 2026-09-27 | **Phase 3 complete (Grok)** — Auth + onboarding. |
+| 2026-09-27 | **Phase 4 complete (Grok)** — Client CRUD + simulated scan queue + dashboard. |
+| 2026-09-27 | **Phase 5 complete (Grok)** — Real crawl (`lib/crawl.ts`: Firecrawl + basic fallback) + AI analysis (`lib/ai-analysis.ts`: Claude + heuristic). Scan worker stores rawCrawlData + aiAnalysis with scores/issues/actionDrafts. Client detail shows full analysis UI. |
 
 ---
 
