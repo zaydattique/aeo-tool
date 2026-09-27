@@ -42,17 +42,17 @@ Task: <write task here>
 
 - **Phase 0 Done** — Agent rules, history, project plan, README, .cursorrules, .gitignore.
 - **Phase 1 Done** — Full project scaffold + tech stack locked.
-- **Next: Phase 2** — Complete multi-tenant Prisma schema.
+- **Phase 2 Done** — Complete multi-tenant Prisma schema + seed.
+- **Next: Phase 3** — Auth + Agency Onboarding.
 
 ### What exists now
 - Next.js 15 App Router + TypeScript + Tailwind
-- Prisma skeleton (Agency + User models)
+- Full Prisma schema (Plan, Agency, User, Client, Scan, Action, TrackedPrompt, VisibilitySnapshot, Report, TeamInvite, ActivityLog, Subscription, UsageMeter)
+- Seed script for Pakistan + International plans
 - `/api/health` endpoint
 - Simple landing page
-- All config files ready for `npm install && npm run dev`
 
 ### What does NOT exist yet
-- Full database schema (Phase 2)
 - Auth / onboarding (Phase 3)
 - Client management or scans (Phase 4+)
 - Action Center, reports, billing, etc.
@@ -75,7 +75,7 @@ Task: <write task here>
 
 ---
 
-## Local Development (after Phase 1)
+## Local Development
 
 ```bash
 git clone https://github.com/zaydattique/aeo-tool.git
@@ -84,6 +84,8 @@ cp .env.example .env.local
 # Fill DATABASE_URL and NEXTAUTH_SECRET
 npm install
 npx prisma generate
+npx prisma db push   # or migrate
+npm run db:seed
 npm run dev
 ```
 
