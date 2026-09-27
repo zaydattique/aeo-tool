@@ -43,6 +43,7 @@ None yet.
 |------|------|
 | 2026-09-27 | **Phase 0 complete (Grok)** — Repo initialized from completely empty state. Added AGENTS.md (strict no-placeholder rules), HISTORY.md, PROJECT_PLAN.md (detailed 0–9 phases), README.md, .cursorrules, .gitignore. |
 | 2026-09-27 | **Phase 1 complete (Grok)** — Project scaffold & tech stack locked. Created: package.json (Next.js 15, Prisma, NextAuth, Tailwind, Zod, etc.), tsconfig.json, next.config.ts, tailwind.config.ts, postcss.config.mjs, app/globals.css, app/layout.tsx, app/page.tsx (simple landing), app/api/health/route.ts, prisma/schema.prisma (Agency + User skeleton only), lib/prisma.ts, lib/utils.ts, .env.example. No placeholders. Ready for Phase 2 (full multi-tenant schema). |
+| 2026-09-27 | **Phase 2 complete (Grok)** — Full multi-tenant Prisma schema. Models: Plan, Agency, User, Client, Scan, Action, TrackedPrompt, VisibilitySnapshot, Report, TeamInvite, ActivityLog, Subscription, UsageMeter. Enums: UserRole, AgencyStatus, ClientStatus, ScanStatus, ScanStage, ActionPriority, ActionCategory, ActionEffort, ActionStatus, SubscriptionStatus, BillingRegion. All business tables scoped by agencyId + soft deletes + indexes. Seed script creates 6 plans (Starter/Growth/Agency × Pakistan PKR / International USD). package.json prisma.seed config added. |
 
 ---
 
