@@ -21,6 +21,7 @@
 | `middleware.ts` | Auth gates, admin, public webhook/report |
 | `prisma/schema.prisma` | Full DB schema |
 | `prisma/seed.ts` | Plans seed |
+| `public/llms.txt` | AI crawler summary |
 
 ---
 
@@ -39,6 +40,7 @@
 | `lib/default-prompts.ts` | Default tracked prompts |
 | `lib/stripe.ts` | Stripe client |
 | `lib/usage.ts` | Usage meter + soft limits |
+| `lib/rate-limit.ts` | In-memory rate limiter |
 
 ---
 
@@ -50,13 +52,26 @@
 
 ---
 
-## App — pages
+## App — marketing pages
 
 | Path | Role |
 |------|------|
-| `app/layout.tsx` | Root layout + SessionProvider |
+| `components/marketing-nav.tsx` | Nav + footer |
+| `app/page.tsx` | Home / landing |
+| `app/product/page.tsx` | Product features |
+| `app/pricing/page.tsx` | PK / INT pricing toggle |
+| `app/aeo/page.tsx` | What is AEO guide + FAQ schema |
+| `app/robots.ts` | robots.txt |
+| `app/sitemap.ts` | sitemap.xml |
+
+---
+
+## App — product pages
+
+| Path | Role |
+|------|------|
+| `app/layout.tsx` | Root layout + global SEO JSON-LD |
 | `app/globals.css` | Global styles |
-| `app/page.tsx` | Landing |
 | `app/(auth)/login/page.tsx` | Login |
 | `app/(auth)/signup/page.tsx` | Signup |
 | `app/(auth)/forgot-password/page.tsx` | Forgot password |
@@ -83,7 +98,7 @@
 | Path | Methods |
 |------|---------|
 | `app/api/auth/[...nextauth]/route.ts` | GET, POST |
-| `app/api/auth/signup/route.ts` | POST |
+| `app/api/auth/signup/route.ts` | POST (rate limited) |
 | `app/api/auth/forgot-password/route.ts` | POST |
 | `app/api/auth/reset-password/route.ts` | POST |
 | `app/api/auth/accept-invite/route.ts` | POST |
@@ -96,7 +111,7 @@
 |------|---------|
 | `app/api/clients/route.ts` | GET, POST |
 | `app/api/clients/[id]/route.ts` | GET, PATCH, DELETE |
-| `app/api/clients/[id]/scan/route.ts` | POST |
+| `app/api/clients/[id]/scan/route.ts` | POST (rate limited) |
 | `app/api/scans/[id]/route.ts` | GET |
 
 ### Actions
