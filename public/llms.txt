@@ -1,0 +1,30 @@
+# AEO Command
+
+> Multi-tenant Answer Engine Optimization (AEO) platform for marketing agencies.
+
+AEO Command helps agencies scan client websites, produce a prioritized Action Center of fixes, track AI visibility prompts over time, and deliver white-label reports.
+
+## Product
+
+- Website AEO scan (crawl + analysis)
+- Action Center with assignable tasks and suggested fixes
+- Visibility prompt tracking
+- White-label live report links
+- Team invites and multi-client isolation
+- Pakistan and International pricing
+
+## Key pages
+
+- Home: /
+- Product: /product
+- Pricing: /pricing
+- What is AEO: /aeo
+- Sign up: /signup
+
+## Publisher
+
+Threezero Agency — https://threezero.agency
+
+## Contact
+
+For product access, start at /signup or contact Threezero Agency.
