@@ -20,7 +20,7 @@
 
 Core promise: paste client URL → prioritized Action Center with exact steps → assign → track → white-label report.
 
-Strict multi-tenant isolation (`agency_id` on every business table). Roles: super_admin | agency_owner | agency_member.
+Strict multi-tenant isolation (`agencyId` on every business table). Roles: super_admin | agency_owner | agency_member.
 
 Domains:
 - Marketing: threezero.agency
@@ -33,7 +33,7 @@ Language with owner: **English, Urdu, or Roman Urdu only**.
 
 ## Open incidents / gotchas
 
-None yet (repo just initialized).
+None yet.
 
 ---
 
@@ -41,7 +41,8 @@ None yet (repo just initialized).
 
 | Date | What |
 |------|------|
-| 2026-09-27 | **Phase 0 complete (Grok)** — Repo initialized. Added AGENTS.md, HISTORY.md, PROJECT_PLAN.md, README.md, .cursorrules, .gitignore. Empty repo now agent-ready. Previous agent had created only the empty repository. |
+| 2026-09-27 | **Phase 0 complete (Grok)** — Repo initialized from completely empty state. Added AGENTS.md (strict no-placeholder rules), HISTORY.md, PROJECT_PLAN.md (detailed 0–9 phases), README.md, .cursorrules, .gitignore. |
+| 2026-09-27 | **Phase 1 complete (Grok)** — Project scaffold & tech stack locked. Created: package.json (Next.js 15, Prisma, NextAuth, Tailwind, Zod, etc.), tsconfig.json, next.config.ts, tailwind.config.ts, postcss.config.mjs, app/globals.css, app/layout.tsx, app/page.tsx (simple landing), app/api/health/route.ts, prisma/schema.prisma (Agency + User skeleton only), lib/prisma.ts, lib/utils.ts, .env.example. No placeholders. Ready for Phase 2 (full multi-tenant schema). |
 
 ---
 
