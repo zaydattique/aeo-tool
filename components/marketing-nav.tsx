@@ -14,8 +14,11 @@ export function MarketingNav() {
           <Link href="/pricing" className="hover:text-foreground">
             Pricing
           </Link>
-          <Link href="/aeo" className="hover:text-foreground">
-            What is AEO?
+          <Link href="/guides" className="hover:text-foreground">
+            Guides
+          </Link>
+          <Link href="/compare/aeo-tools" className="hover:text-foreground">
+            Compare
           </Link>
         </nav>
         <div className="flex items-center gap-3 text-sm">
@@ -37,7 +40,7 @@ export function MarketingNav() {
 export function MarketingFooter() {
   return (
     <footer className="border-t bg-white mt-auto">
-      <div className="mx-auto max-w-6xl px-4 py-10 grid gap-8 sm:grid-cols-3 text-sm">
+      <div className="mx-auto max-w-6xl px-4 py-10 grid gap-8 sm:grid-cols-4 text-sm">
         <div>
           <p className="font-semibold">AEO Command</p>
           <p className="text-muted-foreground mt-2">
@@ -62,6 +65,11 @@ export function MarketingFooter() {
               </Link>
             </li>
             <li>
+              <Link href="/compare/aeo-tools" className="hover:underline">
+                vs free checkers
+              </Link>
+            </li>
+            <li>
               <Link href="/signup" className="hover:underline">
                 Free trial
               </Link>
@@ -72,13 +80,48 @@ export function MarketingFooter() {
           <p className="font-medium mb-2">Learn</p>
           <ul className="space-y-1 text-muted-foreground">
             <li>
-              <Link href="/aeo" className="hover:underline">
-                What is Answer Engine Optimization?
+              <Link href="/guides" className="hover:underline">
+                All guides
               </Link>
             </li>
             <li>
+              <Link href="/aeo" className="hover:underline">
+                What is AEO?
+              </Link>
+            </li>
+            <li>
+              <Link href="/guides/aeo-checklist" className="hover:underline">
+                AEO checklist
+              </Link>
+            </li>
+            <li>
+              <Link href="/guides/chatgpt-citations" className="hover:underline">
+                ChatGPT citations
+              </Link>
+            </li>
+            <li>
+              <Link href="/guides/perplexity-visibility" className="hover:underline">
+                Perplexity visibility
+              </Link>
+            </li>
+          </ul>
+        </div>
+        <div>
+          <p className="font-medium mb-2">Machines</p>
+          <ul className="space-y-1 text-muted-foreground">
+            <li>
               <Link href="/llms.txt" className="hover:underline">
                 llms.txt
+              </Link>
+            </li>
+            <li>
+              <Link href="/ai" className="hover:underline">
+                AI summary
+              </Link>
+            </li>
+            <li>
+              <Link href="/sitemap.xml" className="hover:underline">
+                Sitemap
               </Link>
             </li>
           </ul>
