@@ -1,0 +1,76 @@
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { prisma } from "@/lib/prisma";
+import { requireAuth } from "@/lib/session";
+
+const schema = z.object({
+  agencyId: z.string().min(1),
+  /** Set to true to stop impersonating */
+  stop: z.boolean().optional(),
+});
+
+/**
+ * Impersonation: returns target agency context for the client to call
+ * session.update(). Logged + intended to be time-boxed on the client (1h).
+ */
+export async function POST(req: NextRequest) {
+  const auth = await requireAuth();
+  if (auth.error || !auth.session) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+  if (auth.session.user.role !== "SUPER_ADMIN") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const body = await req.json();
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+  }
+
+  if (parsed.data.stop) {
+    await prisma.activityLog.create({
+      data: {
+        actorId: auth.session.user.id,
+        action: "admin.impersonation_stopped",
+        resourceType: "user",
+        resourceId: auth.session.user.id,
+      },
+    });
+    return NextResponse.json({
+      stop: true,
+      agencyId: null,
+      agencyName: null,
+      onboardingCompleted: true,
+    });
+  }
+
+  const agency = await prisma.agency.findFirst({
+    where: { id: parsed.data.agencyId, deletedAt: null },
+    select: { id: true, name: true, status: true, onboardingCompleted: true },
+  });
+
+  if (!agency) {
+    return NextResponse.json({ error: "Agency not found" }, { status: 404 });
+  }
+
+  await prisma.activityLog.create({
+    data: {
+      agencyId: agency.id,
+      actorId: auth.session.user.id,
+      action: "admin.impersonation_started",
+      resourceType: "agency",
+      resourceId: agency.id,
+      metadata: {
+        expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      },
+    },
+  });
+
+  return NextResponse.json({
+    agencyId: agency.id,
+    agencyName: agency.name,
+    onboardingCompleted: agency.onboardingCompleted,
+    expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+  });
+}
