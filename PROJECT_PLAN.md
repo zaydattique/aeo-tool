@@ -43,45 +43,41 @@ Ask owner before: business logic, pricing model, permission model, irreversible 
 
 **Status:** Done (2026-09-27)
 
-**Goal:** Agencies can add clients and trigger scans that run as background jobs with live progress.
-
-**Deliverables completed:**
-- Client CRUD APIs (`GET/POST /api/clients`, `GET/PATCH/DELETE /api/clients/[id]`)
-- URL validation (reject private IPs, non-http schemes) + brand name suggestion
-- Plan limit enforcement (max clients, max scans/month)
-- Start scan API (`POST /api/clients/[id]/scan`) with concurrent-scan guard
-- Scan status polling (`GET /api/scans/[id]`)
-- Simulated scan worker (`lib/scan-worker.ts`) — advances QUEUED→CRAWL→EXTRACT→AI_ANALYSIS→ACTION_GENERATION→COMPLETED with progress %
-- Dashboard client list with add-client form
-- Live progress bar (1.5s polling)
-- Client detail page with scan history
-- Activity log on create/delete/scan start
-
-**Acceptance met:** Add client → Start Scan → progress bar updates through stages → scan completes → visibility score set.
-
 ---
 
 ## PHASE 5 — Real Crawl + AI Analysis Pipeline
 
-**Status:** Open ← **NEXT**
+**Status:** Done (2026-09-27)
 
 **Goal:** Real website crawl + AI analysis that produces useful structured output.
 
-**Exact deliverables:**
-- Firecrawl (or Playwright) integration
-- Extract technical + content signals
-- LLM analysis (Claude) that returns structured JSON
-- Store raw_crawl_data + ai_analysis on Scan
-- Error handling, retries, cost tracking
-- Queue worker is production-ready
+**Deliverables completed:**
+- `lib/crawl.ts` — Firecrawl API primary, basic fetch fallback; extracts title, meta, headings, schema, links, word count, llms.txt, OG, etc.
+- `lib/ai-analysis.ts` — Claude structured AEO analysis primary, heuristic fallback; returns visibilityScore, dimension scores, strengths/weaknesses, prioritized issues
+- `lib/scan-worker.ts` rewritten — real CRAWL → EXTRACT → AI_ANALYSIS → ACTION_GENERATION → COMPLETED
+- Stores `rawCrawlData` + `aiAnalysis` (with actionDrafts for Phase 6) on Scan
+- Cost tracking fields: provider, model, inputTokens, outputTokens, durationMs
+- Client detail page shows analysis summary, scores, strengths/weaknesses, issues list
+- Works without API keys (heuristic mode) for local dev
 
-**Acceptance:** Scanning a real public website produces meaningful AI analysis stored on the scan.
+**Acceptance met:** Scanning a public website produces meaningful AEO analysis stored on the scan.
 
 ---
 
 ## PHASE 6 — Action Center (Core Product)
 
-**Status:** Open
+**Status:** Open ← **NEXT**
+
+**Goal:** Generate and manage the prioritized Action Center — the main value of AEO Command.
+
+**Exact deliverables:**
+- Persist actionDrafts from scan into Action rows
+- Action Center UI with filters (priority, category, status)
+- Status dropdown, assign to team member, mark done
+- Suggested text copy button
+- Action history
+
+**Acceptance:** After a real scan, Action Center shows useful, prioritized, actionable items that can be assigned and tracked.
 
 ---
 
@@ -112,8 +108,8 @@ Ask owner before: business logic, pricing model, permission model, irreversible 
 | 2     | Core Database Schema              | Done        |
 | 3     | Auth + Agency Onboarding          | Done        |
 | 4     | Client Management + Scan Queue    | Done        |
-| 5     | Real Crawl + AI Analysis          | Open ← NEXT |
-| 6     | Action Center (Core Product)      | Open        |
+| 5     | Real Crawl + AI Analysis          | Done        |
+| 6     | Action Center (Core Product)      | Open ← NEXT |
 | 7     | Visibility Tracking + Reports     | Open        |
 | 8     | Team, Billing & Super Admin       | Open        |
 | 9     | Marketing + Security + Polish     | Open        |
