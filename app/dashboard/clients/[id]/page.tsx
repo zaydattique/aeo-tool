@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { ClientActions } from "./client-actions";
 import { ActionCenter } from "./action-center";
+import { VisibilityReports } from "./visibility-reports";
 
 type AiAnalysis = {
   visibilityScore?: number;
@@ -165,8 +166,9 @@ export default async function ClientDetailPage({
           </>
         )}
 
-        {/* Action Center — core product */}
         <ActionCenter clientId={client.id} />
+
+        <VisibilityReports clientId={client.id} />
 
         <div>
           <h2 className="font-medium mb-3">Scan history</h2>
