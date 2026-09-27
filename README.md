@@ -2,7 +2,7 @@
 
 Multi-tenant **Answer Engine Optimization (AEO / GEO)** platform for agencies.
 
-Paste a client URL → full scan → prioritized Action Center with exact steps → assign → track → white-label report.
+Paste a client URL → full scan → **Action Center** with exact steps → assign → track → white-label report.
 
 | | |
 |--|--|
@@ -15,22 +15,16 @@ Paste a client URL → full scan → prioritized Action Center with exact steps 
 
 ## Current Situation (2026-09-27)
 
-- **Phase 0–5 Done**
-- **Next: Phase 6** — Action Center (core product)
+- **Phase 0–6 Done** (including core Action Center)
+- **Next: Phase 7** — Visibility Tracking + Reports
 
-### What works now
-- Auth, onboarding, multi-tenant isolation
-- Client CRUD + plan limits
-- **Real scan pipeline:** crawl → extract signals → AI analysis → store results
-- Firecrawl (optional) + Claude (optional); heuristic fallback without keys
-- Client detail: visibility score, dimension scores, strengths/weaknesses, prioritized issues
+### Core flow that works
+1. Signup / login / onboarding
+2. Add client URL
+3. Start scan → crawl + AI analysis
+4. **Action Center** — prioritized actions, assign, status, copy fix text
 
-### Optional API keys for production quality
-```
-FIRECRAWL_API_KEY=...   # better crawl
-ANTHROPIC_API_KEY=...   # Claude AEO analysis
-```
-Without keys, scans still complete using basic fetch + heuristics.
+Optional keys: `FIRECRAWL_API_KEY`, `ANTHROPIC_API_KEY` (heuristics work without them).
 
 ---
 
@@ -40,8 +34,6 @@ Without keys, scans still complete using basic fetch + heuristics.
 git clone https://github.com/zaydattique/aeo-tool.git
 cd aeo-tool
 cp .env.example .env.local
-# Set DATABASE_URL, NEXTAUTH_SECRET
-# Optionally: FIRECRAWL_API_KEY, ANTHROPIC_API_KEY
 npm install
 npx prisma generate && npx prisma db push && npm run db:seed
 npm run dev
