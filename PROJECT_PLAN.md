@@ -37,49 +37,45 @@ Ask owner before: business logic, pricing model, permission model, irreversible 
 
 **Status:** Done (2026-09-27)
 
-**Goal:** Complete authentication flows and first-time agency setup.
-
-**Deliverables completed:**
-- NextAuth JWT config with credentials provider (`lib/auth.ts`)
-- Session types with agencyId, role, onboardingCompleted (`types/next-auth.d.ts`)
-- Signup API: creates Agency + AGENCY_OWNER user, assigns starter plan, 14-day trial
-- Login page + credentials sign-in
-- Forgot password + reset password (token-based)
-- Accept team invite API + page
-- Onboarding wizard (agency name + logo URL) + API
-- Middleware: protects /dashboard, /admin, /onboarding; redirects incomplete onboarding
-- Dashboard placeholder showing session context
-- SessionProvider in root layout
-- Homepage CTAs to signup/login
-- Schema: passwordResetToken/Expires on User, onboardingCompleted on Agency
-- bcryptjs for password hashing
-
-**Acceptance met:** Signup → login → onboarding → dashboard flow is complete. Roles and agency isolation in session. Invite accept path ready.
-
 ---
 
 ## PHASE 4 — Client Management + Scan Queue
 
-**Status:** Open ← **NEXT**
+**Status:** Done (2026-09-27)
 
 **Goal:** Agencies can add clients and trigger scans that run as background jobs with live progress.
 
-**Exact deliverables:**
-- Client CRUD (URL validation, brand name, keywords, location)
-- Scan model with stages and progress
-- Background job system (Inngest recommended)
-- Rate limiting per plan
-- Progress polling endpoint
-- Dashboard client list + “Start Scan” button with live progress UI
-- Simulated worker that advances stages (real crawl in Phase 5)
+**Deliverables completed:**
+- Client CRUD APIs (`GET/POST /api/clients`, `GET/PATCH/DELETE /api/clients/[id]`)
+- URL validation (reject private IPs, non-http schemes) + brand name suggestion
+- Plan limit enforcement (max clients, max scans/month)
+- Start scan API (`POST /api/clients/[id]/scan`) with concurrent-scan guard
+- Scan status polling (`GET /api/scans/[id]`)
+- Simulated scan worker (`lib/scan-worker.ts`) — advances QUEUED→CRAWL→EXTRACT→AI_ANALYSIS→ACTION_GENERATION→COMPLETED with progress %
+- Dashboard client list with add-client form
+- Live progress bar (1.5s polling)
+- Client detail page with scan history
+- Activity log on create/delete/scan start
 
-**Acceptance:** Add client → Start Scan → see progress bar update → scan reaches “completed”.
+**Acceptance met:** Add client → Start Scan → progress bar updates through stages → scan completes → visibility score set.
 
 ---
 
 ## PHASE 5 — Real Crawl + AI Analysis Pipeline
 
-**Status:** Open
+**Status:** Open ← **NEXT**
+
+**Goal:** Real website crawl + AI analysis that produces useful structured output.
+
+**Exact deliverables:**
+- Firecrawl (or Playwright) integration
+- Extract technical + content signals
+- LLM analysis (Claude) that returns structured JSON
+- Store raw_crawl_data + ai_analysis on Scan
+- Error handling, retries, cost tracking
+- Queue worker is production-ready
+
+**Acceptance:** Scanning a real public website produces meaningful AI analysis stored on the scan.
 
 ---
 
@@ -115,8 +111,8 @@ Ask owner before: business logic, pricing model, permission model, irreversible 
 | 1     | Project Scaffold & Tech Lock      | Done        |
 | 2     | Core Database Schema              | Done        |
 | 3     | Auth + Agency Onboarding          | Done        |
-| 4     | Client Management + Scan Queue    | Open ← NEXT |
-| 5     | Real Crawl + AI Analysis          | Open        |
+| 4     | Client Management + Scan Queue    | Done        |
+| 5     | Real Crawl + AI Analysis          | Open ← NEXT |
 | 6     | Action Center (Core Product)      | Open        |
 | 7     | Visibility Tracking + Reports     | Open        |
 | 8     | Team, Billing & Super Admin       | Open        |
