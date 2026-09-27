@@ -1,26 +1,32 @@
 # AEO Command
 
-Multi-tenant **Answer Engine Optimization** platform for agencies.
-
-Paste URL → scan → **Action Center** → track visibility → white-label report.
+Multi-tenant AEO platform for agencies: scan → Action Center → visibility → white-label report.
 
 | | |
 |--|--|
 | **Repo** | https://github.com/zaydattique/aeo-tool |
 | **AI entry** | [AGENTS.md](./AGENTS.md) |
 | **Roadmap** | [PROJECT_PLAN.md](./PROJECT_PLAN.md) |
-| **History** | [HISTORY.md](./HISTORY.md) |
 
-## Current (2026-09-27)
+## Status (2026-09-28)
 
-- **Phase 0–7 Done**
-- **Next: Phase 8** — Team, Billing & Super Admin
+**Phases 0–8 done.** Next: Phase 9 (marketing + security polish).
 
-Working: auth, clients, real scans, Action Center, visibility prompts/snapshots/chart, live white-label reports (`/r/[token]`).
+Includes: auth, clients, scans, Action Center, visibility/reports, team invites, Stripe billing APIs, Super Admin (`/admin`).
 
-## Local
+## Env
+
+```
+DATABASE_URL=
+NEXTAUTH_SECRET=
+NEXTAUTH_URL=
+# optional
+FIRECRAWL_API_KEY=
+ANTHROPIC_API_KEY=
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+```
 
 ```bash
-cp .env.example .env.local   # DATABASE_URL, NEXTAUTH_SECRET
 npm install && npx prisma db push && npm run db:seed && npm run dev
 ```
