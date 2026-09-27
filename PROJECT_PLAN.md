@@ -15,52 +15,46 @@ Ask owner before: business logic, pricing model, permission model, irreversible 
 
 ---
 
-## PHASE 0–5 — Done (2026-09-27)
+## PHASE 0–6 — Done (2026-09-27)
 
-Foundation → Scaffold → Schema → Auth → Clients/Scans → Real crawl + AI
-
----
-
-## PHASE 6 — Action Center (Core Product)
-
-**Status:** Done (2026-09-27)
-
-**Goal:** Generate and manage the prioritized Action Center — the main value of AEO Command.
-
-**Deliverables completed:**
-- Scan worker creates `Action` rows from analysis issues on completion
-- Soft-deletes previous open actions for client so Action Center stays current
-- `GET /api/actions` with filters (clientId, status, priority, category)
-- `PATCH /api/actions/[id]` — status, assign, complete tracking
-- `GET /api/team/members` — for assignment dropdown
-- Action Center UI: filters, status dropdown, assign to teammate, copy suggested text
-- Integrated into client detail page
-
-**Acceptance met:** After a scan, Action Center shows prioritized actions that can be assigned, status-tracked, and marked done.
+Foundation → Scaffold → Schema → Auth → Clients/Scans → Crawl+AI → Action Center
 
 ---
 
 ## PHASE 7 — Visibility Tracking + Reports
 
-**Status:** Open ← **NEXT**
+**Status:** Done (2026-09-27)
 
 **Goal:** Track visibility over time and produce white-label reports.
 
-**Exact deliverables:**
-- Tracked prompts (system defaults + custom)
-- Visibility snapshots
-- Score-over-time chart
-- Report generator (sections, logo, colors)
-- PDF generation + live link token
-- White-label support from agency branding
+**Deliverables completed:**
+- Tracked prompts API (list, create, seed defaults, delete)
+- Default prompt templates per brand/location
+- Visibility snapshots API (record check + history)
+- Score-over-time chart + mini sparks per prompt
+- Report generator with agency branding in config
+- Live link token → public page `/r/[token]`
+- Print / Save PDF via browser print stylesheet
+- White-label header (agency name/logo/brand colors)
 
-**Acceptance:** Agency can track prompts, see history graph, and download a branded PDF report.
+**Acceptance met:** Agency can track prompts, record checks, see history graph, and share a branded live report.
 
 ---
 
 ## PHASE 8 — Team, Billing & Super Admin
 
-**Status:** Open
+**Status:** Open ← **NEXT**
+
+**Goal:** Complete commercial layer and super admin plane.
+
+**Exact deliverables:**
+- Team invites + role management
+- Stripe Checkout + Customer Portal + webhooks
+- Usage metering + soft limit warnings
+- Super Admin: agency list, create/suspend, impersonate (logged + time-boxed), global metrics
+- Activity log on all sensitive actions
+
+**Acceptance:** Self-serve billing works end-to-end. Super admin can fully manage agencies.
 
 ---
 
@@ -74,15 +68,9 @@ Foundation → Scaffold → Schema → Auth → Clients/Scans → Real crawl + A
 
 | Phase | Name                              | Status      |
 |-------|-----------------------------------|-------------|
-| 0     | Foundation & Agent Rules          | Done        |
-| 1     | Project Scaffold & Tech Lock      | Done        |
-| 2     | Core Database Schema              | Done        |
-| 3     | Auth + Agency Onboarding          | Done        |
-| 4     | Client Management + Scan Queue    | Done        |
-| 5     | Real Crawl + AI Analysis          | Done        |
-| 6     | Action Center (Core Product)      | Done        |
-| 7     | Visibility Tracking + Reports     | Open ← NEXT |
-| 8     | Team, Billing & Super Admin       | Open        |
+| 0–6   | Foundation through Action Center  | Done        |
+| 7     | Visibility Tracking + Reports     | Done        |
+| 8     | Team, Billing & Super Admin       | Open ← NEXT |
 | 9     | Marketing + Security + Polish     | Open        |
 
 **Order is strict:** 0 → 1 → 2 → 3 → 4 → 5 → 6 → 7 → 8 → 9
