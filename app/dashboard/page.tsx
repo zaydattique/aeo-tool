@@ -1,7 +1,9 @@
 import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { ClientList } from "./client-list";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -9,6 +11,42 @@ export default async function DashboardPage() {
   if (!session?.user) {
     redirect("/login");
   }
+
+  if (!session.user.agencyId) {
+    redirect("/login");
+  }
+
+  const clients = await prisma.client.findMany({
+    where: { agencyId: session.user.agencyId, deletedAt: null },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true,
+      name: true,
+      websiteUrl: true,
+      brandName: true,
+      location: true,
+      currentVisibilityScore: true,
+      lastScannedAt: true,
+      status: true,
+      createdAt: true,
+      scans: {
+        orderBy: { createdAt: "desc" },
+        take: 1,
+        select: {
+          id: true,
+          status: true,
+          stage: true,
+          progress: true,
+        },
+      },
+    },
+  });
+
+  const serialized = clients.map((c) => ({
+    ...c,
+    createdAt: c.createdAt.toISOString(),
+    lastScannedAt: c.lastScannedAt?.toISOString() ?? null,
+  }));
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -37,22 +75,8 @@ export default async function DashboardPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 py-12">
-        <div className="rounded-lg border bg-white p-8 text-center">
-          <h2 className="text-xl font-semibold">Welcome to your dashboard</h2>
-          <p className="mt-2 text-muted-foreground">
-            Auth and onboarding are live. Client management and scans come in
-            Phase 4.
-          </p>
-          <div className="mt-6 text-sm text-muted-foreground">
-            <p>Agency ID: {session.user.agencyId || "—"}</p>
-            <p>Role: {session.user.role}</p>
-            <p>
-              Onboarding:{" "}
-              {session.user.onboardingCompleted ? "Complete" : "Pending"}
-            </p>
-          </div>
-        </div>
+      <main className="mx-auto max-w-6xl px-4 py-8">
+        <ClientList initialClients={serialized} />
       </main>
     </div>
   );
