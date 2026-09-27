@@ -1,0 +1,63 @@
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { randomBytes } from "crypto";
+import { prisma } from "@/lib/prisma";
+
+const schema = z.object({
+  email: z.string().email().max(255),
+});
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const parsed = schema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid email" }, { status: 400 });
+    }
+
+    const email = parsed.data.email.toLowerCase().trim();
+
+    const user = await prisma.user.findFirst({
+      where: { email, deletedAt: null },
+    });
+
+    // Always return success to avoid email enumeration
+    if (!user) {
+      return NextResponse.json({
+        success: true,
+        message: "If an account exists, a reset link has been sent.",
+      });
+    }
+
+    const token = randomBytes(32).toString("hex");
+    const expires = new Date();
+    expires.setHours(expires.getHours() + 1);
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordResetToken: token,
+        passwordResetExpires: expires,
+      },
+    });
+
+    // In production: send email with link
+    // For now log the token (dev only)
+    const resetUrl = `${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/reset-password?token=${token}`;
+    console.log("[DEV] Password reset link:", resetUrl);
+
+    return NextResponse.json({
+      success: true,
+      message: "If an account exists, a reset link has been sent.",
+      // Dev only — remove in production
+      ...(process.env.NODE_ENV === "development" ? { devResetUrl: resetUrl } : {}),
+    });
+  } catch (err) {
+    console.error("Forgot password error:", err);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
