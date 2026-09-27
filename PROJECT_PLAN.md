@@ -54,27 +54,31 @@ Ask owner before: business logic, pricing model, permission model, irreversible 
 
 ## PHASE 2 — Core Database Schema (Multi-Tenant)
 
-**Status:** Open ← **NEXT**
+**Status:** Done (2026-09-27)
 
 **Goal:** Implement the complete production Prisma schema matching the blueprint with proper indexes, soft deletes, and agency isolation.
 
-**Exact deliverables:**
-- Full prisma/schema.prisma covering:
-  - Agency, User, Client, Scan, Action, TrackedPrompt, VisibilitySnapshot, Report, TeamInvite, ActivityLog, Plan, Subscription, UsageMeter
-- Every business table has `agencyId` (required)
-- Soft deletes (`deletedAt DateTime?`)
-- Proper indexes: `@@index([agencyId])`, unique constraints scoped correctly
-- Enum types for status, role, priority, category, effort, etc.
-- Seed script (`prisma/seed.ts`) that creates the three plans for Pakistan + International pricing
-- Clear comments in schema
+**Deliverables completed:**
+- Full `prisma/schema.prisma` with all models:
+  - Plan (global)
+  - Agency, User, Client, Scan, Action
+  - TrackedPrompt, VisibilitySnapshot, Report
+  - TeamInvite, ActivityLog
+  - Subscription, UsageMeter
+- Every business table has `agencyId` (required where appropriate)
+- Soft deletes (`deletedAt`) on all tenant tables
+- Full enum set: UserRole, AgencyStatus, ClientStatus, ScanStatus, ScanStage, ActionPriority, ActionCategory, ActionEffort, ActionStatus, SubscriptionStatus, BillingRegion
+- Proper indexes on agencyId, status, foreign keys, unique constraints
+- `prisma/seed.ts` creates 6 plans (Starter/Growth/Agency × Pakistan/International)
+- `package.json` prisma.seed config added
 
-**Acceptance:** Schema is complete and matches the product blueprint 100%. Seed creates plans. Ready for `prisma migrate` once DATABASE_URL is set.
+**Acceptance met:** Schema matches product blueprint. Seed ready. Ready for `prisma migrate` once DATABASE_URL is set.
 
 ---
 
 ## PHASE 3 — Auth + Agency Onboarding
 
-**Status:** Open
+**Status:** Open ← **NEXT**
 
 **Goal:** Complete authentication flows and first-time agency setup.
 
@@ -203,8 +207,8 @@ Ask owner before: business logic, pricing model, permission model, irreversible 
 |-------|-----------------------------------|-------------|
 | 0     | Foundation & Agent Rules          | Done        |
 | 1     | Project Scaffold & Tech Lock      | Done        |
-| 2     | Core Database Schema              | Open ← NEXT |
-| 3     | Auth + Agency Onboarding          | Open        |
+| 2     | Core Database Schema              | Done        |
+| 3     | Auth + Agency Onboarding          | Open ← NEXT |
 | 4     | Client Management + Scan Queue    | Open        |
 | 5     | Real Crawl + AI Analysis          | Open        |
 | 6     | Action Center (Core Product)      | Open        |
