@@ -1,167 +1,57 @@
 # AEO Command — FILEMAP
 
-> Where things live. Update this file when you add a major path.  
 > Repo: `zaydattique/aeo-tool` · Last updated: **2026-09-28**
 
 ---
 
-## Root / governance
+## Governance
 
-| Path | Role |
-|------|------|
-| `AGENTS.md` | Mandatory AI rules |
-| `PROJECT_PLAN.md` | Ordered phases only |
-| `HISTORY.md` | Detailed ship log |
-| `README.md` | Architecture + how to run |
-| `docs/FILEMAP.md` | This file |
-| `.cursorrules` | Editor/agent short rules |
-| `.env.example` | Env documentation |
-| `.gitignore` | Ignores |
-| `package.json` | Dependencies & scripts |
-| `middleware.ts` | Auth gates, admin, public webhook/report |
-| `prisma/schema.prisma` | Full DB schema |
-| `prisma/seed.ts` | Plans seed |
-| `public/llms.txt` | AI crawler summary |
+`AGENTS.md` · `PROJECT_PLAN.md` · `HISTORY.md` · `README.md` · `docs/FILEMAP.md` · `.cursorrules` · `.env.example` · `middleware.ts` · `prisma/schema.prisma` · `prisma/seed.ts` · `public/llms.txt`
 
 ---
 
 ## Library (`lib/`)
 
-| Path | Role |
-|------|------|
-| `lib/prisma.ts` | Prisma singleton |
-| `lib/auth.ts` | NextAuth options (credentials JWT) |
-| `lib/session.ts` | `requireAuth` / `requireAgency` |
-| `lib/utils.ts` | `cn()` helper |
-| `lib/url.ts` | Website URL validation |
-| `lib/crawl.ts` | Firecrawl + basic crawl + signals |
-| `lib/ai-analysis.ts` | Claude + heuristic AEO analysis |
-| `lib/scan-worker.ts` | Scan pipeline + Action row creation |
-| `lib/default-prompts.ts` | Default tracked prompts |
-| `lib/stripe.ts` | Stripe client |
-| `lib/usage.ts` | Usage meter + soft limits |
-| `lib/rate-limit.ts` | In-memory rate limiter |
+`prisma.ts` · `auth.ts` · `session.ts` · `utils.ts` · `url.ts` · `crawl.ts` · `ai-analysis.ts` · `scan-worker.ts` · `default-prompts.ts` · `stripe.ts` · `usage.ts` · `rate-limit.ts`
 
 ---
 
-## Types
-
-| Path | Role |
-|------|------|
-| `types/next-auth.d.ts` | Session/JWT extensions |
-
----
-
-## App — marketing pages
+## Marketing / content cluster
 
 | Path | Role |
 |------|------|
 | `components/marketing-nav.tsx` | Nav + footer |
-| `app/page.tsx` | Home / landing |
-| `app/product/page.tsx` | Product features |
-| `app/pricing/page.tsx` | PK / INT pricing toggle |
-| `app/aeo/page.tsx` | What is AEO guide + FAQ schema |
-| `app/robots.ts` | robots.txt |
-| `app/sitemap.ts` | sitemap.xml |
+| `app/page.tsx` | Home |
+| `app/product/page.tsx` | Product |
+| `app/pricing/page.tsx` | Pricing PK/INT |
+| `app/aeo/page.tsx` | What is AEO |
+| `app/guides/page.tsx` | Guides hub |
+| `app/guides/aeo-checklist/page.tsx` | Checklist guide |
+| `app/guides/chatgpt-citations/page.tsx` | ChatGPT guide |
+| `app/guides/perplexity-visibility/page.tsx` | Perplexity guide |
+| `app/compare/aeo-tools/page.tsx` | vs free checkers |
+| `app/ai/page.tsx` | AI assistant summary |
+| `app/robots.ts` · `app/sitemap.ts` | Crawl control |
 
 ---
 
-## App — product pages
+## App product UI
 
-| Path | Role |
-|------|------|
-| `app/layout.tsx` | Root layout + global SEO JSON-LD |
-| `app/globals.css` | Global styles |
-| `app/(auth)/login/page.tsx` | Login |
-| `app/(auth)/signup/page.tsx` | Signup |
-| `app/(auth)/forgot-password/page.tsx` | Forgot password |
-| `app/(auth)/reset-password/page.tsx` | Reset password |
-| `app/(auth)/invite/[token]/page.tsx` | Accept invite |
-| `app/onboarding/page.tsx` | Agency onboarding |
-| `app/dashboard/page.tsx` | Client list shell |
-| `app/dashboard/client-list.tsx` | Clients UI + scan progress |
-| `app/dashboard/clients/[id]/page.tsx` | Client workspace |
-| `app/dashboard/clients/[id]/client-actions.tsx` | Start scan control |
-| `app/dashboard/clients/[id]/action-center.tsx` | Action Center UI |
-| `app/dashboard/clients/[id]/visibility-reports.tsx` | Prompts, chart, reports |
-| `app/dashboard/settings/page.tsx` | Team + billing + usage |
-| `app/admin/page.tsx` | Super admin |
-| `app/r/[token]/page.tsx` | Public white-label report |
-| `components/providers.tsx` | SessionProvider wrapper |
+`app/layout.tsx` · `app/(auth)/*` · `app/onboarding` · `app/dashboard/*` · `app/admin` · `app/r/[token]` · `components/providers.tsx`
 
 ---
 
-## App — API routes
+## API (prefix `app/api/`)
 
-### Auth & onboarding
-
-| Path | Methods |
-|------|---------|
-| `app/api/auth/[...nextauth]/route.ts` | GET, POST |
-| `app/api/auth/signup/route.ts` | POST (rate limited) |
-| `app/api/auth/forgot-password/route.ts` | POST |
-| `app/api/auth/reset-password/route.ts` | POST |
-| `app/api/auth/accept-invite/route.ts` | POST |
-| `app/api/onboarding/route.ts` | POST |
-| `app/api/health/route.ts` | GET |
-
-### Clients & scans
-
-| Path | Methods |
-|------|---------|
-| `app/api/clients/route.ts` | GET, POST |
-| `app/api/clients/[id]/route.ts` | GET, PATCH, DELETE |
-| `app/api/clients/[id]/scan/route.ts` | POST (rate limited) |
-| `app/api/scans/[id]/route.ts` | GET |
-
-### Actions
-
-| Path | Methods |
-|------|---------|
-| `app/api/actions/route.ts` | GET |
-| `app/api/actions/[id]/route.ts` | PATCH |
-
-### Visibility & reports
-
-| Path | Methods |
-|------|---------|
-| `app/api/clients/[id]/prompts/route.ts` | GET, POST |
-| `app/api/prompts/[id]/route.ts` | DELETE |
-| `app/api/clients/[id]/snapshots/route.ts` | GET, POST |
-| `app/api/clients/[id]/reports/route.ts` | GET, POST |
-
-### Team & billing
-
-| Path | Methods |
-|------|---------|
-| `app/api/team/members/route.ts` | GET |
-| `app/api/team/invites/route.ts` | GET, POST |
-| `app/api/billing/usage/route.ts` | GET |
-| `app/api/billing/checkout/route.ts` | POST |
-| `app/api/billing/portal/route.ts` | POST |
-| `app/api/billing/webhook/route.ts` | POST (Stripe) |
-
-### Super admin
-
-| Path | Methods |
-|------|---------|
-| `app/api/admin/agencies/route.ts` | GET, POST |
-| `app/api/admin/agencies/[id]/route.ts` | PATCH |
-| `app/api/admin/impersonate/route.ts` | POST |
-
----
-
-## Prisma models (quick)
-
-`Plan` · `Agency` · `User` · `Client` · `Scan` · `Action` · `TrackedPrompt` · `VisibilitySnapshot` · `Report` · `TeamInvite` · `ActivityLog` · `Subscription` · `UsageMeter`
-
-All tenant business tables use **`agencyId`** (except global `Plan`). Soft delete via **`deletedAt`** where applicable.
+Auth: `auth/[...nextauth]`, `auth/signup`, `forgot-password`, `reset-password`, `accept-invite`, `onboarding`, `health`  
+Clients/scans: `clients`, `clients/[id]`, `clients/[id]/scan`, `scans/[id]`  
+Actions: `actions`, `actions/[id]`  
+Visibility: `clients/[id]/prompts`, `prompts/[id]`, `snapshots`, `reports`  
+Team/billing: `team/members`, `team/invites`, `billing/usage|checkout|portal|webhook`  
+Admin: `admin/agencies`, `admin/agencies/[id]`, `admin/impersonate`
 
 ---
 
 ## When you add code
 
-1. Put shared logic in `lib/`.
-2. Put HTTP in `app/api/.../route.ts`.
-3. Put UI under `app/` with clear folders.
-4. Update **this FILEMAP** and **HISTORY.md** in the same ship.
+Update this FILEMAP + HISTORY.md in the same ship.
