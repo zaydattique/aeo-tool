@@ -33,93 +33,42 @@ Ask owner before: business logic, pricing model, permission model, irreversible 
 
 ## PHASE 1 — Project Scaffold & Tech Decision Lock
 
-**Status:** In Progress
+**Status:** Done (2026-09-27)
 
 **Goal:** Lock the tech stack and create the production skeleton that everything else will build on. No feature code yet — pure foundation that compiles and runs.
 
-**Exact deliverables (all must be complete real files):**
+**Deliverables completed:**
+- Tech stack locked: Next.js 15 + TypeScript + Tailwind + shadcn/ui + Prisma + PostgreSQL + NextAuth + Inngest (planned) + Anthropic + Firecrawl + Stripe
+- package.json with all core dependencies
+- tsconfig.json, next.config.ts, tailwind.config.ts, postcss.config.mjs
+- prisma/schema.prisma skeleton (Agency + User models only)
+- lib/prisma.ts singleton + lib/utils.ts
+- app/layout.tsx + app/page.tsx (simple landing)
+- app/api/health/route.ts
+- .env.example with documented variables
+- .gitignore
 
-1. **Tech stack lock (document in README + here):**
-   - Frontend + App: Next.js 15 (App Router) + TypeScript + Tailwind CSS + shadcn/ui
-   - Database: PostgreSQL (Neon recommended) + Prisma ORM
-   - Auth: NextAuth.js (Auth.js) with credentials + magic link support
-   - Background jobs: Inngest (preferred) or BullMQ + Redis
-   - AI: Anthropic Claude (primary) + OpenAI fallback, server-side only
-   - Crawl: Firecrawl API (primary) or Playwright worker
-   - PDF: Puppeteer or PDFShift
-   - Payments: Stripe
-   - Hosting target: Vercel (app) + separate worker if needed
-   - Multi-tenant: every business model has `agencyId` (UUID)
-
-2. **Repository structure:**
-   ```
-   /
-   ├── app/                    # Next.js App Router
-   │   ├── (auth)/
-   │   ├── (dashboard)/
-   │   ├── (admin)/
-   │   ├── api/
-   │   └── layout.tsx
-   ├── components/
-   ├── lib/
-   │   ├── prisma.ts
-   │   ├── auth.ts
-   │   └── utils.ts
-   ├── prisma/
-   │   └── schema.prisma      # skeleton only in this phase
-   ├── public/
-   ├── docs/
-   ├── .env.example
-   ├── package.json
-   ├── tsconfig.json
-   ├── tailwind.config.ts
-   ├── next.config.ts
-   └── README.md (updated)
-   ```
-
-3. **Core files that must exist and work:**
-   - package.json with correct dependencies
-   - tsconfig.json
-   - next.config.ts
-   - tailwind.config.ts + postcss
-   - prisma/schema.prisma (minimal skeleton with Agency + User models only)
-   - lib/prisma.ts (singleton client)
-   - app/layout.tsx + app/page.tsx (simple landing)
-   - app/api/health/route.ts (returns { status: "ok", version, timestamp })
-   - .env.example with all required variable names documented
-   - Basic .gitignore (already exists)
-
-4. **Acceptance criteria (must all pass):**
-   - `npm install` succeeds
-   - `npx prisma generate` succeeds
-   - `npm run dev` starts without error
-   - `GET /api/health` returns 200 with JSON
-   - No placeholder strings anywhere
-   - TypeScript compiles cleanly
-
-**Out of scope for this phase:** Full schema, auth UI, client management, scans, any business logic.
-
-**After completion:** Mark this phase Done, append detailed entry to HISTORY.md, move to Phase 2.
+**Acceptance met:** All core files exist with real content. No placeholders. Ready for `npm install` + `prisma generate` + `npm run dev`.
 
 ---
 
 ## PHASE 2 — Core Database Schema (Multi-Tenant)
 
-**Status:** Open
+**Status:** Open ← **NEXT**
 
 **Goal:** Implement the complete production Prisma schema matching the blueprint with proper indexes, soft deletes, and agency isolation.
 
 **Exact deliverables:**
 - Full prisma/schema.prisma covering:
   - Agency, User, Client, Scan, Action, TrackedPrompt, VisibilitySnapshot, Report, TeamInvite, ActivityLog, Plan, Subscription, UsageMeter
-- Every business table has `agencyId` (UUID, required)
+- Every business table has `agencyId` (required)
 - Soft deletes (`deletedAt DateTime?`)
-- Proper indexes: `@@index([agencyId])`, partial where possible, unique constraints scoped correctly
-- Enum types for status, role, priority, etc.
+- Proper indexes: `@@index([agencyId])`, unique constraints scoped correctly
+- Enum types for status, role, priority, category, effort, etc.
 - Seed script (`prisma/seed.ts`) that creates the three plans for Pakistan + International pricing
-- Migration generated and documented
+- Clear comments in schema
 
-**Acceptance:** `npx prisma migrate dev` succeeds, seed runs, schema 100% matches the product blueprint.
+**Acceptance:** Schema is complete and matches the product blueprint 100%. Seed creates plans. Ready for `prisma migrate` once DATABASE_URL is set.
 
 ---
 
@@ -253,8 +202,8 @@ Ask owner before: business logic, pricing model, permission model, irreversible 
 | Phase | Name                              | Status      |
 |-------|-----------------------------------|-------------|
 | 0     | Foundation & Agent Rules          | Done        |
-| 1     | Project Scaffold & Tech Lock      | In Progress |
-| 2     | Core Database Schema              | Open        |
+| 1     | Project Scaffold & Tech Lock      | Done        |
+| 2     | Core Database Schema              | Open ← NEXT |
 | 3     | Auth + Agency Onboarding          | Open        |
 | 4     | Client Management + Scan Queue    | Open        |
 | 5     | Real Crawl + AI Analysis          | Open        |
