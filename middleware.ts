@@ -6,15 +6,13 @@ export default withAuth(
     const token = req.nextauth.token;
     const path = req.nextUrl.pathname;
 
-    // Super admin routes
-    if (path.startsWith("/admin")) {
+    if (path.startsWith("/admin") || path.startsWith("/api/admin")) {
       if (token?.role !== "SUPER_ADMIN") {
         return NextResponse.redirect(new URL("/dashboard", req.url));
       }
       return NextResponse.next();
     }
 
-    // Onboarding gate for agency owners who haven't finished
     if (
       path.startsWith("/dashboard") &&
       token?.role === "AGENCY_OWNER" &&
@@ -24,7 +22,6 @@ export default withAuth(
       return NextResponse.redirect(new URL("/onboarding", req.url));
     }
 
-    // If already onboarded, don't stay on onboarding page
     if (path === "/onboarding" && token?.onboardingCompleted === true) {
       return NextResponse.redirect(new URL("/dashboard", req.url));
     }
@@ -36,7 +33,6 @@ export default withAuth(
       authorized: ({ token, req }) => {
         const path = req.nextUrl.pathname;
 
-        // Public paths
         if (
           path === "/" ||
           path.startsWith("/login") ||
@@ -44,13 +40,14 @@ export default withAuth(
           path.startsWith("/forgot-password") ||
           path.startsWith("/reset-password") ||
           path.startsWith("/invite") ||
+          path.startsWith("/r/") ||
           path.startsWith("/api/auth") ||
-          path.startsWith("/api/health")
+          path.startsWith("/api/health") ||
+          path.startsWith("/api/billing/webhook")
         ) {
           return true;
         }
 
-        // Everything else requires a session
         return !!token;
       },
     },
@@ -69,5 +66,7 @@ export const config = {
     "/api/reports/:path*",
     "/api/team/:path*",
     "/api/billing/:path*",
+    "/api/admin/:path*",
+    "/api/prompts/:path*",
   ],
 };
