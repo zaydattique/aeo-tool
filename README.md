@@ -7,10 +7,7 @@ Paste a client URL → full scan → prioritized Action Center with exact steps 
 | | |
 |--|--|
 | **Repo** | https://github.com/zaydattique/aeo-tool |
-| **Marketing** | threezero.agency (planned) |
-| **App** | app.threezero.agency (planned) |
-| **Super Admin** | admin.threezero.agency (planned) |
-| **AI entry** | **[AGENTS.md](./AGENTS.md)** — every AI / Grok must read this first |
+| **AI entry** | **[AGENTS.md](./AGENTS.md)** — every AI must read this first |
 | **Roadmap** | [PROJECT_PLAN.md](./PROJECT_PLAN.md) |
 | **History** | [HISTORY.md](./HISTORY.md) |
 
@@ -18,19 +15,9 @@ Paste a client URL → full scan → prioritized Action Center with exact steps 
 
 ## AI / Grok bootstrap (mandatory)
 
-**Any Grok, Cursor, or other AI** working on this repo must do this before coding:
-
-1. Open **[AGENTS.md](./AGENTS.md)** (non-negotiables + source-of-truth map)  
-2. Open **[HISTORY.md](./HISTORY.md)** (what already shipped + incidents)  
-3. Open **[PROJECT_PLAN.md](./PROJECT_PLAN.md)** (next open phase only)  
-4. Use this README for stack and current status  
-
-**Owner paste when starting a new Grok chat:**
-
 ```text
 Repo: zaydattique/aeo-tool
 Mandatory: read AGENTS.md, then HISTORY.md, then PROJECT_PLAN.md, then do my task.
-Repo files win over chat memory.
 Never push placeholders or incomplete files.
 Language: English / Urdu / Roman Urdu only.
 Task: <write task here>
@@ -40,38 +27,23 @@ Task: <write task here>
 
 ## Current Situation (2026-09-27)
 
-- **Phase 0 Done** — Agent rules, history, project plan, README, .cursorrules, .gitignore.
-- **Phase 1 Done** — Full project scaffold + tech stack locked.
-- **Phase 2 Done** — Complete multi-tenant Prisma schema + seed.
-- **Next: Phase 3** — Auth + Agency Onboarding.
+- **Phase 0–3 Done**
+- **Next: Phase 4** — Client Management + Scan Queue
 
-### What exists now
-- Next.js 15 App Router + TypeScript + Tailwind
-- Full Prisma schema (Plan, Agency, User, Client, Scan, Action, TrackedPrompt, VisibilitySnapshot, Report, TeamInvite, ActivityLog, Subscription, UsageMeter)
-- Seed script for Pakistan + International plans
-- `/api/health` endpoint
-- Simple landing page
+### What works now
+- Signup → creates agency + owner (14-day trial)
+- Login / logout
+- Forgot + reset password
+- Accept team invite
+- Onboarding wizard (name + logo URL)
+- Protected dashboard with session context (agencyId, role)
+- Middleware enforces auth + onboarding gate
 
 ### What does NOT exist yet
-- Auth / onboarding (Phase 3)
-- Client management or scans (Phase 4+)
-- Action Center, reports, billing, etc.
-
----
-
-## Locked Tech Stack
-
-| Layer | Choice |
-|-------|--------|
-| Framework | Next.js 15 (App Router) + TypeScript |
-| Styling | Tailwind CSS + shadcn/ui (ready) |
-| Database | PostgreSQL (Neon) + Prisma |
-| Auth | NextAuth.js (Auth.js) |
-| Jobs | Inngest (preferred) |
-| AI | Anthropic Claude (primary) |
-| Crawl | Firecrawl |
-| Payments | Stripe |
-| Hosting | Vercel |
+- Client CRUD / scans (Phase 4)
+- Real crawl + AI (Phase 5)
+- Action Center (Phase 6)
+- Reports, billing, super admin, etc.
 
 ---
 
@@ -81,23 +53,23 @@ Task: <write task here>
 git clone https://github.com/zaydattique/aeo-tool.git
 cd aeo-tool
 cp .env.example .env.local
-# Fill DATABASE_URL and NEXTAUTH_SECRET
+# Set DATABASE_URL and NEXTAUTH_SECRET
 npm install
 npx prisma generate
-npx prisma db push   # or migrate
+npx prisma db push
 npm run db:seed
 npm run dev
 ```
 
-Health check: http://localhost:3000/api/health
+- App: http://localhost:3000  
+- Health: http://localhost:3000/api/health  
+- Signup: http://localhost:3000/signup  
 
 ---
 
-## Product Promise
+## Locked Tech Stack
 
-Strict multi-tenant isolation. Every business table carries `agencyId`.  
-Roles: `super_admin` | `agency_owner` | `agency_member`.  
-Core workflow is the only thing that matters: **URL → Action Center → Report**.
+Next.js 15 · TypeScript · Tailwind · Prisma · PostgreSQL · NextAuth (JWT) · bcryptjs · Zod
 
 ---
 
