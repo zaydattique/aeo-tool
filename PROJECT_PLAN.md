@@ -15,75 +15,46 @@ Ask owner before: business logic, pricing model, permission model, irreversible 
 
 ---
 
-## PHASE 0 — Foundation & Agent Rules
+## PHASE 0–5 — Done (2026-09-27)
 
-**Status:** Done (2026-09-27)
-
----
-
-## PHASE 1 — Project Scaffold & Tech Decision Lock
-
-**Status:** Done (2026-09-27)
-
----
-
-## PHASE 2 — Core Database Schema (Multi-Tenant)
-
-**Status:** Done (2026-09-27)
-
----
-
-## PHASE 3 — Auth + Agency Onboarding
-
-**Status:** Done (2026-09-27)
-
----
-
-## PHASE 4 — Client Management + Scan Queue
-
-**Status:** Done (2026-09-27)
-
----
-
-## PHASE 5 — Real Crawl + AI Analysis Pipeline
-
-**Status:** Done (2026-09-27)
-
-**Goal:** Real website crawl + AI analysis that produces useful structured output.
-
-**Deliverables completed:**
-- `lib/crawl.ts` — Firecrawl API primary, basic fetch fallback; extracts title, meta, headings, schema, links, word count, llms.txt, OG, etc.
-- `lib/ai-analysis.ts` — Claude structured AEO analysis primary, heuristic fallback; returns visibilityScore, dimension scores, strengths/weaknesses, prioritized issues
-- `lib/scan-worker.ts` rewritten — real CRAWL → EXTRACT → AI_ANALYSIS → ACTION_GENERATION → COMPLETED
-- Stores `rawCrawlData` + `aiAnalysis` (with actionDrafts for Phase 6) on Scan
-- Cost tracking fields: provider, model, inputTokens, outputTokens, durationMs
-- Client detail page shows analysis summary, scores, strengths/weaknesses, issues list
-- Works without API keys (heuristic mode) for local dev
-
-**Acceptance met:** Scanning a public website produces meaningful AEO analysis stored on the scan.
+Foundation → Scaffold → Schema → Auth → Clients/Scans → Real crawl + AI
 
 ---
 
 ## PHASE 6 — Action Center (Core Product)
 
-**Status:** Open ← **NEXT**
+**Status:** Done (2026-09-27)
 
 **Goal:** Generate and manage the prioritized Action Center — the main value of AEO Command.
 
-**Exact deliverables:**
-- Persist actionDrafts from scan into Action rows
-- Action Center UI with filters (priority, category, status)
-- Status dropdown, assign to team member, mark done
-- Suggested text copy button
-- Action history
+**Deliverables completed:**
+- Scan worker creates `Action` rows from analysis issues on completion
+- Soft-deletes previous open actions for client so Action Center stays current
+- `GET /api/actions` with filters (clientId, status, priority, category)
+- `PATCH /api/actions/[id]` — status, assign, complete tracking
+- `GET /api/team/members` — for assignment dropdown
+- Action Center UI: filters, status dropdown, assign to teammate, copy suggested text
+- Integrated into client detail page
 
-**Acceptance:** After a real scan, Action Center shows useful, prioritized, actionable items that can be assigned and tracked.
+**Acceptance met:** After a scan, Action Center shows prioritized actions that can be assigned, status-tracked, and marked done.
 
 ---
 
 ## PHASE 7 — Visibility Tracking + Reports
 
-**Status:** Open
+**Status:** Open ← **NEXT**
+
+**Goal:** Track visibility over time and produce white-label reports.
+
+**Exact deliverables:**
+- Tracked prompts (system defaults + custom)
+- Visibility snapshots
+- Score-over-time chart
+- Report generator (sections, logo, colors)
+- PDF generation + live link token
+- White-label support from agency branding
+
+**Acceptance:** Agency can track prompts, see history graph, and download a branded PDF report.
 
 ---
 
@@ -109,8 +80,8 @@ Ask owner before: business logic, pricing model, permission model, irreversible 
 | 3     | Auth + Agency Onboarding          | Done        |
 | 4     | Client Management + Scan Queue    | Done        |
 | 5     | Real Crawl + AI Analysis          | Done        |
-| 6     | Action Center (Core Product)      | Open ← NEXT |
-| 7     | Visibility Tracking + Reports     | Open        |
+| 6     | Action Center (Core Product)      | Done        |
+| 7     | Visibility Tracking + Reports     | Open ← NEXT |
 | 8     | Team, Billing & Super Admin       | Open        |
 | 9     | Marketing + Security + Polish     | Open        |
 
