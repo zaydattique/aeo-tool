@@ -44,7 +44,8 @@ None yet.
 | 2026-09-27 | **Phase 0 complete (Grok)** — Repo initialized. AGENTS.md, HISTORY.md, PROJECT_PLAN.md, README.md, .cursorrules, .gitignore. |
 | 2026-09-27 | **Phase 1 complete (Grok)** — Next.js 15 scaffold, Prisma skeleton, health endpoint, config files. |
 | 2026-09-27 | **Phase 2 complete (Grok)** — Full multi-tenant Prisma schema + seed (6 plans PK/INT). |
-| 2026-09-27 | **Phase 3 complete (Grok)** — Auth + onboarding. NextAuth JWT + credentials; signup creates Agency+Owner; login/forgot/reset/invite flows; onboarding wizard; middleware protects dashboard/admin and gates onboarding; session carries agencyId/role/onboardingCompleted; dashboard placeholder; bcryptjs. |
+| 2026-09-27 | **Phase 3 complete (Grok)** — Auth + onboarding. NextAuth JWT + credentials; signup/login/forgot/reset/invite; onboarding wizard; middleware; dashboard placeholder. |
+| 2026-09-27 | **Phase 4 complete (Grok)** — Client CRUD APIs with URL validation + plan limits. Start scan + status polling. Simulated scan worker (stages + progress). Dashboard client list with add form, live progress bar, client detail + scan history. |
 
 ---
 
