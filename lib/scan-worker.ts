@@ -1,13 +1,13 @@
 import { prisma } from "./prisma";
 import { crawlWebsite } from "./crawl";
 import { analyzeForAeo } from "./ai-analysis";
+import type { ActionPriority, ActionCategory, ActionEffort } from "@prisma/client";
 
 /**
- * Production scan pipeline (Phase 5).
+ * Production scan pipeline.
  * Stages: QUEUED → CRAWL → EXTRACT → AI_ANALYSIS → ACTION_GENERATION → COMPLETED
  *
- * Uses Firecrawl (or basic fetch) + Claude (or heuristic fallback).
- * Action generation stores issue list on aiAnalysis; full Action Center rows in Phase 6.
+ * Phase 6: Creates Action Center rows from analysis issues.
  */
 
 async function updateStage(
@@ -24,6 +24,28 @@ async function updateStage(
       ...extra,
     },
   });
+}
+
+const VALID_PRIORITIES = new Set(["HIGH", "MEDIUM", "LOW"]);
+const VALID_CATEGORIES = new Set([
+  "TECHNICAL",
+  "CONTENT",
+  "SCHEMA",
+  "ENTITY",
+  "AUTHORITY",
+  "PERFORMANCE",
+  "OTHER",
+]);
+const VALID_EFFORTS = new Set(["LOW", "MEDIUM", "HIGH"]);
+
+function normalizePriority(v: string): ActionPriority {
+  return (VALID_PRIORITIES.has(v) ? v : "MEDIUM") as ActionPriority;
+}
+function normalizeCategory(v: string): ActionCategory {
+  return (VALID_CATEGORIES.has(v) ? v : "OTHER") as ActionCategory;
+}
+function normalizeEffort(v: string): ActionEffort {
+  return (VALID_EFFORTS.has(v) ? v : "MEDIUM") as ActionEffort;
 }
 
 export async function runScan(scanId: string) {
@@ -71,7 +93,6 @@ export async function runScan(scanId: string) {
         provider: crawl.provider,
         durationMs: crawl.durationMs,
         signals: crawl.signals,
-        // Store markdown preview, not full HTML (size)
         markdownPreview: crawl.markdown?.slice(0, 15000) ?? null,
         linkCount: crawl.links.length,
         metadata: crawl.metadata,
@@ -85,10 +106,9 @@ export async function runScan(scanId: string) {
       scan.client.brandName || scan.client.name
     );
 
-    // ── ACTION GENERATION (prep for Phase 6) ───────
+    // ── ACTION GENERATION ──────────────────────────
     await updateStage(scanId, "ACTION_GENERATION", 85);
 
-    // Map issues into a structure Action Center will consume
     const actionDrafts = analysis.issues.map((issue, idx) => ({
       order: idx + 1,
       priority: issue.priority,
@@ -97,10 +117,39 @@ export async function runScan(scanId: string) {
       whyItMatters: issue.whyItMatters,
       effortLevel: issue.effort,
       suggestedText: issue.suggestedFix,
-      steps: [
-        { order: 1, text: issue.suggestedFix },
-      ],
+      steps: [{ order: 1, text: issue.suggestedFix }],
     }));
+
+    // Soft-delete previous open actions for this client from older scans
+    // so Action Center stays focused on the latest scan recommendations
+    await prisma.action.updateMany({
+      where: {
+        clientId: scan.client.id,
+        agencyId: scan.agencyId,
+        status: { in: ["TODO", "IN_PROGRESS"] },
+        deletedAt: null,
+      },
+      data: { deletedAt: new Date() },
+    });
+
+    // Create Action rows
+    if (actionDrafts.length > 0) {
+      await prisma.action.createMany({
+        data: actionDrafts.map((d) => ({
+          agencyId: scan.agencyId,
+          clientId: scan.client.id,
+          scanId: scan.id,
+          priority: normalizePriority(d.priority),
+          category: normalizeCategory(d.category),
+          title: d.title.slice(0, 500),
+          whyItMatters: d.whyItMatters.slice(0, 2000),
+          steps: d.steps,
+          effortLevel: normalizeEffort(d.effortLevel),
+          suggestedText: d.suggestedText?.slice(0, 2000) || null,
+          status: "TODO" as const,
+        })),
+      });
+    }
 
     // ── COMPLETED ──────────────────────────────────
     await prisma.scan.update({
@@ -118,6 +167,7 @@ export async function runScan(scanId: string) {
           scores: analysis.scores,
           issues: analysis.issues,
           actionDrafts,
+          actionsCreated: actionDrafts.length,
           provider: analysis.provider,
           model: analysis.model,
           inputTokens: analysis.inputTokens,
@@ -139,7 +189,7 @@ export async function runScan(scanId: string) {
     });
 
     console.log(
-      `[scan-worker] Scan ${scanId} completed — score ${analysis.visibilityScore}, provider=${analysis.provider}, issues=${analysis.issues.length}`
+      `[scan-worker] Scan ${scanId} completed — score ${analysis.visibilityScore}, actions=${actionDrafts.length}, provider=${analysis.provider}`
     );
   } catch (err) {
     console.error(`[scan-worker] Scan ${scanId} failed:`, err);
@@ -172,9 +222,7 @@ export async function runScan(scanId: string) {
   }
 }
 
-/** Fire-and-forget — does not block the API response */
 export function enqueueScan(scanId: string) {
-  // Phase 5+: swap to Inngest / BullMQ for durable queues
   setImmediate(() => {
     runScan(scanId).catch((err) => {
       console.error(`[scan-worker] Unhandled error for ${scanId}:`, err);
@@ -182,6 +230,5 @@ export function enqueueScan(scanId: string) {
   });
 }
 
-// Back-compat aliases used by Phase 4 API
 export const enqueueSimulatedScan = enqueueScan;
 export const runSimulatedScan = runScan;
