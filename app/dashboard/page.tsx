@@ -12,7 +12,11 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
+  // Super admin without impersonation → admin panel
   if (!session.user.agencyId) {
+    if (session.user.role === "SUPER_ADMIN") {
+      redirect("/admin");
+    }
     redirect("/login");
   }
 
@@ -65,6 +69,14 @@ export default async function DashboardPage() {
             <span className="rounded bg-gray-100 px-2 py-0.5 text-xs">
               {session.user.role}
             </span>
+            {session.user.role === "SUPER_ADMIN" && (
+              <Link href="/admin" className="text-muted-foreground hover:underline">
+                Admin
+              </Link>
+            )}
+            <Link href="/dashboard/settings" className="text-muted-foreground hover:underline">
+              Settings
+            </Link>
             <Link
               href="/api/auth/signout"
               className="text-muted-foreground hover:underline"
