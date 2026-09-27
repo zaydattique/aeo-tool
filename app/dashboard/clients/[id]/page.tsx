@@ -4,15 +4,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import { ClientActions } from "./client-actions";
-
-type AnalysisIssue = {
-  category: string;
-  priority: string;
-  title: string;
-  whyItMatters: string;
-  effort: string;
-  suggestedFix: string;
-};
+import { ActionCenter } from "./action-center";
 
 type AiAnalysis = {
   visibilityScore?: number;
@@ -25,7 +17,6 @@ type AiAnalysis = {
     schema: number;
     entity: number;
   };
-  issues?: AnalysisIssue[];
   provider?: string;
   model?: string | null;
 };
@@ -171,46 +162,11 @@ export default async function ClientDetailPage({
                 </div>
               )}
             </div>
-
-            {analysis.issues && analysis.issues.length > 0 && (
-              <div>
-                <h2 className="font-medium mb-3">
-                  Issues ({analysis.issues.length})
-                </h2>
-                <div className="space-y-3">
-                  {analysis.issues.map((issue, i) => (
-                    <div
-                      key={i}
-                      className="rounded-lg border bg-white p-4 space-y-1"
-                    >
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <PriorityBadge priority={issue.priority} />
-                        <span className="text-xs rounded bg-gray-100 px-1.5 py-0.5">
-                          {issue.category}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          effort: {issue.effort?.toLowerCase()}
-                        </span>
-                      </div>
-                      <p className="font-medium text-sm">{issue.title}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {issue.whyItMatters}
-                      </p>
-                      <p className="text-sm">
-                        <span className="font-medium">Fix: </span>
-                        {issue.suggestedFix}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-                <p className="text-xs text-muted-foreground mt-3">
-                  Full Action Center (assign, track, mark done) arrives in Phase
-                  6.
-                </p>
-              </div>
-            )}
           </>
         )}
+
+        {/* Action Center — core product */}
+        <ActionCenter clientId={client.id} />
 
         <div>
           <h2 className="font-medium mb-3">Scan history</h2>
@@ -255,22 +211,5 @@ function StatCard({ label, value }: { label: string; value: string }) {
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="text-lg font-semibold mt-1 capitalize">{value}</p>
     </div>
-  );
-}
-
-function PriorityBadge({ priority }: { priority: string }) {
-  const colors: Record<string, string> = {
-    HIGH: "bg-red-50 text-red-700",
-    MEDIUM: "bg-amber-50 text-amber-700",
-    LOW: "bg-gray-100 text-gray-600",
-  };
-  return (
-    <span
-      className={`rounded px-1.5 py-0.5 text-xs font-medium ${
-        colors[priority] || colors.LOW
-      }`}
-    >
-      {priority}
-    </span>
   );
 }
