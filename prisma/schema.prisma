@@ -1,0 +1,68 @@
+// AEO Command — Prisma Schema
+// Phase 1: Skeleton only (Agency + User). Full schema comes in Phase 2.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  SUPER_ADMIN
+  AGENCY_OWNER
+  AGENCY_MEMBER
+}
+
+enum AgencyStatus {
+  ACTIVE
+  SUSPENDED
+  TRIAL
+  CANCELLED
+}
+
+model Agency {
+  id                   String       @id @default(cuid())
+  name                 String
+  slug                 String       @unique
+  logoUrl              String?
+  brandColors          Json?
+  status               AgencyStatus @default(TRIAL)
+  billingRegion        String?      // 'pakistan' | 'international'
+  stripeCustomerId     String?
+  createdBySuperAdmin  Boolean      @default(false)
+  trialEndsAt          DateTime?
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  deletedAt            DateTime?
+
+  users                User[]
+
+  @@index([status])
+  @@index([deletedAt])
+}
+
+model User {
+  id              String    @id @default(cuid())
+  email           String    @unique
+  passwordHash    String?
+  fullName        String?
+  role            UserRole  @default(AGENCY_MEMBER)
+  agencyId        String?
+  avatarUrl       String?
+  lastLoginAt     DateTime?
+  inviteToken     String?
+  inviteExpiresAt DateTime?
+  emailVerified   DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  deletedAt       DateTime?
+
+  agency          Agency?   @relation(fields: [agencyId], references: [id])
+
+  @@index([agencyId])
+  @@index([deletedAt])
+  @@index([inviteToken])
+}
