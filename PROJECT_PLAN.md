@@ -8,52 +8,41 @@
 
 ---
 
-## PHASE 0–8 — Done
+## PHASE 0–9 — Done
 
-Foundation through Team, Billing & Super Admin (see HISTORY.md for full detail).
-
----
-
-## PHASE 9 — Marketing foundation + Security polish
-
-**Status:** Done (2026-09-28)
-
-**Deliverables completed:**
-- Marketing nav/footer; home, /product, /pricing (PK/INT toggle), /aeo guide
-- SEO: metadata, OG, SoftwareApplication JSON-LD, FAQ + Article schema on /aeo
-- robots.ts, sitemap.ts, public/llms.txt
-- Rate limits: signup (IP), scan start (per agency); plan scan limits retained
-- Soft limits already on team/usage; burst protection added
-
-**Acceptance met:** Public marketing site crawlable; AEO education page live; expensive routes rate-limited.
+See HISTORY.md for full detail.
 
 ---
 
 ## PHASE 10 — Rank-first content + product strength
 
-**Status:** Open ← **NEXT**
-
-**Goal:** Own “AEO tools / Answer Engine Optimization” in search *and* AI suggestions; deepen product value beyond MVP.
-
-**Exact deliverables (sized for one solid agent pass each when split):**
-
 ### 10A — Content cluster (ranking)
-- Comparison page: AEO Command vs free AEO checkers
-- Guide pages: ChatGPT citations, Perplexity visibility, AEO checklist for agencies
-- Internal linking from home/product/pricing into cluster
-- Expand llms.txt + optional `/ai` summary page for assistants
+
+**Status:** Done (2026-09-28)
+
+**Deliverables completed:**
+- Guides hub `/guides`
+- Comparison `/compare/aeo-tools` (vs free checkers) + FAQ schema
+- Guides: AEO checklist, ChatGPT citations, Perplexity visibility
+- `/ai` assistant summary page
+- Expanded `llms.txt`, sitemap, robots
+- Nav/footer internal links across cluster
 
 ### 10B — Product strength
-- Stronger Action Center defaults (better issue→task mapping)
-- Email notification stubs or weekly re-scan schedule design
-- Dashboard UX polish closer to agency-grade UI
-- Document durable queue migration path (Inngest/BullMQ) in HISTORY
 
-### 10C — Deploy readiness notes
+**Status:** Open ← **NEXT**
+
+- Stronger Action Center defaults / issue→task mapping
+- Dashboard UX polish
+- Durable queue migration path documented
+- Email / weekly re-scan design notes or stubs
+
+### 10C — Deploy readiness
+
+**Status:** Open
+
 - Production env checklist in README
-- Super-admin seed script or documented SQL
-
-**Acceptance:** Clear path to rank for primary AEO queries; product feels denser than scan-only MVP.
+- Super-admin seed / documented SQL
 
 ---
 
@@ -61,6 +50,7 @@ Foundation through Team, Billing & Super Admin (see HISTORY.md for full detail).
 
 | Phase | Status |
 |-------|--------|
-| 0–8 | Done |
-| 9 Marketing + security | Done |
-| 10 Rank-first content + product strength | Open ← NEXT |
+| 0–9 | Done |
+| 10A Content cluster | Done |
+| 10B Product strength | Open ← NEXT |
+| 10C Deploy readiness | Open |
