@@ -1,5 +1,6 @@
 // AEO Command — Prisma Schema
 // Phase 2: Complete multi-tenant production schema
+// Phase 3: Added passwordResetToken/Expires on User, onboardingCompleted on Agency
 // Every business table is scoped by agencyId. Soft deletes everywhere.
 // Super-admin-only tables (Plan) have no agencyId.
 
@@ -139,6 +140,7 @@ model Agency {
   planId               String?
   stripeCustomerId     String?
   createdBySuperAdmin  Boolean       @default(false)
+  onboardingCompleted  Boolean       @default(false)
   trialEndsAt          DateTime?
   createdAt            DateTime      @default(now())
   updatedAt            DateTime      @updatedAt
@@ -168,31 +170,34 @@ model Agency {
 // ──────────────────────────────────────────────
 
 model User {
-  id              String    @id @default(cuid())
-  email           String    @unique
-  passwordHash    String?
-  fullName        String?
-  role            UserRole  @default(AGENCY_MEMBER)
-  agencyId        String?   // null only for pure SUPER_ADMIN
-  avatarUrl       String?
-  lastLoginAt     DateTime?
-  inviteToken     String?   @unique
-  inviteExpiresAt DateTime?
-  emailVerified   DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  deletedAt       DateTime?
+  id                    String    @id @default(cuid())
+  email                 String    @unique
+  passwordHash          String?
+  fullName              String?
+  role                  UserRole  @default(AGENCY_MEMBER)
+  agencyId              String?   // null only for pure SUPER_ADMIN
+  avatarUrl             String?
+  lastLoginAt           DateTime?
+  inviteToken           String?   @unique
+  inviteExpiresAt       DateTime?
+  passwordResetToken    String?   @unique
+  passwordResetExpires  DateTime?
+  emailVerified         DateTime?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  deletedAt             DateTime?
 
-  agency          Agency?   @relation(fields: [agencyId], references: [id])
-  assignedActions Action[]  @relation("ActionAssignee")
-  completedActions Action[] @relation("ActionCompleter")
-  generatedReports Report[] @relation("ReportGenerator")
-  activityLogs    ActivityLog[]
-  teamInvitesSent TeamInvite[] @relation("InviteSender")
+  agency                Agency?   @relation(fields: [agencyId], references: [id])
+  assignedActions       Action[]  @relation("ActionAssignee")
+  completedActions      Action[]  @relation("ActionCompleter")
+  generatedReports      Report[]  @relation("ReportGenerator")
+  activityLogs          ActivityLog[]
+  teamInvitesSent       TeamInvite[] @relation("InviteSender")
 
   @@index([agencyId])
   @@index([deletedAt])
   @@index([role])
+  @@index([passwordResetToken])
 }
 
 // ──────────────────────────────────────────────
