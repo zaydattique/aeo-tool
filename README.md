@@ -40,20 +40,31 @@ Task: <write task here>
 
 ## Current Situation (2026-09-27)
 
-- Repo was empty (previous agent only created the blank repository).
-- **Phase 0 complete**: Agent rules, history, project plan, and this README are in place.
-- **Phase 1 is next**: Project scaffold + tech stack lock (Next.js 15 + Prisma + etc.).
+- **Phase 0 Done** — Agent rules, history, project plan, README, .cursorrules, .gitignore.
+- **Phase 1 Done** — Full project scaffold + tech stack locked.
+- **Next: Phase 2** — Complete multi-tenant Prisma schema.
 
-No application code exists yet. Do not invent features ahead of the plan.
+### What exists now
+- Next.js 15 App Router + TypeScript + Tailwind
+- Prisma skeleton (Agency + User models)
+- `/api/health` endpoint
+- Simple landing page
+- All config files ready for `npm install && npm run dev`
+
+### What does NOT exist yet
+- Full database schema (Phase 2)
+- Auth / onboarding (Phase 3)
+- Client management or scans (Phase 4+)
+- Action Center, reports, billing, etc.
 
 ---
 
-## Planned Tech Stack (Phase 1 will lock this)
+## Locked Tech Stack
 
 | Layer | Choice |
 |-------|--------|
 | Framework | Next.js 15 (App Router) + TypeScript |
-| Styling | Tailwind CSS + shadcn/ui |
+| Styling | Tailwind CSS + shadcn/ui (ready) |
 | Database | PostgreSQL (Neon) + Prisma |
 | Auth | NextAuth.js (Auth.js) |
 | Jobs | Inngest (preferred) |
@@ -61,6 +72,22 @@ No application code exists yet. Do not invent features ahead of the plan.
 | Crawl | Firecrawl |
 | Payments | Stripe |
 | Hosting | Vercel |
+
+---
+
+## Local Development (after Phase 1)
+
+```bash
+git clone https://github.com/zaydattique/aeo-tool.git
+cd aeo-tool
+cp .env.example .env.local
+# Fill DATABASE_URL and NEXTAUTH_SECRET
+npm install
+npx prisma generate
+npm run dev
+```
+
+Health check: http://localhost:3000/api/health
 
 ---
 
