@@ -1,5 +1,7 @@
 // AEO Command — Prisma Schema
-// Phase 1: Skeleton only (Agency + User). Full schema comes in Phase 2.
+// Phase 2: Complete multi-tenant production schema
+// Every business table is scoped by agencyId. Soft deletes everywhere.
+// Super-admin-only tables (Plan) have no agencyId.
 
 generator client {
   provider = "prisma-client-js"
@@ -9,6 +11,10 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+// ──────────────────────────────────────────────
+// Enums
+// ──────────────────────────────────────────────
 
 enum UserRole {
   SUPER_ADMIN
@@ -23,26 +29,143 @@ enum AgencyStatus {
   CANCELLED
 }
 
+enum ClientStatus {
+  ACTIVE
+  SCANNING
+  ERROR
+  ARCHIVED
+}
+
+enum ScanStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+enum ScanStage {
+  QUEUED
+  CRAWL
+  EXTRACT
+  AI_ANALYSIS
+  ACTION_GENERATION
+  COMPLETED
+  FAILED
+}
+
+enum ActionPriority {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum ActionCategory {
+  TECHNICAL
+  CONTENT
+  SCHEMA
+  ENTITY
+  AUTHORITY
+  PERFORMANCE
+  OTHER
+}
+
+enum ActionEffort {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ActionStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+  SKIPPED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  CANCELLED
+  TRIALING
+  INCOMPLETE
+}
+
+enum BillingRegion {
+  PAKISTAN
+  INTERNATIONAL
+}
+
+// ──────────────────────────────────────────────
+// Plans (global — no agencyId)
+// ──────────────────────────────────────────────
+
+model Plan {
+  id                  String        @id @default(cuid())
+  name                String        // Starter | Growth | Agency
+  slug                String        @unique // starter-pk | growth-pk | agency-pk | starter-int | ...
+  region              BillingRegion
+  priceMonthly        Int           // in cents (PKR or USD depending on region)
+  currency            String        // PKR | USD
+  maxClients          Int
+  maxScansPerMonth    Int
+  maxTrackedPrompts   Int
+  maxTeamSeats        Int
+  whiteLabel          Boolean       @default(false)
+  features            Json?         // extra feature flags
+  isActive            Boolean       @default(true)
+  sortOrder           Int           @default(0)
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  agencies            Agency[]
+  subscriptions       Subscription[]
+
+  @@index([region, isActive])
+  @@index([slug])
+}
+
+// ──────────────────────────────────────────────
+// Agencies (tenants)
+// ──────────────────────────────────────────────
+
 model Agency {
-  id                   String       @id @default(cuid())
+  id                   String        @id @default(cuid())
   name                 String
-  slug                 String       @unique
+  slug                 String        @unique
   logoUrl              String?
-  brandColors          Json?
-  status               AgencyStatus @default(TRIAL)
-  billingRegion        String?      // 'pakistan' | 'international'
+  brandColors          Json?         // { primary, secondary, accent }
+  status               AgencyStatus  @default(TRIAL)
+  billingRegion        BillingRegion @default(PAKISTAN)
+  planId               String?
   stripeCustomerId     String?
-  createdBySuperAdmin  Boolean      @default(false)
+  createdBySuperAdmin  Boolean       @default(false)
   trialEndsAt          DateTime?
-  createdAt            DateTime     @default(now())
-  updatedAt            DateTime     @updatedAt
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
   deletedAt            DateTime?
 
+  plan                 Plan?         @relation(fields: [planId], references: [id])
   users                User[]
+  clients              Client[]
+  scans                Scan[]
+  actions              Action[]
+  trackedPrompts       TrackedPrompt[]
+  visibilitySnapshots  VisibilitySnapshot[]
+  reports              Report[]
+  teamInvites          TeamInvite[]
+  activityLogs         ActivityLog[]
+  subscriptions        Subscription[]
+  usageMeters          UsageMeter[]
 
   @@index([status])
   @@index([deletedAt])
+  @@index([planId])
+  @@index([stripeCustomerId])
 }
+
+// ──────────────────────────────────────────────
+// Users (agency-scoped; pure super_admins have null agencyId)
+// ──────────────────────────────────────────────
 
 model User {
   id              String    @id @default(cuid())
@@ -50,10 +173,10 @@ model User {
   passwordHash    String?
   fullName        String?
   role            UserRole  @default(AGENCY_MEMBER)
-  agencyId        String?
+  agencyId        String?   // null only for pure SUPER_ADMIN
   avatarUrl       String?
   lastLoginAt     DateTime?
-  inviteToken     String?
+  inviteToken     String?   @unique
   inviteExpiresAt DateTime?
   emailVerified   DateTime?
   createdAt       DateTime  @default(now())
@@ -61,8 +184,273 @@ model User {
   deletedAt       DateTime?
 
   agency          Agency?   @relation(fields: [agencyId], references: [id])
+  assignedActions Action[]  @relation("ActionAssignee")
+  completedActions Action[] @relation("ActionCompleter")
+  generatedReports Report[] @relation("ReportGenerator")
+  activityLogs    ActivityLog[]
+  teamInvitesSent TeamInvite[] @relation("InviteSender")
 
   @@index([agencyId])
   @@index([deletedAt])
-  @@index([inviteToken])
+  @@index([role])
+}
+
+// ──────────────────────────────────────────────
+// Clients (belong to agency)
+// ──────────────────────────────────────────────
+
+model Client {
+  id                     String       @id @default(cuid())
+  agencyId               String
+  name                   String
+  websiteUrl             String
+  brandName              String?
+  location               String?
+  keywords               String[]     // Postgres text array
+  currentVisibilityScore Int?         // 0-100
+  lastScannedAt          DateTime?
+  status                 ClientStatus @default(ACTIVE)
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+  deletedAt              DateTime?
+
+  agency                 Agency       @relation(fields: [agencyId], references: [id])
+  scans                  Scan[]
+  actions                Action[]
+  trackedPrompts         TrackedPrompt[]
+  visibilitySnapshots    VisibilitySnapshot[]
+  reports                Report[]
+
+  @@index([agencyId])
+  @@index([agencyId, deletedAt])
+  @@index([status])
+  @@index([lastScannedAt])
+}
+
+// ──────────────────────────────────────────────
+// Scans
+// ──────────────────────────────────────────────
+
+model Scan {
+  id              String     @id @default(cuid())
+  agencyId        String
+  clientId        String
+  status          ScanStatus @default(QUEUED)
+  stage           ScanStage  @default(QUEUED)
+  progress        Int        @default(0) // 0-100
+  startedAt       DateTime?
+  completedAt     DateTime?
+  errorMessage    String?
+  rawCrawlData    Json?      // or S3 reference later
+  aiAnalysis      Json?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  agency          Agency     @relation(fields: [agencyId], references: [id])
+  client          Client     @relation(fields: [clientId], references: [id])
+  actions         Action[]
+
+  @@index([agencyId])
+  @@index([clientId])
+  @@index([agencyId, status])
+  @@index([status, createdAt])
+}
+
+// ──────────────────────────────────────────────
+// Actions (Action Center)
+// ──────────────────────────────────────────────
+
+model Action {
+  id             String         @id @default(cuid())
+  agencyId       String
+  clientId       String
+  scanId         String?
+  priority       ActionPriority @default(MEDIUM)
+  category       ActionCategory @default(OTHER)
+  title          String
+  whyItMatters   String
+  steps          Json           // array of step objects: [{ order, text, done? }]
+  effortLevel    ActionEffort   @default(MEDIUM)
+  suggestedText  String?
+  status         ActionStatus   @default(TODO)
+  assignedToId   String?
+  completedAt    DateTime?
+  completedById  String?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  deletedAt      DateTime?
+
+  agency         Agency         @relation(fields: [agencyId], references: [id])
+  client         Client         @relation(fields: [clientId], references: [id])
+  scan           Scan?          @relation(fields: [scanId], references: [id])
+  assignedTo     User?          @relation("ActionAssignee", fields: [assignedToId], references: [id])
+  completedBy    User?          @relation("ActionCompleter", fields: [completedById], references: [id])
+
+  @@index([agencyId])
+  @@index([clientId])
+  @@index([agencyId, status])
+  @@index([agencyId, priority])
+  @@index([assignedToId])
+  @@index([scanId])
+  @@index([deletedAt])
+}
+
+// ──────────────────────────────────────────────
+// Visibility Tracking
+// ──────────────────────────────────────────────
+
+model TrackedPrompt {
+  id          String   @id @default(cuid())
+  agencyId    String
+  clientId    String
+  promptText  String
+  isCustom    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  deletedAt   DateTime?
+
+  agency      Agency   @relation(fields: [agencyId], references: [id])
+  client      Client   @relation(fields: [clientId], references: [id])
+  snapshots   VisibilitySnapshot[]
+
+  @@index([agencyId])
+  @@index([clientId])
+  @@index([agencyId, clientId])
+  @@index([deletedAt])
+}
+
+model VisibilitySnapshot {
+  id          String   @id @default(cuid())
+  agencyId    String
+  clientId    String
+  promptId    String
+  score       Decimal  @db.Decimal(5, 2) // 0.00 - 100.00
+  sources     Json?    // which AI engines / citations
+  recordedAt  DateTime @default(now())
+
+  agency      Agency   @relation(fields: [agencyId], references: [id])
+  client      Client   @relation(fields: [clientId], references: [id])
+  prompt      TrackedPrompt @relation(fields: [promptId], references: [id])
+
+  @@index([agencyId])
+  @@index([clientId])
+  @@index([promptId])
+  @@index([agencyId, clientId, recordedAt])
+}
+
+// ──────────────────────────────────────────────
+// Reports
+// ──────────────────────────────────────────────
+
+model Report {
+  id              String   @id @default(cuid())
+  agencyId        String
+  clientId        String
+  generatedById   String?
+  config          Json?    // sections, logo override, colors
+  pdfUrl          String?
+  liveLinkToken   String?  @unique
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  deletedAt       DateTime?
+
+  agency          Agency   @relation(fields: [agencyId], references: [id])
+  client          Client   @relation(fields: [clientId], references: [id])
+  generatedBy     User?    @relation("ReportGenerator", fields: [generatedById], references: [id])
+
+  @@index([agencyId])
+  @@index([clientId])
+  @@index([liveLinkToken])
+  @@index([deletedAt])
+}
+
+// ──────────────────────────────────────────────
+// Team Invites
+// ──────────────────────────────────────────────
+
+model TeamInvite {
+  id          String    @id @default(cuid())
+  agencyId    String
+  email       String
+  role        UserRole  @default(AGENCY_MEMBER)
+  token       String    @unique
+  invitedById String?
+  expiresAt   DateTime
+  acceptedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  agency      Agency    @relation(fields: [agencyId], references: [id])
+  invitedBy   User?     @relation("InviteSender", fields: [invitedById], references: [id])
+
+  @@index([agencyId])
+  @@index([token])
+  @@index([email])
+  @@unique([agencyId, email])
+}
+
+// ──────────────────────────────────────────────
+// Activity Log (audit trail)
+// ──────────────────────────────────────────────
+
+model ActivityLog {
+  id           String   @id @default(cuid())
+  agencyId     String?
+  actorId      String?
+  action       String   // e.g. "client.created", "scan.started", "action.completed"
+  resourceType String?  // e.g. "client", "scan", "action"
+  resourceId   String?
+  metadata     Json?
+  ip           String?
+  createdAt    DateTime @default(now())
+
+  agency       Agency?  @relation(fields: [agencyId], references: [id])
+  actor        User?    @relation(fields: [actorId], references: [id])
+
+  @@index([agencyId])
+  @@index([actorId])
+  @@index([agencyId, createdAt])
+  @@index([resourceType, resourceId])
+}
+
+// ──────────────────────────────────────────────
+// Billing
+// ──────────────────────────────────────────────
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  agencyId             String
+  planId               String
+  stripeSubscriptionId String?            @unique
+  status               SubscriptionStatus @default(TRIALING)
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean            @default(false)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  agency               Agency             @relation(fields: [agencyId], references: [id])
+  plan                 Plan               @relation(fields: [planId], references: [id])
+
+  @@index([agencyId])
+  @@index([planId])
+  @@index([status])
+}
+
+model UsageMeter {
+  id                String   @id @default(cuid())
+  agencyId          String
+  periodStart       DateTime // start of billing month
+  periodEnd         DateTime
+  clientsCount      Int      @default(0)
+  scansUsed         Int      @default(0)
+  promptsUsed       Int      @default(0)
+  reportsGenerated  Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  agency            Agency   @relation(fields: [agencyId], references: [id])
+
+  @@unique([agencyId, periodStart])
+  @@index([agencyId])
+  @@index([periodStart])
 }
