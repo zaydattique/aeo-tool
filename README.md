@@ -27,21 +27,18 @@ Task: <write task here>
 
 ## Current Situation (2026-09-27)
 
-- **Phase 0–3 Done**
-- **Next: Phase 4** — Client Management + Scan Queue
+- **Phase 0–4 Done**
+- **Next: Phase 5** — Real Crawl + AI Analysis
 
 ### What works now
-- Signup → creates agency + owner (14-day trial)
-- Login / logout
-- Forgot + reset password
-- Accept team invite
-- Onboarding wizard (name + logo URL)
-- Protected dashboard with session context (agencyId, role)
-- Middleware enforces auth + onboarding gate
+- Auth: signup, login, forgot/reset password, team invite, onboarding
+- Client CRUD with URL validation + plan limits
+- Start scan → live progress bar through stages → complete
+- Simulated analysis sets a visibility score (real AI in Phase 5)
+- Client detail + scan history
 
 ### What does NOT exist yet
-- Client CRUD / scans (Phase 4)
-- Real crawl + AI (Phase 5)
+- Real website crawl + Claude analysis (Phase 5)
 - Action Center (Phase 6)
 - Reports, billing, super admin, etc.
 
@@ -62,14 +59,7 @@ npm run dev
 ```
 
 - App: http://localhost:3000  
-- Health: http://localhost:3000/api/health  
-- Signup: http://localhost:3000/signup  
-
----
-
-## Locked Tech Stack
-
-Next.js 15 · TypeScript · Tailwind · Prisma · PostgreSQL · NextAuth (JWT) · bcryptjs · Zod
+- Dashboard: http://localhost:3000/dashboard  
 
 ---
 
