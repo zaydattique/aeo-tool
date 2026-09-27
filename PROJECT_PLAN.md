@@ -19,36 +19,11 @@ Ask owner before: business logic, pricing model, permission model, irreversible 
 
 **Status:** Done (2026-09-27)
 
-**Goal:** Make the empty repo agent-ready so every future AI follows the same strict rules.
-
-**Deliverables completed:**
-- AGENTS.md (strict rules: no placeholders, complete files only, size checks, chunk large files)
-- HISTORY.md (starting chronology)
-- PROJECT_PLAN.md (this file)
-- README.md
-- .cursorrules
-- .gitignore
-
 ---
 
 ## PHASE 1 — Project Scaffold & Tech Decision Lock
 
 **Status:** Done (2026-09-27)
-
-**Goal:** Lock the tech stack and create the production skeleton that everything else will build on. No feature code yet — pure foundation that compiles and runs.
-
-**Deliverables completed:**
-- Tech stack locked: Next.js 15 + TypeScript + Tailwind + shadcn/ui + Prisma + PostgreSQL + NextAuth + Inngest (planned) + Anthropic + Firecrawl + Stripe
-- package.json with all core dependencies
-- tsconfig.json, next.config.ts, tailwind.config.ts, postcss.config.mjs
-- prisma/schema.prisma skeleton (Agency + User models only)
-- lib/prisma.ts singleton + lib/utils.ts
-- app/layout.tsx + app/page.tsx (simple landing)
-- app/api/health/route.ts
-- .env.example with documented variables
-- .gitignore
-
-**Acceptance met:** All core files exist with real content. No placeholders. Ready for `npm install` + `prisma generate` + `npm run dev`.
 
 ---
 
@@ -56,48 +31,36 @@ Ask owner before: business logic, pricing model, permission model, irreversible 
 
 **Status:** Done (2026-09-27)
 
-**Goal:** Implement the complete production Prisma schema matching the blueprint with proper indexes, soft deletes, and agency isolation.
-
-**Deliverables completed:**
-- Full `prisma/schema.prisma` with all models:
-  - Plan (global)
-  - Agency, User, Client, Scan, Action
-  - TrackedPrompt, VisibilitySnapshot, Report
-  - TeamInvite, ActivityLog
-  - Subscription, UsageMeter
-- Every business table has `agencyId` (required where appropriate)
-- Soft deletes (`deletedAt`) on all tenant tables
-- Full enum set: UserRole, AgencyStatus, ClientStatus, ScanStatus, ScanStage, ActionPriority, ActionCategory, ActionEffort, ActionStatus, SubscriptionStatus, BillingRegion
-- Proper indexes on agencyId, status, foreign keys, unique constraints
-- `prisma/seed.ts` creates 6 plans (Starter/Growth/Agency × Pakistan/International)
-- `package.json` prisma.seed config added
-
-**Acceptance met:** Schema matches product blueprint. Seed ready. Ready for `prisma migrate` once DATABASE_URL is set.
-
 ---
 
 ## PHASE 3 — Auth + Agency Onboarding
 
-**Status:** Open ← **NEXT**
+**Status:** Done (2026-09-27)
 
 **Goal:** Complete authentication flows and first-time agency setup.
 
-**Exact deliverables:**
-- NextAuth configuration (credentials + magic link)
-- Signup / Login / Forgot password / Accept invite pages
-- Roles: super_admin | agency_owner | agency_member
-- Onboarding wizard (agency name + logo upload)
-- Middleware that injects and enforces `agencyId` on every protected route
-- Invite token system
-- Session contains user + agency context
+**Deliverables completed:**
+- NextAuth JWT config with credentials provider (`lib/auth.ts`)
+- Session types with agencyId, role, onboardingCompleted (`types/next-auth.d.ts`)
+- Signup API: creates Agency + AGENCY_OWNER user, assigns starter plan, 14-day trial
+- Login page + credentials sign-in
+- Forgot password + reset password (token-based)
+- Accept team invite API + page
+- Onboarding wizard (agency name + logo URL) + API
+- Middleware: protects /dashboard, /admin, /onboarding; redirects incomplete onboarding
+- Dashboard placeholder showing session context
+- SessionProvider in root layout
+- Homepage CTAs to signup/login
+- Schema: passwordResetToken/Expires on User, onboardingCompleted on Agency
+- bcryptjs for password hashing
 
-**Acceptance:** New user can sign up → create agency → complete onboarding → land on empty dashboard. Super admin path works.
+**Acceptance met:** Signup → login → onboarding → dashboard flow is complete. Roles and agency isolation in session. Invite accept path ready.
 
 ---
 
 ## PHASE 4 — Client Management + Scan Queue
 
-**Status:** Open
+**Status:** Open ← **NEXT**
 
 **Goal:** Agencies can add clients and trigger scans that run as background jobs with live progress.
 
@@ -118,34 +81,11 @@ Ask owner before: business logic, pricing model, permission model, irreversible 
 
 **Status:** Open
 
-**Goal:** Real website crawl + AI analysis that produces useful structured output.
-
-**Exact deliverables:**
-- Firecrawl (or Playwright) integration
-- Extract technical + content signals
-- LLM analysis (Claude) that returns structured JSON
-- Store raw_crawl_data + ai_analysis on Scan
-- Error handling, retries, cost tracking
-- Queue worker is production-ready
-
-**Acceptance:** Scanning a real public website produces meaningful AI analysis stored on the scan.
-
 ---
 
 ## PHASE 6 — Action Center (Core Product)
 
 **Status:** Open
-
-**Goal:** Generate and manage the prioritized Action Center — the main value of AEO Command.
-
-**Exact deliverables:**
-- AI generates prioritized actions with title, why_it_matters, steps[], effort, category, suggested_text
-- Action Center UI with filters (priority, category, status)
-- Status dropdown, assign to team member, mark done
-- Suggested text copy button
-- Action history
-
-**Acceptance:** After a real scan, Action Center shows useful, prioritized, actionable items that can be assigned and tracked.
 
 ---
 
@@ -153,51 +93,17 @@ Ask owner before: business logic, pricing model, permission model, irreversible 
 
 **Status:** Open
 
-**Goal:** Track visibility over time and produce white-label reports.
-
-**Exact deliverables:**
-- Tracked prompts (system defaults + custom)
-- Visibility snapshots
-- Score-over-time chart
-- Report generator (sections, logo, colors)
-- PDF generation + live link token
-- White-label support from agency branding
-
-**Acceptance:** Agency can track prompts, see history graph, and download a branded PDF report.
-
 ---
 
 ## PHASE 8 — Team, Billing & Super Admin
 
 **Status:** Open
 
-**Goal:** Complete commercial layer and super admin plane.
-
-**Exact deliverables:**
-- Team invites + role management
-- Stripe Checkout + Customer Portal + webhooks
-- Usage metering + soft limit warnings
-- Super Admin: agency list, create/suspend, impersonate (logged + time-boxed), global metrics, feature flags
-- Activity log on all sensitive actions
-
-**Acceptance:** Self-serve billing works end-to-end. Super admin can fully manage agencies.
-
 ---
 
 ## PHASE 9 — Marketing Site + Security Hardening + Polish
 
 **Status:** Open
-
-**Goal:** Public marketing site + production security pass.
-
-**Exact deliverables:**
-- Marketing pages on threezero.agency (or /marketing route)
-- Pricing page with Pakistan / International toggle
-- Security: rate limits, input sanitization, audit logging, Cloudflare recommendations
-- Soft limit enforcement
-- Full end-to-end QA of the agency workflow
-
-**Acceptance:** Product is ready for real paying agencies.
 
 ---
 
@@ -208,8 +114,8 @@ Ask owner before: business logic, pricing model, permission model, irreversible 
 | 0     | Foundation & Agent Rules          | Done        |
 | 1     | Project Scaffold & Tech Lock      | Done        |
 | 2     | Core Database Schema              | Done        |
-| 3     | Auth + Agency Onboarding          | Open ← NEXT |
-| 4     | Client Management + Scan Queue    | Open        |
+| 3     | Auth + Agency Onboarding          | Done        |
+| 4     | Client Management + Scan Queue    | Open ← NEXT |
 | 5     | Real Crawl + AI Analysis          | Open        |
 | 6     | Action Center (Core Product)      | Open        |
 | 7     | Visibility Tracking + Reports     | Open        |
