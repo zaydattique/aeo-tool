@@ -4,44 +4,56 @@
 
 ## Boot every session
 
-1. AGENTS.md → 2. This file → 3. HISTORY.md
+1. AGENTS.md → 2. This file → 3. HISTORY.md → 4. docs/FILEMAP.md
 
 ---
 
-## PHASE 0–7 — Done (2026-09-27)
+## PHASE 0–8 — Done
 
-Foundation through Visibility + Reports
+Foundation through Team, Billing & Super Admin (see HISTORY.md for full detail).
 
 ---
 
-## PHASE 8 — Team, Billing & Super Admin
+## PHASE 9 — Marketing foundation + Security polish
 
 **Status:** Done (2026-09-28)
 
 **Deliverables completed:**
-- Team invites API + Settings UI (invite members/owners, pending list, seat limits)
-- Stripe Checkout + Customer Portal + webhook (subscription lifecycle)
-- Usage metering + soft limit warnings on Settings
-- Super Admin `/admin`: agency list, metrics, create agency, suspend/activate, impersonate (logged, 1h)
-- Activity logs on invite, billing, admin actions
-- Middleware: admin routes, public webhook
+- Marketing nav/footer; home, /product, /pricing (PK/INT toggle), /aeo guide
+- SEO: metadata, OG, SoftwareApplication JSON-LD, FAQ + Article schema on /aeo
+- robots.ts, sitemap.ts, public/llms.txt
+- Rate limits: signup (IP), scan start (per agency); plan scan limits retained
+- Soft limits already on team/usage; burst protection added
 
-**Acceptance met:** Team invites work; billing APIs ready when Stripe keys set; super admin can manage agencies.
+**Acceptance met:** Public marketing site crawlable; AEO education page live; expensive routes rate-limited.
 
 ---
 
-## PHASE 9 — Marketing Site + Security Hardening + Polish
+## PHASE 10 — Rank-first content + product strength
 
 **Status:** Open ← **NEXT**
 
-**Exact deliverables:**
-- Marketing pages foundation
-- Pricing page with Pakistan / International toggle
-- Security: rate limits, input hardening notes
-- Soft limit enforcement polish
-- End-to-end QA of agency workflow
+**Goal:** Own “AEO tools / Answer Engine Optimization” in search *and* AI suggestions; deepen product value beyond MVP.
 
-**Acceptance:** Product ready for real paying agencies.
+**Exact deliverables (sized for one solid agent pass each when split):**
+
+### 10A — Content cluster (ranking)
+- Comparison page: AEO Command vs free AEO checkers
+- Guide pages: ChatGPT citations, Perplexity visibility, AEO checklist for agencies
+- Internal linking from home/product/pricing into cluster
+- Expand llms.txt + optional `/ai` summary page for assistants
+
+### 10B — Product strength
+- Stronger Action Center defaults (better issue→task mapping)
+- Email notification stubs or weekly re-scan schedule design
+- Dashboard UX polish closer to agency-grade UI
+- Document durable queue migration path (Inngest/BullMQ) in HISTORY
+
+### 10C — Deploy readiness notes
+- Production env checklist in README
+- Super-admin seed script or documented SQL
+
+**Acceptance:** Clear path to rank for primary AEO queries; product feels denser than scan-only MVP.
 
 ---
 
@@ -49,6 +61,6 @@ Foundation through Visibility + Reports
 
 | Phase | Status |
 |-------|--------|
-| 0–7 | Done |
-| 8 Team, Billing & Super Admin | Done |
-| 9 Marketing + Security + Polish | Open ← NEXT |
+| 0–8 | Done |
+| 9 Marketing + security | Done |
+| 10 Rank-first content + product strength | Open ← NEXT |
