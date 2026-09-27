@@ -1,0 +1,17 @@
+# Cursor / AI rules — same as AGENTS.md (read AGENTS.md in full)
+
+Repo: zaydattique/aeo-tool
+Product: AEO Command
+
+MUST:
+- Read AGENTS.md + HISTORY.md + PROJECT_PLAN.md before any code changes
+- Read current file from main before edit
+- Surgical patches preferred
+- NEVER commit PLACEHOLDER, stubs, TODOs, or truncated files
+- NEVER commit .env or secrets
+- Verify file size and content before push
+- Every business table/query must be scoped by agencyId
+- One phase at a time — do not jump ahead
+- After ship: update HISTORY.md + mark phase Done in PROJECT_PLAN.md
+
+Language with owner: English / Urdu / Roman Urdu only.
