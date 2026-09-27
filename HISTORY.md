@@ -1,18 +1,17 @@
 # AEO Command — HISTORY
 
-> Repo: `zaydattique/aeo-tool` · Last updated: **2026-09-27**
-
-**AEO Command** — multi-tenant AEO/GEO for agencies. URL → scan → Action Center → report.
+> Repo: `zaydattique/aeo-tool` · Last updated: **2026-09-28**
 
 ## Gotchas
 
-- Scans work without API keys (heuristic). Set `FIRECRAWL_API_KEY` + `ANTHROPIC_API_KEY` for production.
-- Visibility snapshots are MVP estimates from scan score ± variance (not live multi-engine citation checks yet).
-- Reports use print-to-PDF (browser); no server-side PDF binary yet.
+- Scans: optional `FIRECRAWL_API_KEY` + `ANTHROPIC_API_KEY`
+- Billing: requires `STRIPE_SECRET_KEY` + webhook secret; without keys checkout returns 503
+- Super admin users need `role: SUPER_ADMIN` and typically null `agencyId` until impersonation
+- Visibility snapshots are MVP estimates (not live multi-engine checks)
 
 ## Chronology
 
 | Date | What |
 |------|------|
-| 2026-09-27 | **Phase 0–6 (Grok)** — Foundation through Action Center. |
-| 2026-09-27 | **Phase 7 complete (Grok)** — Tracked prompts + defaults, visibility snapshots, score chart, white-label report generator, public live link `/r/[token]` with print/PDF. |
+| 2026-09-27 | Phases 0–7 (Grok) — foundation through reports |
+| 2026-09-28 | **Phase 8 (Grok)** — Team invites, Stripe checkout/portal/webhook, usage metering, Super Admin panel (list/create/suspend/impersonate) |
