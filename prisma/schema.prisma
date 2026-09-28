@@ -1,8 +1,5 @@
 // AEO Command — Prisma Schema
-// Phase 2: Complete multi-tenant production schema
-// Phase 3: Added passwordResetToken/Expires on User, onboardingCompleted on Agency
-// Every business table is scoped by agencyId. Soft deletes everywhere.
-// Super-admin-only tables (Plan) have no agencyId.
+// Multi-tenant production schema. Every business table scoped by agencyId.
 
 generator client {
   provider = "prisma-client-js"
@@ -12,10 +9,6 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
-
-// ──────────────────────────────────────────────
-// Enums
-// ──────────────────────────────────────────────
 
 enum UserRole {
   SUPER_ADMIN
@@ -96,23 +89,19 @@ enum BillingRegion {
   INTERNATIONAL
 }
 
-// ──────────────────────────────────────────────
-// Plans (global — no agencyId)
-// ──────────────────────────────────────────────
-
 model Plan {
   id                  String        @id @default(cuid())
-  name                String        // Starter | Growth | Agency
-  slug                String        @unique // starter-pk | growth-pk | agency-pk | starter-int | ...
+  name                String
+  slug                String        @unique
   region              BillingRegion
-  priceMonthly        Int           // in cents (PKR or USD depending on region)
-  currency            String        // PKR | USD
+  priceMonthly        Int
+  currency            String
   maxClients          Int
   maxScansPerMonth    Int
   maxTrackedPrompts   Int
   maxTeamSeats        Int
   whiteLabel          Boolean       @default(false)
-  features            Json?         // extra feature flags
+  features            Json?
   isActive            Boolean       @default(true)
   sortOrder           Int           @default(0)
   createdAt           DateTime      @default(now())
@@ -125,16 +114,12 @@ model Plan {
   @@index([slug])
 }
 
-// ──────────────────────────────────────────────
-// Agencies (tenants)
-// ──────────────────────────────────────────────
-
 model Agency {
   id                   String        @id @default(cuid())
   name                 String
   slug                 String        @unique
   logoUrl              String?
-  brandColors          Json?         // { primary, secondary, accent }
+  brandColors          Json?
   status               AgencyStatus  @default(TRIAL)
   billingRegion        BillingRegion @default(PAKISTAN)
   planId               String?
@@ -165,17 +150,13 @@ model Agency {
   @@index([stripeCustomerId])
 }
 
-// ──────────────────────────────────────────────
-// Users (agency-scoped; pure super_admins have null agencyId)
-// ──────────────────────────────────────────────
-
 model User {
   id                    String    @id @default(cuid())
   email                 String    @unique
   passwordHash          String?
   fullName              String?
   role                  UserRole  @default(AGENCY_MEMBER)
-  agencyId              String?   // null only for pure SUPER_ADMIN
+  agencyId              String?
   avatarUrl             String?
   lastLoginAt           DateTime?
   inviteToken           String?   @unique
@@ -200,10 +181,6 @@ model User {
   @@index([passwordResetToken])
 }
 
-// ──────────────────────────────────────────────
-// Clients (belong to agency)
-// ──────────────────────────────────────────────
-
 model Client {
   id                     String       @id @default(cuid())
   agencyId               String
@@ -211,10 +188,14 @@ model Client {
   websiteUrl             String
   brandName              String?
   location               String?
-  keywords               String[]     // Postgres text array
-  currentVisibilityScore Int?         // 0-100
+  keywords               String[]
+  currentVisibilityScore Int?
   lastScannedAt          DateTime?
   status                 ClientStatus @default(ACTIVE)
+  // Weekly re-scan (Inngest cron)
+  rescanEnabled          Boolean      @default(false)
+  rescanIntervalDays     Int          @default(7)
+  nextRescanAt           DateTime?
   createdAt              DateTime     @default(now())
   updatedAt              DateTime     @updatedAt
   deletedAt              DateTime?
@@ -230,11 +211,8 @@ model Client {
   @@index([agencyId, deletedAt])
   @@index([status])
   @@index([lastScannedAt])
+  @@index([rescanEnabled, nextRescanAt])
 }
-
-// ──────────────────────────────────────────────
-// Scans
-// ──────────────────────────────────────────────
 
 model Scan {
   id              String     @id @default(cuid())
@@ -242,11 +220,11 @@ model Scan {
   clientId        String
   status          ScanStatus @default(QUEUED)
   stage           ScanStage  @default(QUEUED)
-  progress        Int        @default(0) // 0-100
+  progress        Int        @default(0)
   startedAt       DateTime?
   completedAt     DateTime?
   errorMessage    String?
-  rawCrawlData    Json?      // or S3 reference later
+  rawCrawlData    Json?
   aiAnalysis      Json?
   createdAt       DateTime   @default(now())
   updatedAt       DateTime   @updatedAt
@@ -261,10 +239,6 @@ model Scan {
   @@index([status, createdAt])
 }
 
-// ──────────────────────────────────────────────
-// Actions (Action Center)
-// ──────────────────────────────────────────────
-
 model Action {
   id             String         @id @default(cuid())
   agencyId       String
@@ -274,7 +248,7 @@ model Action {
   category       ActionCategory @default(OTHER)
   title          String
   whyItMatters   String
-  steps          Json           // array of step objects: [{ order, text, done? }]
+  steps          Json
   effortLevel    ActionEffort   @default(MEDIUM)
   suggestedText  String?
   status         ActionStatus   @default(TODO)
@@ -299,10 +273,6 @@ model Action {
   @@index([scanId])
   @@index([deletedAt])
 }
-
-// ──────────────────────────────────────────────
-// Visibility Tracking
-// ──────────────────────────────────────────────
 
 model TrackedPrompt {
   id          String   @id @default(cuid())
@@ -329,8 +299,8 @@ model VisibilitySnapshot {
   agencyId    String
   clientId    String
   promptId    String
-  score       Decimal  @db.Decimal(5, 2) // 0.00 - 100.00
-  sources     Json?    // which AI engines / citations
+  score       Decimal  @db.Decimal(5, 2)
+  sources     Json?
   recordedAt  DateTime @default(now())
 
   agency      Agency   @relation(fields: [agencyId], references: [id])
@@ -343,16 +313,12 @@ model VisibilitySnapshot {
   @@index([agencyId, clientId, recordedAt])
 }
 
-// ──────────────────────────────────────────────
-// Reports
-// ──────────────────────────────────────────────
-
 model Report {
   id              String   @id @default(cuid())
   agencyId        String
   clientId        String
   generatedById   String?
-  config          Json?    // sections, logo override, colors
+  config          Json?
   pdfUrl          String?
   liveLinkToken   String?  @unique
   createdAt       DateTime @default(now())
@@ -368,10 +334,6 @@ model Report {
   @@index([liveLinkToken])
   @@index([deletedAt])
 }
-
-// ──────────────────────────────────────────────
-// Team Invites
-// ──────────────────────────────────────────────
 
 model TeamInvite {
   id          String    @id @default(cuid())
@@ -393,16 +355,12 @@ model TeamInvite {
   @@unique([agencyId, email])
 }
 
-// ──────────────────────────────────────────────
-// Activity Log (audit trail)
-// ──────────────────────────────────────────────
-
 model ActivityLog {
   id           String   @id @default(cuid())
   agencyId     String?
   actorId      String?
-  action       String   // e.g. "client.created", "scan.started", "action.completed"
-  resourceType String?  // e.g. "client", "scan", "action"
+  action       String
+  resourceType String?
   resourceId   String?
   metadata     Json?
   ip           String?
@@ -416,10 +374,6 @@ model ActivityLog {
   @@index([agencyId, createdAt])
   @@index([resourceType, resourceId])
 }
-
-// ──────────────────────────────────────────────
-// Billing
-// ──────────────────────────────────────────────
 
 model Subscription {
   id                   String             @id @default(cuid())
@@ -444,7 +398,7 @@ model Subscription {
 model UsageMeter {
   id                String   @id @default(cuid())
   agencyId          String
-  periodStart       DateTime // start of billing month
+  periodStart       DateTime
   periodEnd         DateTime
   clientsCount      Int      @default(0)
   scansUsed         Int      @default(0)
