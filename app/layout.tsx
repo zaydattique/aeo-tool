@@ -11,6 +11,7 @@ const siteUrl =
   "https://threezero.agency";
 
 const root = siteUrl.replace(/\/$/, "");
+const ogImage = `${root}/opengraph-image`;
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -49,7 +50,7 @@ export const metadata: Metadata = {
       "Paste a client URL → prioritized Action Center → track AI visibility → white-label report. Built for multi-tenant agencies.",
     images: [
       {
-        url: `${root}/og.png`,
+        url: ogImage,
         width: 1200,
         height: 630,
         alt: "AEO Command — Answer Engine Optimization for agencies",
@@ -61,7 +62,7 @@ export const metadata: Metadata = {
     title: "AEO Command — AEO Platform for Agencies",
     description:
       "Scan, act, track, and report on Answer Engine Optimization — multi-client control for agencies.",
-    images: [`${root}/og.png`],
+    images: [ogImage],
   },
   robots: {
     index: true,
@@ -83,7 +84,7 @@ const graphJsonLd = {
       url: "https://threezero.agency",
       logo: {
         "@type": "ImageObject",
-        url: `${root}/og.png`,
+        url: ogImage,
       },
       sameAs: ["https://threezero.agency", "https://github.com/zaydattique"],
       description:
@@ -106,7 +107,7 @@ const graphJsonLd = {
       applicationCategory: "BusinessApplication",
       operatingSystem: "Web",
       url: root,
-      image: `${root}/og.png`,
+      image: ogImage,
       description:
         "Multi-tenant Answer Engine Optimization (AEO) platform for marketing agencies. Scan websites, prioritize fixes in an Action Center, track AI visibility prompts, and deliver white-label live reports.",
       offers: {
