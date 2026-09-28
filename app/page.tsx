@@ -1,5 +1,21 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { MarketingNav, MarketingFooter } from "@/components/marketing-nav";
+
+export const metadata: Metadata = {
+  title: "AEO Command — Answer Engine Optimization for Agencies",
+  description:
+    "Multi-tenant AEO platform for agencies: paste a client URL, get a prioritized Action Center, track AI visibility in ChatGPT and Perplexity, deliver white-label reports. 14-day free trial.",
+  keywords: [
+    "AEO tool for agencies",
+    "Answer Engine Optimization software",
+    "agency AEO platform",
+    "white-label AEO report",
+    "multi-client AEO",
+    "AI visibility tracking",
+  ],
+  alternates: { canonical: "/" },
+};
 
 export default function HomePage() {
   return (
