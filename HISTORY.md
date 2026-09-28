@@ -1,97 +1,84 @@
 # AEO Command — HISTORY (operational memory)
 
-> **Read before changing code.** Detailed log of what was built, why, and files changed.  
 > Repo: `zaydattique/aeo-tool` · Last updated: **2026-09-28**  
-> [AGENTS.md](./AGENTS.md) · [README.md](./README.md) · [PROJECT_PLAN.md](./PROJECT_PLAN.md) · [docs/FILEMAP.md](./docs/FILEMAP.md)
+> [AGENTS.md](./AGENTS.md) · [PROJECT_PLAN.md](./PROJECT_PLAN.md) · [docs/FILEMAP.md](./docs/FILEMAP.md) · [docs/QUEUE_AND_JOBS.md](./docs/QUEUE_AND_JOBS.md)
+
+After every phase append: **Goal** · **What we did** · **Key files** · **Outcome** · **Gotchas**.
 
 ---
 
-## How agents must use this file
+## Product identity
 
-After every phase: **Goal** · **What we did** · **Key files** · **Outcome** · **Gotchas**. Never only “Phase X complete.”
-
----
-
-## Product identity (stable)
-
-**AEO Command** — multi-tenant AEO SaaS for agencies.  
-Core loop: URL → scan → Action Center → visibility → white-label report.  
-Roles: `SUPER_ADMIN` | `AGENCY_OWNER` | `AGENCY_MEMBER`.  
-Language with owner: English / Urdu / Roman Urdu.
+Multi-tenant AEO SaaS for agencies: URL → scan → Action Center → visibility → white-label report.
 
 ---
 
-## Open gotchas (current)
+## Open gotchas
 
 | Topic | Detail |
 |-------|--------|
-| Scan quality | Needs Firecrawl + Anthropic keys for production quality; heuristics work offline |
-| Scan worker | In-process `setImmediate` — not durable; plan Inngest/BullMQ (Phase 10B notes) |
-| Visibility | MVP score variance — not live multi-engine checks |
-| Reports PDF | Browser print only |
-| Stripe | Keys required or checkout 503 |
-| Rate limits | In-memory per instance |
-| Ranking | Content cluster shipped (10A); still needs **live domain, Search Console, backlinks, time** |
+| Scan worker | Still in-process `setImmediate` — see QUEUE_AND_JOBS.md for Inngest/BullMQ path |
+| API keys | Firecrawl + Anthropic optional; heuristics offline |
+| Visibility | MVP estimates, not live engine checks |
+| Ranking | Content cluster live; needs domain + links |
+| Weekly re-scan | Designed only — not implemented in schema/UI yet |
 
 ---
 
-## Chronology (summary of 0–9)
+## Chronology (recent detail)
 
-Phases 0–8 built foundation through team/billing/admin. Phase 9 shipped marketing home/product/pricing/aeo + rate limits. Full older entries retained in git history of this file if needed; condensed here for length.
+### Phases 0–9 + 10A (summary)
 
-**0–2:** Agent rules, Next.js scaffold, Prisma multi-tenant schema + plan seed.  
-**3–4:** Auth/onboarding, clients, scan queue UI.  
-**5–6:** Real crawl/AI, Action Center.  
-**7–8:** Visibility/reports, team/Stripe/super admin.  
-**9:** Marketing foundation, SEO meta, llms.txt, rate limits.
+Foundation through marketing + rank content cluster (guides, compare, /ai, llms.txt). Full narrative in prior commits of this file.
 
 ---
 
-### 2026-09-28 — Phase 9: Marketing foundation + security
+### 2026-09-28 — Phase 10B: Product strength
 
-**Goal:** Public marketing surface + abuse limits.  
-**Key files:** `app/page.tsx`, `/product`, `/pricing`, `/aeo`, `lib/rate-limit.ts`, robots/sitemap/llms.txt.  
-**Outcome:** Crawlable marketing + limited signup/scan bursts.
-
----
-
-### 2026-09-28 — Phase 10A: Rank-first content cluster
-
-**Goal:** Build a topical cluster targeting queries like “AEO tools”, “what is AEO”, “ChatGPT citations”, “Perplexity visibility”, “AEO checklist” — with internal links and machine-readable entry points so search engines *and* AI assistants can cite accurate product facts.
+**Goal:** Make the Action Center and dashboard feel like agency delivery software — better task quality from scans, clearer UX, and a written path off the fragile in-process queue. Document weekly re-scan/email so implementation is not invented later under pressure.
 
 **What we did:**
-- **Guides hub** `/guides` listing all educational URLs
-- **Comparison** `/compare/aeo-tools` — free checkers vs AEO Command table + FAQ schema (targets “AEO tools” intent)
-- **Guides:**
-  - `/guides/aeo-checklist` — six-section agency delivery checklist
-  - `/guides/chatgpt-citations` — levers + honest non-guarantee FAQ
-  - `/guides/perplexity-visibility` — source-shaped pages + related links
-- **`/ai`** — plain factual summary page for assistants
-- Expanded **`public/llms.txt`** with full URL list and product facts
-- **Sitemap + robots** updated for guides/compare/ai
-- **Nav/footer** internal links (Guides, Compare, Learn column, Machines column)
+
+1. **`lib/action-mapper.ts`**
+   - Sort issues: HIGH first, then lower effort (quick wins)
+   - Dedupe by normalized title
+   - Expand `suggestedFix` into ordered **steps** (list lines, sentences, or default 3-step implement/verify/close)
+   - Cap at **15** actions so the Center stays actionable
+
+2. **`lib/scan-worker.ts`**
+   - Uses `mapIssuesToActionDrafts` instead of 1:1 issue→single-step draft
+   - Comment points to queue migration doc
+
+3. **Action Center UI**
+   - Completion **progress bar**
+   - Quick chips: All / To-do / In progress / High priority / Done
+   - Expandable **steps** list per action
+   - High-priority open count in header
+
+4. **Dashboard client list**
+   - Stronger empty state + primary CTA
+   - Score color (green/amber/red)
+   - “Open” primary button styling; helper copy on add form
+
+5. **`docs/QUEUE_AND_JOBS.md`**
+   - Current enqueue behavior and limits
+   - Inngest vs BullMQ migration steps + acceptance checklist
+   - Weekly re-scan data model proposal, cron flow, email matrix
+   - Deploy guidance: prefer long-running Node for heavy scans
 
 **Key files:**
-- `app/guides/page.tsx`
-- `app/guides/aeo-checklist/page.tsx`
-- `app/guides/chatgpt-citations/page.tsx`
-- `app/guides/perplexity-visibility/page.tsx`
-- `app/compare/aeo-tools/page.tsx`
-- `app/ai/page.tsx`
-- `components/marketing-nav.tsx`
-- `public/llms.txt`, `app/sitemap.ts`, `app/robots.ts`
+- `lib/action-mapper.ts` (new)
+- `lib/scan-worker.ts`
+- `app/dashboard/clients/[id]/action-center.tsx`
+- `app/dashboard/client-list.tsx`
+- `docs/QUEUE_AND_JOBS.md` (new)
 
-**Outcome / acceptance:**
-- Interlinked content cluster live in repo
-- Comparison page targets commercial “AEO tools” queries
-- Assistants have `/ai` + `/llms.txt` canonical facts
+**Outcome:** New scans produce richer multi-step actions; Action Center is easier to triage; queue/re-scan design is documented for a future implementation phase.
 
-**Gotchas:**
-- Content alone does not rank — deploy to production domain, submit sitemap, earn links
-- Do not promise guaranteed ChatGPT/Perplexity citations in sales copy (guides already say this)
+**Gotchas:** Existing Action rows from old scans are unchanged until a **new scan** runs. Weekly re-scan is **not** coded yet — only design.
 
 ---
 
 ## Deploy reminder
 
-Postgres · `NEXTAUTH_URL` HTTPS · secrets · Stripe webhook · Search Console sitemap · verify `/llms.txt` and `/ai`.
+Postgres · NEXTAUTH_URL HTTPS · secrets · Stripe webhook · Search Console · prefer non-serverless for long scans until queue migrated.
