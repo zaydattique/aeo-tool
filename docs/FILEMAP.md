@@ -2,14 +2,14 @@
 
 > Last updated: **2026-09-28**
 
-## Lib
+## Lib (product core)
 
-`visibility-check.ts` · **`sov.ts`** · `default-prompts.ts` · `report-pdf.ts` · crawl · ai-analysis · action-mapper · scan-worker · inngest/* · email · stripe · usage
+`action-mapper.ts` · **`action-draft-templates.ts`** · `ai-analysis.ts` · `visibility-check.ts` · `sov.ts` · `default-prompts.ts` · `report-pdf.ts` · `scan-worker.ts` · `crawl.ts` · `inngest/*`
 
-## API (product)
+## API
 
-`clients/[id]/competitors` · `clients/[id]/prompts` · `clients/[id]/snapshots` · `clients/[id]/portal` · `clients/[id]/reports` · `reports/[token]/pdf` · `portal/[token]/pdf`
+`actions/[id]/redraft` · `clients/[id]/competitors` · `clients/[id]/portal` · `clients/[id]/snapshots` · `reports/[token]/pdf` · `portal/[token]/pdf` · `visibility/status`
 
-## Product UI
+## UI
 
-`visibility-reports.tsx` (competitors + SOV) · `client-portal-toggle.tsx` · `client-rescan-toggle.tsx` · `/r/[token]` · `/p/[token]`
+`action-center.tsx` (Enrich draft) · `visibility-reports.tsx` · `client-portal-toggle.tsx` · `/r/[token]` · `/p/[token]`

@@ -8,64 +8,49 @@
 
 | Topic | Detail |
 |-------|--------|
-| Schema | `db push` for portal + competitors + prompt kind/targetName |
+| Schema | `db push` for portal, competitors, prompt kind/targetName |
 | PDF | `npm install` for pdfkit |
-| Live engines | Without keys, checks are heuristic-only; UI shows live vs heuristic badges |
-| AI Overviews | No public API — always heuristic row |
-| Cost | Each Record check can call up to 4 live APIs × N prompts — watch quotas |
+| Live engines | Keys optional; without them checks are heuristic |
+| Action drafts | Enrich uses templates always; AI redraft needs `ANTHROPIC_API_KEY` |
+
+---
+
+### 2026-09-28 — Phase 13.5: Richer Action Center drafts
+
+**Goal**
+
+Turn Action Center from short advice into **paste-ready implementation drafts** agencies can assign to juniors — schema JSON-LD, meta tags, llms.txt, content outlines — with optional AI redraft.
+
+**What we did**
+
+1. **`lib/action-draft-templates.ts`** — Category/title-aware templates (Organization/FAQ JSON-LD, title/meta/canonical/viewport/OG, H1, thin-content outline, llms.txt, alt text).
+2. **`lib/action-mapper.ts`** — `enrichSuggestedFix` + `buildRichSteps` on every scan-generated action; `enrichActionFields` for single-action refresh; brand/URL context from scan worker.
+3. **`lib/scan-worker.ts`** — Passes client brand/URL into mapper; suggestedText limit raised to 8000 for code blocks.
+4. **`POST /api/actions/[id]/redraft`** — Optional Claude rewrite, then template enrichment; returns `method: ai|template`.
+5. **Action Center UI** — **Enrich draft** button, preformatted suggested fix, expanded steps after redraft.
+
+**Outcome**
+
+- New scans get richer suggested fixes automatically.
+- Existing actions can be enriched without a full re-scan.
+- Works without AI keys (templates only).
+
+**Deferred**
+
+- Bulk enrich-all
+- Storing draft version history
 
 ---
 
 ### 2026-09-28 — Phase 13.4: Live multi-engine visibility
 
-**Goal**
-
-Move beyond Perplexity-only live checks. Parallel live providers where keys exist; honest heuristic fallback; agency-visible status of which engines are live.
-
-**What we did**
-
-1. **`lib/visibility-check.ts`** — Parallel live callers:
-   - Perplexity (`PERPLEXITY_API_KEY`)
-   - OpenAI → engine `chatgpt` (`OPENAI_API_KEY`)
-   - Gemini (`GEMINI_API_KEY` or `GOOGLE_GENERATIVE_AI_API_KEY`)
-   - Claude (`ANTHROPIC_API_KEY`)
-   - `ai_overviews` remains heuristic-only
-2. Shared mention scoring + competitor-aware adjustments; `liveEngineCount` + method `live` | `live+heuristic` | `heuristic`.
-3. **`getLiveEngineCapabilities()`** + **`GET /api/visibility/status`** (agency auth, no secrets).
-4. Snapshots store `liveEngineCount`; Record check response includes `maxLiveEngines`.
-5. Visibility UI engine strip (live/heuristic badges) + post-check feedback.
-6. `.env.example` documents all visibility keys and optional model overrides.
-
-**Key files**
-
-- `lib/visibility-check.ts`
-- `app/api/visibility/status/route.ts`
-- `app/api/clients/[id]/snapshots/route.ts`
-- `app/dashboard/clients/[id]/visibility-reports.tsx`
-- `.env.example`
-
-**Outcome / acceptance**
-
-- With zero keys: checks still work (heuristic), badges show heuristic.
-- With any key: that engine row is `live: true` on snapshot sources; UI reflects configured engines.
-- Failures on one provider do not block others or the snapshot write.
-
-**Missing / deferred**
-
-- Official Google AI Overviews / Bing Copilot consumer APIs (not generally available)
-- Rate limiting / credit metering per live call (usage meter can be extended later)
-- Phase 13.5 auto-draft Action fixes
-
-**Gotchas**
-
-- Live checks cost tokens; prefer fewer prompts or staged checks on large client lists.
-- Model names may need host-specific overrides via `*_VISIBILITY_MODEL` env vars.
+Parallel live checks: Perplexity, OpenAI (chatgpt), Gemini, Claude when keys set; heuristics fill gaps; `/api/visibility/status` + UI engine badges.
 
 ---
 
 ### 2026-09-28 — Phase 13.3: Competitors + SOV
 
-Client.competitors, prompt kinds, vs-prompt seeds, sov.ts, UI SOV panel.
+Client.competitors, prompt kinds, competitor seed prompts, SOV panel.
 
 ---
 
@@ -77,7 +62,7 @@ PDFKit downloads for report + portal; print CSS.
 
 ### 2026-09-28 — Phase 13.1: Client portal
 
-`/p/[token]` live read-only portal.
+`/p/[token]` live read-only progress.
 
 ---
 

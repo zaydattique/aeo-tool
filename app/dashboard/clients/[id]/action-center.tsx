@@ -35,6 +35,7 @@ export function ActionCenter({ clientId }: { clientId: string }) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [redraftMsg, setRedraftMsg] = useState("");
 
   const load = useCallback(async () => {
     const params = new URLSearchParams({ clientId });
@@ -87,6 +88,30 @@ export function ActionCenter({ clientId }: { clientId: string }) {
     }
   }
 
+  async function redraft(id: string) {
+    setUpdatingId(id);
+    setRedraftMsg("");
+    try {
+      const res = await fetch(`/api/actions/${id}/redraft`, { method: "POST" });
+      const data = await res.json();
+      if (!res.ok) {
+        setRedraftMsg(data.error || "Redraft failed");
+        return;
+      }
+      setActions((prev) =>
+        prev.map((a) => (a.id === id ? { ...a, ...data.action } : a))
+      );
+      setExpandedId(id);
+      setRedraftMsg(
+        data.method === "ai"
+          ? "Draft enriched with AI + templates"
+          : "Draft enriched with paste-ready templates"
+      );
+    } finally {
+      setUpdatingId(null);
+    }
+  }
+
   function copyText(id: string, text: string) {
     navigator.clipboard.writeText(text).then(() => {
       setCopiedId(id);
@@ -99,7 +124,12 @@ export function ActionCenter({ clientId }: { clientId: string }) {
     todo: actions.filter((a) => a.status === "TODO").length,
     inProgress: actions.filter((a) => a.status === "IN_PROGRESS").length,
     done: actions.filter((a) => a.status === "DONE").length,
-    high: actions.filter((a) => a.priority === "HIGH" && a.status !== "DONE" && a.status !== "SKIPPED").length,
+    high: actions.filter(
+      (a) =>
+        a.priority === "HIGH" &&
+        a.status !== "DONE" &&
+        a.status !== "SKIPPED"
+    ).length,
   };
 
   const progressPct =
@@ -146,7 +176,12 @@ export function ActionCenter({ clientId }: { clientId: string }) {
         )}
       </div>
 
-      {/* Quick chips */}
+      {redraftMsg && (
+        <div className="rounded-md bg-green-50 p-2 text-sm text-green-800">
+          {redraftMsg}
+        </div>
+      )}
+
       <div className="flex flex-wrap gap-2">
         {[
           { label: "All", status: "", priority: "" },
@@ -221,9 +256,7 @@ export function ActionCenter({ clientId }: { clientId: string }) {
                   {steps.length > 0 && (
                     <button
                       type="button"
-                      onClick={() =>
-                        setExpandedId(open ? null : action.id)
-                      }
+                      onClick={() => setExpandedId(open ? null : action.id)}
                       className="text-xs text-primary underline ml-auto"
                     >
                       {open ? "Hide steps" : `${steps.length} steps`}
@@ -258,10 +291,10 @@ export function ActionCenter({ clientId }: { clientId: string }) {
                 {action.suggestedText && (
                   <div className="rounded-md bg-gray-50 p-3 text-sm">
                     <div className="flex items-start justify-between gap-2">
-                      <p className="flex-1">
+                      <pre className="flex-1 whitespace-pre-wrap font-sans text-sm">
                         <span className="font-medium">Suggested fix: </span>
                         {action.suggestedText}
-                      </p>
+                      </pre>
                       <button
                         onClick={() =>
                           copyText(action.id, action.suggestedText!)
@@ -306,6 +339,16 @@ export function ActionCenter({ clientId }: { clientId: string }) {
                       </option>
                     ))}
                   </select>
+
+                  <button
+                    type="button"
+                    disabled={updatingId === action.id}
+                    onClick={() => redraft(action.id)}
+                    className="text-xs rounded border px-2 py-1 hover:bg-gray-50 disabled:opacity-50"
+                    title="Generate richer paste-ready draft"
+                  >
+                    {updatingId === action.id ? "…" : "Enrich draft"}
+                  </button>
 
                   {action.status === "DONE" && action.completedAt && (
                     <span className="text-xs text-muted-foreground">
