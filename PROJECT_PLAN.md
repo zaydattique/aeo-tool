@@ -1,39 +1,34 @@
-# AEO Command — PROJECT PLAN (single list)
+# AEO Command — PROJECT PLAN
 
-> **Only to-do file.** Repo: `zaydattique/aeo-tool`
+> Repo: `zaydattique/aeo-tool`
 
-## Boot every session
+## Boot
 
-1. AGENTS.md → 2. This file → 3. HISTORY.md → 4. docs/FILEMAP.md → 5. docs/DEPLOY.md if shipping
-
----
-
-## PHASE 0–10C — Done (MVP roadmap)
-
-| Block | Status |
-|-------|--------|
-| 0–8 Product core (auth → reports → team/billing/admin) | Done |
-| 9 Marketing foundation + rate limits | Done |
-| 10A Content cluster (guides, compare, /ai) | Done |
-| 10B Product strength (action-mapper, UX, queue design) | Done |
-| **10C Deploy readiness** | **Done (2026-09-28)** |
-
-### 10C deliverables completed
-
-- `docs/DEPLOY.md` — host choice, env checklist, Stripe, smoke tests, SEO go-live
-- Super admin via seed env (`SEED_SUPER_ADMIN_*`) + SQL notes in DEPLOY.md
-- `.env.example` production-oriented
-- README production section + status updated
+AGENTS.md → PROJECT_PLAN → HISTORY → docs/FILEMAP.md → docs/DEPLOY.md
 
 ---
 
-## Optional next (not scheduled — pick intentionally)
+## PHASE 0–10C — Done (MVP)
 
-- Implement durable scan queue (Inngest/BullMQ) per `docs/QUEUE_AND_JOBS.md`
-- Weekly re-scan + email notifications
-- Live multi-engine visibility checks
+---
+
+## PHASE 11 — Deferred value (queue, rescan, visibility, content)
+
+**Status:** Done (2026-09-28)
+
+**Deliverables:**
+- Inngest durable scan queue + `/api/inngest` (fallback in-process)
+- Weekly re-scan cron + client toggle (`rescanEnabled`, interval, `nextRescanAt`)
+- Email: Resend helper + scan-complete notify + Monday digest cron
+- Multi-engine visibility checks (`lib/visibility-check.ts`, Perplexity live optional)
+- Case studies page `/case-studies`
+
+**After deploy:** `npx prisma db push` for new Client columns; configure Inngest + Resend env (see `.env.example`).
+
+---
+
+## Optional later
+
+- More engine APIs (ChatGPT/Bing) when keys available
 - Server-side PDF
-- More ranking content / case studies
-- Split marketing domain vs `app.` subdomain DNS
-
-When starting new work: add a **new numbered phase** here with Goal + acceptance — do not invent parallel todo files.
+- Client view-only portal
