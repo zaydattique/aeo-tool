@@ -8,39 +8,43 @@ AGENTS.md → PROJECT_PLAN → HISTORY → docs/FILEMAP.md → docs/DEPLOY.md
 
 ---
 
-## PHASE 0–10C — Done (MVP)
+## PHASE 0–12 — Done
+
+See HISTORY.md for full detail.
 
 ---
 
-## PHASE 11 — Deferred value (queue, rescan, visibility, content)
+## PHASE 13 — Product value features (NEXT)
 
-**Status:** Done (2026-09-28)
+**Status:** In progress (2026-09-28)
 
----
+**Goal:** Features agencies will pay more for, in delivery order — not feature bloat.
 
-## PHASE 12 — AEO + SEO 10/10 foundation
+### Ordered deliverables
 
-**Status:** Done in repo (2026-09-28). Live ranking requires owner host + Search Console.
+1. **Client live portal (13.1 — STARTING)**  
+   Persistent read-only link per client (`/p/[token]`) showing live score, action progress, and prompt visibility — not only a frozen `/r/[token]` report snapshot. Agency can enable/copy/revoke from client detail.
 
-**Completed in code:**
-- Competitor + keyword intelligence documented
-- 100 advanced methods documented for owner
-- All marketing pages densified (home, product, pricing layout metadata, aeo, guides, compare, case studies, ai)
-- Dynamic `opengraph-image` + `twitter-image` (no missing static og.png dependency)
-- Root `@graph` Organization / WebSite / SoftwareApplication
-- AI crawler rules in robots.ts
-- llms.txt + /ai ingestion surfaces
-- Internal link cluster via nav/footer + in-page links
-- FAQ + Article schema on core guides
+2. **Report PDF polish (13.2)**  
+   Stronger print stylesheet + optional server PDF later; print path already exists on live report.
 
-**Owner post-deploy (not code):** subdomain DNS, `NEXT_PUBLIC_APP_URL` + `NEXTAUTH_URL`, Search Console + sitemap, citation prompt monitoring, off-site corroboration (G2/roundups/backlinks).
+3. **Competitor prompts + share-of-answer (13.3)**  
+   Track competitor-oriented prompts and simple SOV-style comparison on visibility.
 
-**NEXT:** Host + optional Phase 13 only if opened.
+4. **Live multi-engine checks (13.4)**  
+   When API keys available — expand beyond Perplexity optional + heuristics.
+
+5. **Auto-draft Action fixes (13.5)**  
+   Richer suggestedText / schema drafts from existing AI analysis path.
+
+**Out of scope:** SEO rank-tracker clone, mobile apps, guaranteed ranking claims.
+
+**After 13.1:** mark done in HISTORY with full sections; open 13.2 only after portal ships.
 
 ---
 
 ## Optional later
 
-- More engine APIs (ChatGPT/Bing) when keys available
-- Server-side PDF
-- Client view-only portal
+- Public API / webhooks
+- Custom domain for portal/report
+- Server-side PDF binary storage
