@@ -15,6 +15,15 @@ Product: **AEO Command** (Answer Engine Optimization platform for agencies)
 
 ---
 
+## SESSION RULE (Phase 14+)
+
+- Work is split into **~20 minute sessions** labeled `PHASE.S#` (e.g. `15.S3`).
+- Complete **one session per ship** when possible; do not merge an entire phase in one go unless the owner explicitly asks.
+- Owner-only sessions (most of **Phase 14**): prepare checklists / docs only — **never** claim DNS, host, or secrets are done without owner confirmation.
+- After each session: full **HISTORY** entry + mark that session done in PROJECT_PLAN.
+
+---
+
 ## CRITICAL FILE RULES (NO EXCEPTIONS)
 
 - **NEVER** push placeholders, stubs, TODOs, partial files, or strings like `SEE_FILE` / `PLACEHOLDER` / `SEE_ARTIFACTS` / `TODO` / `FIXME`.
@@ -68,8 +77,8 @@ After any structural change (new major area: billing, admin, reports, queue, AEO
 
 ### PROJECT_PLAN.md
 
-- Mark phase Done with a short **deliverables completed** list (can be tighter than HISTORY).
-- Point **NEXT** at the single open phase.
+- Mark phase/session Done with a short **deliverables completed** list (can be tighter than HISTORY).
+- Point **NEXT** at the single open session (`14.S1`, `15.S2`, …).
 - Never invent parallel phase numbers outside this file.
 
 ---
@@ -93,6 +102,7 @@ After any structural change (new major area: billing, admin, reports, queue, AEO
 - Skip `agencyId` isolation on any business table or query
 - Ship expensive ops (scans, AI, reports) without plan limits / rate awareness where already established
 - Create a new file when editing an existing one solves the same need
+- Mark owner host/DNS sessions complete without owner confirmation
 
 ---
 

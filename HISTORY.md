@@ -8,62 +8,83 @@
 
 | Topic | Detail |
 |-------|--------|
-| Schema | `db push` for portal, competitors, prompt kind/targetName |
-| PDF | `npm install` for pdfkit |
-| Live engines | Keys optional; without them checks are heuristic |
-| Action drafts | Enrich uses templates always; AI redraft needs `ANTHROPIC_API_KEY` |
+| Sessions | PROJECT_PLAN Phase 14+ uses **~20 min sessions** (`14.S1` …). One session per ship when possible |
+| Host | Phases 0–13 are GitHub-complete; **live product starts at Phase 14 (owner)** |
+| Schema | `db push` when first deploying (portal, competitors, prompt kind) |
+| PDF | `pdfkit` on `npm install` |
+| Live engines | Optional keys; heuristic fallback always |
 
 ---
 
-### 2026-09-28 — Phase 13.5: Richer Action Center drafts
+### 2026-09-28 — Plan restructure: Phase 14–18 as 20-minute sessions
 
 **Goal**
 
-Turn Action Center from short advice into **paste-ready implementation drafts** agencies can assign to juniors — schema JSON-LD, meta tags, llms.txt, content outlines — with optional AI redraft.
+Owner asked for new phases wherever work remains, broken into **~20 minute sessions** so agents and humans can ship incrementally without multi-hour ambiguous “phases.”
 
 **What we did**
 
-1. **`lib/action-draft-templates.ts`** — Category/title-aware templates (Organization/FAQ JSON-LD, title/meta/canonical/viewport/OG, H1, thin-content outline, llms.txt, alt text).
-2. **`lib/action-mapper.ts`** — `enrichSuggestedFix` + `buildRichSteps` on every scan-generated action; `enrichActionFields` for single-action refresh; brand/URL context from scan worker.
-3. **`lib/scan-worker.ts`** — Passes client brand/URL into mapper; suggestedText limit raised to 8000 for code blocks.
-4. **`POST /api/actions/[id]/redraft`** — Optional Claude rewrite, then template enrichment; returns `method: ai|template`.
-5. **Action Center UI** — **Enrich draft** button, preformatted suggested fix, expanded steps after redraft.
+Replaced the open-ended “optional later” tail with ordered phases:
 
-**Outcome**
+- **Phase 14** — Go live (mostly owner: DNS, DB, host, env, smoke, Search Console, optional keys). Eight sessions 14.S1–S8.
+- **Phase 15** — First pilot polish (post-scan UX, empty states, report/portal tweaks, SOV on report, competitors on create). 15.S1–S8.
+- **Phase 16** — Agency ops (CSV exports, bulk status, prompt packs, single recheck, archive→portal off). 16.S1–S8.
+- **Phase 17** — Trust/cost (live engine caps, public rate limits, legal microcopy, health/backup docs). 17.S1–S8.
+- **Phase 18** — Growth marketing surfaces aligned to Phase 13 product. 18.S1–S8.
+- **Phase 19+** — Optional only when owner opens (password portal, custom domain, API, etc.).
 
-- New scans get richer suggested fixes automatically.
-- Existing actions can be enriched without a full re-scan.
-- Works without AI keys (templates only).
+Documented agent rules: one session at a time, HISTORY per session, prefer edit-existing, owner-only steps not faked.
 
-**Deferred**
+**Key files**
 
-- Bulk enrich-all
-- Storing draft version history
+- `PROJECT_PLAN.md` — full session tables  
+- `HISTORY.md` — this entry  
+- `AGENTS.md` — session discipline pointer
+
+**Outcome / acceptance**
+
+- **NEXT** is explicitly `14.S1` (owner DNS).  
+- After production smoke (`14.S6`), code sessions may start at `15.S1`.  
+- No parallel todo lists; PROJECT_PLAN remains sole ordered queue.
+
+**What is still missing / deferred**
+
+- Actual execution of 14.S1+ (not done in this doc-only ship).  
+- Phase 19+ not scheduled.
+
+**Gotchas**
+
+- Do not mark 14.Sx Done without owner confirmation on DNS/host.  
+- Do not bundle five sessions into one PR “because they’re small.”
 
 ---
 
-### 2026-09-28 — Phase 13.4: Live multi-engine visibility
+### 2026-09-28 — Phase 13.5: Richer Action drafts
 
-Parallel live checks: Perplexity, OpenAI (chatgpt), Gemini, Claude when keys set; heuristics fill gaps; `/api/visibility/status` + UI engine badges.
+Templates + enrich mapper + `/api/actions/[id]/redraft` + Action Center **Enrich draft**.
+
+---
+
+### 2026-09-28 — Phase 13.4: Live multi-engine
+
+Perplexity, OpenAI, Gemini, Claude when keyed; status UI.
 
 ---
 
 ### 2026-09-28 — Phase 13.3: Competitors + SOV
 
-Client.competitors, prompt kinds, competitor seed prompts, SOV panel.
-
 ---
 
 ### 2026-09-28 — Phase 13.2: PDF
-
-PDFKit downloads for report + portal; print CSS.
 
 ---
 
 ### 2026-09-28 — Phase 13.1: Client portal
 
-`/p/[token]` live read-only progress.
+---
+
+### 2026-09-28 — Phase 12: AEO/SEO foundation
 
 ---
 
-Deploy: **docs/DEPLOY.md**.
+Deploy reference: **docs/DEPLOY.md**.
