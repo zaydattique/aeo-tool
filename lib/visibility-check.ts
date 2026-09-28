@@ -1,14 +1,15 @@
 /**
  * Visibility check across answer engines.
- * - PERPLEXITY_API_KEY: live Perplexity chat completions (citations when returned)
- * - Always also produces structured heuristic engines (chatgpt/gemini/overview-style scores)
- *   derived from client scan score + prompt signals so UI is never empty offline.
+ * - PERPLEXITY_API_KEY: live Perplexity when available
+ * - Heuristics always fill chatgpt/gemini/ai_overviews-style rows
+ * - Competitor-aware scoring for kind=competitor prompts
  */
 
 export type EngineResult = {
   engine: string;
   score: number;
   mentioned: boolean;
+  competitorMentioned?: boolean;
   snippet?: string;
   citations?: string[];
   live: boolean;
@@ -19,6 +20,8 @@ export type PromptCheckResult = {
   score: number;
   engines: EngineResult[];
   method: "live+heuristic" | "heuristic";
+  brandMentioned: boolean;
+  competitorMentioned: boolean;
 };
 
 function hashScore(seed: string, base: number, spread: number) {
@@ -28,25 +31,49 @@ function hashScore(seed: string, base: number, spread: number) {
   return Math.max(0, Math.min(100, Math.round(base + delta)));
 }
 
-function heuristicEngines(
-  promptText: string,
-  brandName: string,
-  base: number
-): EngineResult[] {
-  const brand = brandName.toLowerCase();
-  const prompt = promptText.toLowerCase();
-  const brandInPrompt = prompt.includes(brand.split(" ")[0] || brand);
+function tokens(name: string) {
+  return name
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((t) => t.length > 2);
+}
+
+function mentions(text: string, name: string) {
+  const lower = text.toLowerCase();
+  return tokens(name).some((t) => lower.includes(t));
+}
+
+function heuristicEngines(opts: {
+  promptText: string;
+  brandName: string;
+  base: number;
+  competitorName?: string | null;
+  kind?: string;
+}): EngineResult[] {
+  const { promptText, brandName, base, competitorName, kind } = opts;
+  const brandInPrompt = mentions(promptText, brandName);
+  const compInPrompt = competitorName
+    ? mentions(promptText, competitorName)
+    : false;
 
   const mk = (engine: string, spread: number, bias: number): EngineResult => {
-    const score = hashScore(`${engine}:${promptText}`, base + bias, spread);
+    let score = hashScore(`${engine}:${promptText}`, base + bias, spread);
+    // Competitor-oriented prompts: slightly depress client heuristic if competitor named first in text
+    if (kind === "competitor" && competitorName) {
+      const p = promptText.toLowerCase();
+      const cIdx = p.indexOf(competitorName.toLowerCase().split(" ")[0] || "");
+      const bIdx = p.indexOf(brandName.toLowerCase().split(" ")[0] || "");
+      if (cIdx >= 0 && (bIdx < 0 || cIdx < bIdx)) score = Math.max(0, score - 8);
+    }
     return {
       engine,
       score,
       mentioned: brandInPrompt && score >= 45,
+      competitorMentioned: compInPrompt && score >= 40,
       live: false,
       snippet: brandInPrompt
         ? `Heuristic: prompt references brand; estimated presence ${score}/100.`
-        : `Heuristic: category-style prompt; estimated presence ${score}/100.`,
+        : `Heuristic: estimated presence ${score}/100.`,
     };
   };
 
@@ -60,7 +87,8 @@ function heuristicEngines(
 
 async function checkPerplexityLive(
   promptText: string,
-  brandName: string
+  brandName: string,
+  competitorName?: string | null
 ): Promise<EngineResult | null> {
   const key = process.env.PERPLEXITY_API_KEY;
   if (!key) return null;
@@ -92,26 +120,29 @@ async function checkPerplexityLive(
 
     const json = await res.json();
     const content: string =
-      json.choices?.[0]?.message?.content || json.choices?.[0]?.delta?.content || "";
+      json.choices?.[0]?.message?.content ||
+      json.choices?.[0]?.delta?.content ||
+      "";
     const citations: string[] = Array.isArray(json.citations)
       ? json.citations.map(String)
       : [];
 
-    const lower = content.toLowerCase();
-    const brandTokens = brandName
-      .toLowerCase()
-      .split(/\s+/)
-      .filter((t) => t.length > 2);
-    const mentioned = brandTokens.some((t) => lower.includes(t));
+    const brandMentioned = mentions(content, brandName);
+    const competitorMentioned = competitorName
+      ? mentions(content, competitorName)
+      : false;
 
-    let score = mentioned ? 72 : 28;
-    if (mentioned && citations.length > 0) score = Math.min(100, score + 12);
-    if (!mentioned && citations.length > 0) score = Math.min(55, score + 8);
+    let score = brandMentioned ? 72 : 28;
+    if (brandMentioned && citations.length > 0) score = Math.min(100, score + 12);
+    if (!brandMentioned && citations.length > 0) score = Math.min(55, score + 8);
+    if (competitorMentioned && !brandMentioned) score = Math.max(15, score - 15);
+    if (competitorMentioned && brandMentioned) score = Math.min(100, score + 5);
 
     return {
       engine: "perplexity",
       score,
-      mentioned,
+      mentioned: brandMentioned,
+      competitorMentioned,
       snippet: content.slice(0, 280),
       citations: citations.slice(0, 5),
       live: true,
@@ -126,11 +157,30 @@ export async function checkPromptVisibility(opts: {
   promptText: string;
   brandName: string;
   baseScore: number;
+  kind?: string;
+  competitorName?: string | null;
 }): Promise<PromptCheckResult> {
-  const { promptText, brandName, baseScore } = opts;
-  const engines = heuristicEngines(promptText, brandName, baseScore);
+  const {
+    promptText,
+    brandName,
+    baseScore,
+    kind = "brand",
+    competitorName,
+  } = opts;
 
-  const live = await checkPerplexityLive(promptText, brandName);
+  const engines = heuristicEngines({
+    promptText,
+    brandName,
+    base: baseScore,
+    competitorName,
+    kind,
+  });
+
+  const live = await checkPerplexityLive(
+    promptText,
+    brandName,
+    competitorName
+  );
   let method: PromptCheckResult["method"] = "heuristic";
 
   if (live) {
@@ -144,5 +194,15 @@ export async function checkPromptVisibility(opts: {
     engines.reduce((s, e) => s + e.score, 0) / Math.max(1, engines.length)
   );
 
-  return { promptText, score, engines, method };
+  const brandMentioned = engines.some((e) => e.mentioned);
+  const competitorMentioned = engines.some((e) => e.competitorMentioned);
+
+  return {
+    promptText,
+    score,
+    engines,
+    method,
+    brandMentioned,
+    competitorMentioned,
+  };
 }

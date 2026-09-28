@@ -189,14 +189,14 @@ model Client {
   brandName              String?
   location               String?
   keywords               String[]
+  // Phase 13.3 — competitor names for SOV prompts
+  competitors            String[]
   currentVisibilityScore Int?
   lastScannedAt          DateTime?
   status                 ClientStatus @default(ACTIVE)
-  // Weekly re-scan (Inngest cron)
   rescanEnabled          Boolean      @default(false)
   rescanIntervalDays     Int          @default(7)
   nextRescanAt           DateTime?
-  // Phase 13.1 — live client portal (read-only)
   portalToken            String?      @unique
   portalEnabled          Boolean      @default(false)
   createdAt              DateTime     @default(now())
@@ -279,22 +279,26 @@ model Action {
 }
 
 model TrackedPrompt {
-  id          String   @id @default(cuid())
-  agencyId    String
-  clientId    String
-  promptText  String
-  isCustom    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  deletedAt   DateTime?
+  id             String   @id @default(cuid())
+  agencyId       String
+  clientId       String
+  promptText     String
+  isCustom       Boolean  @default(false)
+  // brand | category | competitor
+  kind           String   @default("brand")
+  targetName     String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  deletedAt      DateTime?
 
-  agency      Agency   @relation(fields: [agencyId], references: [id])
-  client      Client   @relation(fields: [clientId], references: [id])
-  snapshots   VisibilitySnapshot[]
+  agency         Agency   @relation(fields: [agencyId], references: [id])
+  client         Client   @relation(fields: [clientId], references: [id])
+  snapshots      VisibilitySnapshot[]
 
   @@index([agencyId])
   @@index([clientId])
   @@index([agencyId, clientId])
+  @@index([kind])
   @@index([deletedAt])
 }
 
