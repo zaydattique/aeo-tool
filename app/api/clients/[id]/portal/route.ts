@@ -1,0 +1,128 @@
+import { NextRequest, NextResponse } from "next/server";
+import { randomBytes } from "crypto";
+import { z } from "zod";
+import { prisma } from "@/lib/prisma";
+import { requireAgency, canManageClients } from "@/lib/session";
+
+const bodySchema = z.object({
+  action: z.enum(["enable", "disable", "rotate"]),
+});
+
+export async function GET(
+  _req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const { error, status, agencyId } = await requireAgency();
+  if (error || !agencyId) {
+    return NextResponse.json({ error }, { status });
+  }
+
+  const { id } = await params;
+  const client = await prisma.client.findFirst({
+    where: { id, agencyId, deletedAt: null },
+    select: {
+      id: true,
+      portalEnabled: true,
+      portalToken: true,
+    },
+  });
+
+  if (!client) {
+    return NextResponse.json({ error: "Client not found" }, { status: 404 });
+  }
+
+  return NextResponse.json({
+    portalEnabled: client.portalEnabled,
+    portalToken: client.portalToken,
+    portalPath:
+      client.portalEnabled && client.portalToken
+        ? `/p/${client.portalToken}`
+        : null,
+  });
+}
+
+export async function POST(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const auth = await requireAgency();
+  if (auth.error || !auth.agencyId || !auth.session) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status });
+  }
+
+  if (!canManageClients(auth.session.user.role)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { id } = await params;
+  const existing = await prisma.client.findFirst({
+    where: { id, agencyId: auth.agencyId, deletedAt: null },
+  });
+
+  if (!existing) {
+    return NextResponse.json({ error: "Client not found" }, { status: 404 });
+  }
+
+  try {
+    const parsed = bodySchema.safeParse(await req.json());
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+    }
+
+    const { action } = parsed.data;
+    let data: {
+      portalEnabled?: boolean;
+      portalToken?: string | null;
+    } = {};
+
+    if (action === "enable") {
+      data = {
+        portalEnabled: true,
+        portalToken: existing.portalToken || randomBytes(24).toString("hex"),
+      };
+    } else if (action === "disable") {
+      data = { portalEnabled: false };
+    } else if (action === "rotate") {
+      data = {
+        portalEnabled: true,
+        portalToken: randomBytes(24).toString("hex"),
+      };
+    }
+
+    const client = await prisma.client.update({
+      where: { id },
+      data,
+      select: {
+        id: true,
+        portalEnabled: true,
+        portalToken: true,
+      },
+    });
+
+    await prisma.activityLog.create({
+      data: {
+        agencyId: auth.agencyId,
+        actorId: auth.session.user.id,
+        action: `client.portal.${action}`,
+        resourceType: "client",
+        resourceId: id,
+        metadata: { portalEnabled: client.portalEnabled },
+      },
+    });
+
+    return NextResponse.json({
+      portalEnabled: client.portalEnabled,
+      portalToken: client.portalToken,
+      portalPath:
+        client.portalEnabled && client.portalToken
+          ? `/p/${client.portalToken}`
+          : null,
+    });
+  } catch (err) {
+    console.error("Portal toggle error:", err);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
