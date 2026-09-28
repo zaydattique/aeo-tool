@@ -104,7 +104,11 @@ export async function runScan(scanId: string) {
 
     await updateStage(scanId, "ACTION_GENERATION", 85);
 
-    const actionDrafts = mapIssuesToActionDrafts(analysis.issues);
+    const actionDrafts = mapIssuesToActionDrafts(analysis.issues, {
+      brandName: scan.client.brandName || scan.client.name,
+      websiteUrl: scan.client.websiteUrl,
+      title: crawl.title,
+    });
 
     await prisma.action.updateMany({
       where: {
@@ -128,7 +132,7 @@ export async function runScan(scanId: string) {
           whyItMatters: d.whyItMatters.slice(0, 2000),
           steps: d.steps,
           effortLevel: normalizeEffort(d.effortLevel),
-          suggestedText: d.suggestedText?.slice(0, 2000) || null,
+          suggestedText: d.suggestedText?.slice(0, 8000) || null,
           status: "TODO" as const,
         })),
       });
@@ -204,7 +208,6 @@ export async function runScan(scanId: string) {
   }
 }
 
-/** Prefer durable Inngest; fall back to in-process for local/dev without keys. */
 export async function enqueueScan(scanId: string) {
   try {
     const { isInngestConfigured, inngest } = await import(
