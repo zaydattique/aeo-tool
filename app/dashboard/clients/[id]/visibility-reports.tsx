@@ -12,6 +12,9 @@ type Prompt = {
   id: string;
   promptText: string;
   isCustom: boolean;
+  kind?: string;
+  targetName?: string | null;
+  latestScore?: number | null;
   snapshots: Snapshot[];
 };
 
@@ -21,9 +24,24 @@ type Report = {
   createdAt: string;
 };
 
+type Sov = {
+  clientSharePct: number | null;
+  competitorSharePct: number | null;
+  clientAvgScore: number | null;
+  competitorAvgScore: number | null;
+  brandPromptCount: number;
+  competitorPromptCount: number;
+  categoryPromptCount: number;
+  byCompetitor: { name: string; avgScore: number; promptCount: number }[];
+  note: string;
+};
+
 export function VisibilityReports({ clientId }: { clientId: string }) {
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
+  const [competitors, setCompetitors] = useState<string[]>([]);
+  const [competitorInput, setCompetitorInput] = useState("");
+  const [sov, setSov] = useState<Sov | null>(null);
   const [newPrompt, setNewPrompt] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
@@ -39,6 +57,8 @@ export function VisibilityReports({ clientId }: { clientId: string }) {
       if (pRes.ok) {
         const data = await pRes.json();
         setPrompts(data.prompts || []);
+        setCompetitors(data.competitors || []);
+        setSov(data.sov || null);
       }
       if (rRes.ok) {
         const data = await rRes.json();
@@ -73,6 +93,45 @@ export function VisibilityReports({ clientId }: { clientId: string }) {
     }
   }
 
+  async function saveCompetitors(next: string[], seedPrompts: boolean) {
+    setBusy(true);
+    setError("");
+    try {
+      const res = await fetch(`/api/clients/${clientId}/competitors`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ competitors: next, seedPrompts }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Failed to save competitors");
+        return;
+      }
+      setCompetitors(data.competitors || []);
+      await load();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function addCompetitor(e: React.FormEvent) {
+    e.preventDefault();
+    const name = competitorInput.trim();
+    if (!name) return;
+    if (competitors.some((c) => c.toLowerCase() === name.toLowerCase())) {
+      setCompetitorInput("");
+      return;
+    }
+    const next = [...competitors, name].slice(0, 15);
+    setCompetitorInput("");
+    saveCompetitors(next, true);
+  }
+
+  function removeCompetitor(name: string) {
+    const next = competitors.filter((c) => c !== name);
+    saveCompetitors(next, false);
+  }
+
   async function addPrompt(e: React.FormEvent) {
     e.preventDefault();
     if (!newPrompt.trim()) return;
@@ -82,7 +141,7 @@ export function VisibilityReports({ clientId }: { clientId: string }) {
       const res = await fetch(`/api/clients/${clientId}/prompts`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ promptText: newPrompt.trim() }),
+        body: JSON.stringify({ promptText: newPrompt.trim(), kind: "brand" }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -144,7 +203,6 @@ export function VisibilityReports({ clientId }: { clientId: string }) {
     }
   }
 
-  // Build simple score history for chart (average per date)
   const historyPoints = buildHistory(prompts);
 
   if (loading) {
@@ -157,6 +215,109 @@ export function VisibilityReports({ clientId }: { clientId: string }) {
 
   return (
     <div className="space-y-8">
+      {/* Competitors + SOV */}
+      <div className="rounded-lg border bg-white p-5 space-y-4">
+        <div>
+          <h2 className="font-medium text-lg">Competitors & share-of-answer</h2>
+          <p className="text-sm text-muted-foreground">
+            Add competitor brands. We seed vs-prompts and estimate relative
+            presence after each visibility check.
+          </p>
+        </div>
+
+        <form onSubmit={addCompetitor} className="flex gap-2">
+          <input
+            value={competitorInput}
+            onChange={(e) => setCompetitorInput(e.target.value)}
+            placeholder="Competitor brand name…"
+            className="flex-1 rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+          <button
+            type="submit"
+            disabled={busy || !competitorInput.trim()}
+            className="rounded-md border px-3 py-2 text-sm hover:bg-gray-50 disabled:opacity-50"
+          >
+            Add + seed prompts
+          </button>
+        </form>
+
+        {competitors.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {competitors.map((c) => (
+              <span
+                key={c}
+                className="inline-flex items-center gap-1 rounded-full border bg-slate-50 px-3 py-1 text-xs"
+              >
+                {c}
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => removeCompetitor(c)}
+                  className="text-red-600 hover:underline"
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+          </div>
+        )}
+
+        {sov && (
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-md border p-3 text-center">
+              <p className="text-xs text-muted-foreground">Client share</p>
+              <p className="text-2xl font-semibold mt-1">
+                {sov.clientSharePct != null ? `${sov.clientSharePct}%` : "—"}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                avg score {sov.clientAvgScore ?? "—"}
+              </p>
+            </div>
+            <div className="rounded-md border p-3 text-center">
+              <p className="text-xs text-muted-foreground">Competitor share</p>
+              <p className="text-2xl font-semibold mt-1">
+                {sov.competitorSharePct != null
+                  ? `${sov.competitorSharePct}%`
+                  : "—"}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                avg score {sov.competitorAvgScore ?? "—"}
+              </p>
+            </div>
+            <div className="rounded-md border p-3 text-center">
+              <p className="text-xs text-muted-foreground">Prompt mix</p>
+              <p className="text-sm mt-2">
+                {sov.brandPromptCount} brand · {sov.categoryPromptCount}{" "}
+                category · {sov.competitorPromptCount} competitor
+              </p>
+            </div>
+          </div>
+        )}
+
+        {sov && sov.byCompetitor.length > 0 && (
+          <div className="text-sm space-y-1">
+            <p className="text-xs font-medium text-muted-foreground uppercase">
+              By competitor
+            </p>
+            {sov.byCompetitor.map((c) => (
+              <div
+                key={c.name}
+                className="flex justify-between border-b border-gray-100 py-1"
+              >
+                <span>{c.name}</span>
+                <span className="text-muted-foreground">
+                  avg {c.avgScore} · {c.promptCount} prompts
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {sov?.note && (
+          <p className="text-xs text-muted-foreground">{sov.note}</p>
+        )}
+      </div>
+
       {/* Visibility tracking */}
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -192,7 +353,6 @@ export function VisibilityReports({ clientId }: { clientId: string }) {
           </div>
         )}
 
-        {/* Simple score history chart */}
         {historyPoints.length > 0 && (
           <div className="rounded-lg border bg-white p-4">
             <p className="text-xs text-muted-foreground mb-3">
@@ -202,16 +362,26 @@ export function VisibilityReports({ clientId }: { clientId: string }) {
           </div>
         )}
 
-        {/* Prompt list */}
         <div className="space-y-2">
           {prompts.map((p) => {
             const latest = p.snapshots[0];
+            const kind = p.kind || "brand";
             return (
               <div
                 key={p.id}
                 className="rounded-lg border bg-white p-3 flex items-start justify-between gap-3"
               >
                 <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap gap-2 items-center mb-1">
+                    <span className="text-[10px] uppercase tracking-wide rounded bg-slate-100 px-1.5 py-0.5 text-slate-600">
+                      {kind}
+                    </span>
+                    {p.targetName && (
+                      <span className="text-[10px] text-muted-foreground">
+                        vs {p.targetName}
+                      </span>
+                    )}
+                  </div>
                   <p className="text-sm">{p.promptText}</p>
                   <p className="text-xs text-muted-foreground mt-1">
                     {latest
@@ -220,7 +390,9 @@ export function VisibilityReports({ clientId }: { clientId: string }) {
                     {p.isCustom ? " · custom" : " · default"}
                   </p>
                   {p.snapshots.length > 1 && (
-                    <MiniSpark scores={p.snapshots.map((s) => s.score).reverse()} />
+                    <MiniSpark
+                      scores={p.snapshots.map((s) => s.score).reverse()}
+                    />
                   )}
                 </div>
                 <button
@@ -360,7 +532,11 @@ function ScoreChart({ points }: { points: { date: string; avg: number }[] }) {
 
   return (
     <div>
-      <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-24" preserveAspectRatio="none">
+      <svg
+        viewBox={`0 0 ${w} ${h}`}
+        className="w-full h-24"
+        preserveAspectRatio="none"
+      >
         <polyline
           fill="none"
           stroke="#3b82f6"
@@ -370,9 +546,7 @@ function ScoreChart({ points }: { points: { date: string; avg: number }[] }) {
         {points.map((p, i) => {
           const x = points.length === 1 ? w / 2 : (i / (points.length - 1)) * w;
           const y = h - (p.avg / max) * h;
-          return (
-            <circle key={i} cx={x} cy={y} r="1.5" fill="#3b82f6" />
-          );
+          return <circle key={i} cx={x} cy={y} r="1.5" fill="#3b82f6" />;
         })}
       </svg>
       <div className="flex justify-between text-xs text-muted-foreground mt-1">
