@@ -1,8 +1,14 @@
 /**
  * Visibility check across answer engines.
- * - PERPLEXITY_API_KEY: live Perplexity when available
- * - Heuristics always fill chatgpt/gemini/ai_overviews-style rows
- * - Competitor-aware scoring for kind=competitor prompts
+ *
+ * Live (when keys set):
+ * - PERPLEXITY_API_KEY → perplexity (citations when returned)
+ * - OPENAI_API_KEY → chatgpt
+ * - GEMINI_API_KEY or GOOGLE_GENERATIVE_AI_API_KEY → gemini
+ * - ANTHROPIC_API_KEY → claude
+ *
+ * Heuristics always fill any engine without a live response so the UI is never empty.
+ * Competitor-aware scoring for kind=competitor prompts.
  */
 
 export type EngineResult = {
@@ -19,10 +25,20 @@ export type PromptCheckResult = {
   promptText: string;
   score: number;
   engines: EngineResult[];
-  method: "live+heuristic" | "heuristic";
+  method: "live" | "live+heuristic" | "heuristic";
   brandMentioned: boolean;
   competitorMentioned: boolean;
+  liveEngineCount: number;
 };
+
+export type LiveEngineCapability = {
+  engine: string;
+  configured: boolean;
+  envVar: string;
+};
+
+const USER_PROMPT_SUFFIX =
+  "\n\n(Answer briefly in under 120 words. Name relevant brands if they apply.)";
 
 function hashScore(seed: string, base: number, spread: number) {
   let h = 0;
@@ -43,6 +59,32 @@ function mentions(text: string, name: string) {
   return tokens(name).some((t) => lower.includes(t));
 }
 
+function scoreFromText(
+  content: string,
+  brandName: string,
+  competitorName?: string | null,
+  citations: string[] = []
+): Omit<EngineResult, "engine" | "live" | "snippet"> & { snippet: string } {
+  const brandMentioned = mentions(content, brandName);
+  const competitorMentioned = competitorName
+    ? mentions(content, competitorName)
+    : false;
+
+  let score = brandMentioned ? 72 : 28;
+  if (brandMentioned && citations.length > 0) score = Math.min(100, score + 12);
+  if (!brandMentioned && citations.length > 0) score = Math.min(55, score + 8);
+  if (competitorMentioned && !brandMentioned) score = Math.max(15, score - 15);
+  if (competitorMentioned && brandMentioned) score = Math.min(100, score + 5);
+
+  return {
+    score,
+    mentioned: brandMentioned,
+    competitorMentioned,
+    citations: citations.slice(0, 5),
+    snippet: content.slice(0, 280),
+  };
+}
+
 function heuristicEngines(opts: {
   promptText: string;
   brandName: string;
@@ -58,7 +100,6 @@ function heuristicEngines(opts: {
 
   const mk = (engine: string, spread: number, bias: number): EngineResult => {
     let score = hashScore(`${engine}:${promptText}`, base + bias, spread);
-    // Competitor-oriented prompts: slightly depress client heuristic if competitor named first in text
     if (kind === "competitor" && competitorName) {
       const p = promptText.toLowerCase();
       const cIdx = p.indexOf(competitorName.toLowerCase().split(" ")[0] || "");
@@ -71,9 +112,7 @@ function heuristicEngines(opts: {
       mentioned: brandInPrompt && score >= 45,
       competitorMentioned: compInPrompt && score >= 40,
       live: false,
-      snippet: brandInPrompt
-        ? `Heuristic: prompt references brand; estimated presence ${score}/100.`
-        : `Heuristic: estimated presence ${score}/100.`,
+      snippet: `Heuristic estimate ${score}/100 (no live key for ${engine}).`,
     };
   };
 
@@ -81,7 +120,36 @@ function heuristicEngines(opts: {
     mk("chatgpt", 12, 0),
     mk("perplexity", 10, brandInPrompt ? 5 : -3),
     mk("gemini", 11, -2),
+    mk("claude", 11, -1),
     mk("ai_overviews", 14, -5),
+  ];
+}
+
+/** Which live providers are configured (no secrets exposed). */
+export function getLiveEngineCapabilities(): LiveEngineCapability[] {
+  return [
+    {
+      engine: "perplexity",
+      configured: Boolean(process.env.PERPLEXITY_API_KEY),
+      envVar: "PERPLEXITY_API_KEY",
+    },
+    {
+      engine: "chatgpt",
+      configured: Boolean(process.env.OPENAI_API_KEY),
+      envVar: "OPENAI_API_KEY",
+    },
+    {
+      engine: "gemini",
+      configured: Boolean(
+        process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY
+      ),
+      envVar: "GEMINI_API_KEY",
+    },
+    {
+      engine: "claude",
+      configured: Boolean(process.env.ANTHROPIC_API_KEY),
+      envVar: "ANTHROPIC_API_KEY",
+    },
   ];
 }
 
@@ -105,7 +173,7 @@ async function checkPerplexityLive(
         messages: [
           {
             role: "user",
-            content: `${promptText}\n\n(Answer briefly. If relevant brands are mentioned, name them.)`,
+            content: `${promptText}${USER_PROMPT_SUFFIX}`,
           },
         ],
         max_tokens: 400,
@@ -127,28 +195,147 @@ async function checkPerplexityLive(
       ? json.citations.map(String)
       : [];
 
-    const brandMentioned = mentions(content, brandName);
-    const competitorMentioned = competitorName
-      ? mentions(content, competitorName)
-      : false;
-
-    let score = brandMentioned ? 72 : 28;
-    if (brandMentioned && citations.length > 0) score = Math.min(100, score + 12);
-    if (!brandMentioned && citations.length > 0) score = Math.min(55, score + 8);
-    if (competitorMentioned && !brandMentioned) score = Math.max(15, score - 15);
-    if (competitorMentioned && brandMentioned) score = Math.min(100, score + 5);
-
-    return {
-      engine: "perplexity",
-      score,
-      mentioned: brandMentioned,
-      competitorMentioned,
-      snippet: content.slice(0, 280),
-      citations: citations.slice(0, 5),
-      live: true,
-    };
+    const scored = scoreFromText(content, brandName, competitorName, citations);
+    return { engine: "perplexity", live: true, ...scored };
   } catch (err) {
     console.warn("[visibility] Perplexity error", err);
+    return null;
+  }
+}
+
+async function checkOpenAiLive(
+  promptText: string,
+  brandName: string,
+  competitorName?: string | null
+): Promise<EngineResult | null> {
+  const key = process.env.OPENAI_API_KEY;
+  if (!key) return null;
+
+  try {
+    const res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: process.env.OPENAI_VISIBILITY_MODEL || "gpt-4o-mini",
+        messages: [
+          {
+            role: "user",
+            content: `${promptText}${USER_PROMPT_SUFFIX}`,
+          },
+        ],
+        max_tokens: 300,
+        temperature: 0.2,
+      }),
+    });
+
+    if (!res.ok) {
+      console.warn("[visibility] OpenAI HTTP", res.status);
+      return null;
+    }
+
+    const json = await res.json();
+    const content: string = json.choices?.[0]?.message?.content || "";
+    const scored = scoreFromText(content, brandName, competitorName);
+    return { engine: "chatgpt", live: true, ...scored };
+  } catch (err) {
+    console.warn("[visibility] OpenAI error", err);
+    return null;
+  }
+}
+
+async function checkGeminiLive(
+  promptText: string,
+  brandName: string,
+  competitorName?: string | null
+): Promise<EngineResult | null> {
+  const key =
+    process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
+  if (!key) return null;
+
+  const model = process.env.GEMINI_VISIBILITY_MODEL || "gemini-2.0-flash";
+
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [{ text: `${promptText}${USER_PROMPT_SUFFIX}` }],
+            },
+          ],
+          generationConfig: {
+            maxOutputTokens: 300,
+            temperature: 0.2,
+          },
+        }),
+      }
+    );
+
+    if (!res.ok) {
+      console.warn("[visibility] Gemini HTTP", res.status);
+      return null;
+    }
+
+    const json = await res.json();
+    const content: string =
+      json.candidates?.[0]?.content?.parts
+        ?.map((p: { text?: string }) => p.text || "")
+        .join("") || "";
+    const scored = scoreFromText(content, brandName, competitorName);
+    return { engine: "gemini", live: true, ...scored };
+  } catch (err) {
+    console.warn("[visibility] Gemini error", err);
+    return null;
+  }
+}
+
+async function checkClaudeLive(
+  promptText: string,
+  brandName: string,
+  competitorName?: string | null
+): Promise<EngineResult | null> {
+  const key = process.env.ANTHROPIC_API_KEY;
+  if (!key) return null;
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "x-api-key": key,
+        "anthropic-version": "2023-06-01",
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: process.env.ANTHROPIC_VISIBILITY_MODEL || "claude-3-5-haiku-latest",
+        max_tokens: 300,
+        messages: [
+          {
+            role: "user",
+            content: `${promptText}${USER_PROMPT_SUFFIX}`,
+          },
+        ],
+      }),
+    });
+
+    if (!res.ok) {
+      console.warn("[visibility] Claude HTTP", res.status);
+      return null;
+    }
+
+    const json = await res.json();
+    const content: string = Array.isArray(json.content)
+      ? json.content.map((c: { text?: string }) => c.text || "").join("")
+      : "";
+    const scored = scoreFromText(content, brandName, competitorName);
+    return { engine: "claude", live: true, ...scored };
+  } catch (err) {
+    console.warn("[visibility] Claude error", err);
     return null;
   }
 }
@@ -176,19 +363,29 @@ export async function checkPromptVisibility(opts: {
     kind,
   });
 
-  const live = await checkPerplexityLive(
-    promptText,
-    brandName,
-    competitorName
-  );
-  let method: PromptCheckResult["method"] = "heuristic";
+  const liveResults = await Promise.all([
+    checkPerplexityLive(promptText, brandName, competitorName),
+    checkOpenAiLive(promptText, brandName, competitorName),
+    checkGeminiLive(promptText, brandName, competitorName),
+    checkClaudeLive(promptText, brandName, competitorName),
+  ]);
 
-  if (live) {
-    method = "live+heuristic";
-    const idx = engines.findIndex((e) => e.engine === "perplexity");
+  let liveEngineCount = 0;
+  for (const live of liveResults) {
+    if (!live) continue;
+    liveEngineCount += 1;
+    const idx = engines.findIndex((e) => e.engine === live.engine);
     if (idx >= 0) engines[idx] = live;
-    else engines.unshift(live);
+    else engines.push(live);
   }
+
+  // ai_overviews stays heuristic-only (no public consumer API)
+  const method: PromptCheckResult["method"] =
+    liveEngineCount === 0
+      ? "heuristic"
+      : liveEngineCount >= 3
+        ? "live"
+        : "live+heuristic";
 
   const score = Math.round(
     engines.reduce((s, e) => s + e.score, 0) / Math.max(1, engines.length)
@@ -204,5 +401,6 @@ export async function checkPromptVisibility(opts: {
     method,
     brandMentioned,
     competitorMentioned,
+    liveEngineCount,
   };
 }
