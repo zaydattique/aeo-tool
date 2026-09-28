@@ -1,66 +1,38 @@
-# AEO Command — HISTORY (operational memory)
+# AEO Command — HISTORY
 
-> Repo: `zaydattique/aeo-tool` · Last updated: **2026-09-28**  
-> [AGENTS.md](./AGENTS.md) · [PROJECT_PLAN.md](./PROJECT_PLAN.md) · [docs/DEPLOY.md](./docs/DEPLOY.md) · [docs/QUEUE_AND_JOBS.md](./docs/QUEUE_AND_JOBS.md)
+> Repo: `zaydattique/aeo-tool` · Updated **2026-09-28**
 
 ---
 
-## Open gotchas
+## Gotchas
 
 | Topic | Detail |
 |-------|--------|
-| Scan worker | In-process until queue implemented — prefer Railway-class host |
-| Rate limits | In-memory per instance |
-| Visibility | MVP estimates |
-| Weekly re-scan | Design only in QUEUE_AND_JOBS.md |
-| Super admin seed | Only if `SEED_SUPER_ADMIN_EMAIL` + `PASSWORD` (≥12 chars) set during `db:seed` |
+| Inngest | Without `INNGEST_EVENT_KEY` / dev server, scans fall back to in-process |
+| Re-scan cron | Only runs when Inngest is connected; toggle still saves schedule in DB |
+| Email | Without `RESEND_API_KEY`, emails log to console |
+| Visibility | Perplexity live if `PERPLEXITY_API_KEY`; else multi-engine heuristics |
+| Schema | `Client.rescanEnabled` / `rescanIntervalDays` / `nextRescanAt` — run `db push` |
 
 ---
 
-## Chronology (high level)
+### 2026-09-28 — Phase 11: Queue, rescan, visibility, case studies
 
-**0–8:** Schema, auth, clients, real scan, Action Center, visibility/reports, team/Stripe/admin.  
-**9:** Marketing pages, SEO meta, llms.txt, rate limits.  
-**10A:** Guides cluster, compare page, /ai.  
-**10B:** action-mapper, Action Center UX, QUEUE_AND_JOBS.md.  
-
----
-
-### 2026-09-28 — Phase 10C: Deploy readiness
-
-**Goal:** Make first production deploy repeatable without tribal knowledge — env vars, host choice for scans, super-admin bootstrap, post-deploy checks.
+**Goal:** Ship everything previously deferred: durable jobs, weekly re-scan + email, stronger visibility, more content.
 
 **What we did:**
 
-1. **`docs/DEPLOY.md`**
-   - Railway/Render vs Vercel tradeoff for in-process scans
-   - Full production env table
-   - Stripe webhook setup
-   - Smoke-test checklist
-   - Search Console / llms.txt go-live steps
-   - Known limits until queue migrates
+1. **Inngest** — `lib/inngest/client.ts`, `functions.ts` (`scan/run` with retries + owner email, hourly re-scan cron, Monday digest), `app/api/inngest/route.ts`. `enqueueScan` sends Inngest event when configured.
+2. **Email** — `lib/email.ts` Resend + console fallback; templates for scan complete + weekly digest.
+3. **Re-scan** — Prisma Client fields; PATCH API; `ClientRescanToggle` on client detail; cron respects plan scan limits.
+4. **Visibility** — `lib/visibility-check.ts` multi-engine results; optional live Perplexity; snapshots store engine breakdown in `sources`.
+5. **Content** — `/case-studies` with three agency-style stories.
+6. **Deps** — `inngest`, `resend` in package.json; env example updated.
 
-2. **`prisma/seed.ts`**
-   - Optional SUPER_ADMIN upsert from:
-     - `SEED_SUPER_ADMIN_EMAIL`
-     - `SEED_SUPER_ADMIN_PASSWORD` (min 12)
-     - `SEED_SUPER_ADMIN_NAME` (optional)
-   - `agencyId: null`, role `SUPER_ADMIN`
+**Key files:** `lib/inngest/*`, `lib/email.ts`, `lib/visibility-check.ts`, `lib/scan-worker.ts`, `prisma/schema.prisma`, `components/client-rescan-toggle.tsx`, `app/case-studies/page.tsx`, `app/api/inngest/route.ts`
 
-3. **`.env.example`** — production notes + seed vars documented
-
-4. **`README.md`** — status 0–10C, links DEPLOY + QUEUE docs, production summary, seed super-admin example
-
-5. **PROJECT_PLAN** — MVP roadmap closed; optional future work listed without fake phases
-
-**Key files:** `docs/DEPLOY.md`, `prisma/seed.ts`, `.env.example`, `README.md`, `PROJECT_PLAN.md`
-
-**Outcome:** Owner can deploy with a written checklist; super admin no longer requires ad-hoc SQL only.
-
-**Gotchas:** Unset seed password from long-lived host env after first seed if the platform keeps env vars forever. Column names in manual SQL may differ — prefer seed path.
+**Outcome:** Production can run durable scans and schedules via Inngest; product value denser offline with heuristics.
 
 ---
 
-## Deploy reminder
-
-Follow **docs/DEPLOY.md** end-to-end. Do not skip HTTPS `NEXTAUTH_URL`.
+Phases 0–10C summarized in prior commits. Deploy: **docs/DEPLOY.md** + Inngest sync to `/api/inngest`.
