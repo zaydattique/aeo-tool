@@ -20,6 +20,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       { path: "/guides/chatgpt-citations", priority: 0.85, freq: "monthly" },
       { path: "/guides/perplexity-visibility", priority: 0.85, freq: "monthly" },
       { path: "/compare/aeo-tools", priority: 0.9, freq: "monthly" },
+      { path: "/case-studies", priority: 0.85, freq: "monthly" },
       { path: "/ai", priority: 0.7, freq: "monthly" },
     ];
 
