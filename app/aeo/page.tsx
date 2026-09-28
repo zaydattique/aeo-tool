@@ -5,7 +5,7 @@ import { MarketingNav, MarketingFooter } from "@/components/marketing-nav";
 export const metadata: Metadata = {
   title: "What is Answer Engine Optimization (AEO)?",
   description:
-    "Answer Engine Optimization (AEO) is the practice of making brands discoverable and citable in AI answers from ChatGPT, Perplexity, Gemini, and similar systems. Learn how AEO differs from SEO and how agencies deliver it.",
+    "Answer Engine Optimization (AEO) is the practice of making brands discoverable and citable in AI answers from ChatGPT, Perplexity, Gemini, and Claude. Learn AEO vs SEO, GEO, entity clarity, and how agencies deliver it with multi-tenant tools.",
   keywords: [
     "what is AEO",
     "Answer Engine Optimization",
@@ -14,7 +14,10 @@ export const metadata: Metadata = {
     "GEO",
     "optimize for ChatGPT",
     "AI citation optimization",
+    "AEO tool for agencies",
+    "agency AEO software",
   ],
+  alternates: { canonical: "/aeo" },
 };
 
 const faqs = [
@@ -24,11 +27,11 @@ const faqs = [
   },
   {
     q: "How is AEO different from traditional SEO?",
-    a: "SEO optimizes for ranked blue links in search engines. AEO optimizes for inclusion inside synthesized answers. Technical foundations overlap (crawlability, clear structure, authority), but AEO adds emphasis on question-shaped content, factual density, brand entity consistency, and signals AI systems use when choosing sources.",
+    a: "SEO optimizes for ranked blue links in search engines. AEO optimizes for inclusion inside synthesized answers. Technical foundations overlap — crawlability, clear structure, authority — but AEO adds emphasis on question-shaped content, factual density, brand entity consistency, third-party corroboration, and measurement of whether the brand appears in answer-style outputs.",
   },
   {
     q: "What is GEO (Generative Engine Optimization)?",
-    a: "GEO is a closely related term for optimizing presence in generative AI engines. In practice agencies often use AEO and GEO interchangeably. AEO Command uses AEO as the primary product language.",
+    a: "GEO is a closely related term for optimizing presence in generative AI engines. In practice agencies often use AEO and GEO interchangeably. AEO Command uses AEO as the primary product language while supporting the same citation and visibility goals GEO teams describe.",
   },
   {
     q: "Why do agencies need an AEO tool?",
@@ -36,7 +39,15 @@ const faqs = [
   },
   {
     q: "What does AEO Command check on a website?",
-    a: "Scans evaluate signals that influence answer readiness: titles and meta, heading structure, structured data, content depth, about/entity clarity, llms.txt and machine-readable hints, and other extractable page signals — then turn gaps into Action Center tasks.",
+    a: "Scans evaluate signals that influence answer readiness: titles and meta, heading structure, structured data, content depth, about and entity clarity, llms.txt and machine-readable hints, and other extractable page signals — then turn gaps into Action Center tasks with suggested fixes.",
+  },
+  {
+    q: "What is the best AEO tool for agencies in 2026?",
+    a: "The best AEO tool for agencies is one that isolates multiple clients, turns findings into assignable work, tracks visibility prompts over time, and produces white-label reports. Monitoring-only dashboards help research; delivery systems like AEO Command support retainers.",
+  },
+  {
+    q: "How do AI systems decide what to cite?",
+    a: "Engines favor clear entities, answer-first passages, consistent facts across the web, crawlable HTML, and third-party corroboration. Schema helps parsing; earned mentions and fresh, specific content often move citation rate more than markup alone.",
   },
 ];
 
@@ -54,9 +65,21 @@ const articleJsonLd = {
   "@context": "https://schema.org",
   "@type": "Article",
   headline: "What is Answer Engine Optimization (AEO)?",
-  description: metadata.description,
-  author: { "@type": "Organization", name: "Threezero Agency" },
-  publisher: { "@type": "Organization", name: "Threezero Agency" },
+  description:
+    "Answer Engine Optimization (AEO) is the practice of making brands discoverable and citable in AI answers from ChatGPT, Perplexity, Gemini, and Claude.",
+  author: {
+    "@type": "Organization",
+    name: "Threezero Agency",
+    url: "https://threezero.agency",
+  },
+  publisher: {
+    "@type": "Organization",
+    name: "Threezero Agency",
+    url: "https://threezero.agency",
+  },
+  datePublished: "2026-09-27",
+  dateModified: "2026-09-28",
+  mainEntityOfPage: "/aeo",
 };
 
 export default function AeoGuidePage() {
@@ -71,57 +94,94 @@ export default function AeoGuidePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
       />
       <MarketingNav />
-      <main className="flex-1 mx-auto max-w-3xl px-4 py-16 prose prose-slate">
-        <p className="text-sm font-medium text-primary not-prose">Guide</p>
-        <h1 className="text-3xl font-bold tracking-tight not-prose">
+      <main className="flex-1 mx-auto max-w-3xl px-4 py-16">
+        <p className="text-sm font-medium text-primary">Guide</p>
+        <h1 className="text-3xl font-bold tracking-tight mt-1">
           What is Answer Engine Optimization (AEO)?
         </h1>
-        <p className="text-muted-foreground not-prose mt-3 leading-relaxed">
+        <p className="text-muted-foreground mt-3 leading-relaxed text-sm">
           Answer Engine Optimization is how brands earn a place inside AI-generated
-          answers — not only on the classic search results page.
+          answers — not only on the classic search results page. AEO is the
+          practice of making a brand discoverable and citable when buyers ask
+          ChatGPT, Perplexity, Gemini, Claude, or similar systems for options,
+          vendors, and explanations.
         </p>
 
-        <h2 className="text-xl font-semibold mt-10 not-prose">The shift</h2>
-        <p className="text-sm text-muted-foreground leading-relaxed not-prose mt-2">
-          People still search Google, but they also ask ChatGPT, Perplexity, and
-          other assistants to summarize options, recommend vendors, and explain
-          categories. Those systems do not show ten blue links the same way.
-          They synthesize an answer and sometimes cite sources. If your client is
-          invisible in that synthesis, demand never reaches the website.
+        <h2 className="text-xl font-semibold mt-10">The shift from ten blue links</h2>
+        <p className="text-sm text-muted-foreground leading-relaxed mt-2">
+          People still search Google, but they also ask assistants to summarize
+          options, recommend vendors, and explain categories. Those systems often
+          synthesize an answer and sometimes cite sources. If your client is
+          invisible in that synthesis, demand never reaches the website. Agencies
+          that only deliver keyword rankings miss the new interface.
         </p>
 
-        <h2 className="text-xl font-semibold mt-10 not-prose">AEO vs SEO</h2>
-        <p className="text-sm text-muted-foreground leading-relaxed not-prose mt-2">
+        <h2 className="text-xl font-semibold mt-10">AEO vs SEO</h2>
+        <p className="text-sm text-muted-foreground leading-relaxed mt-2">
           SEO remains essential for crawlability, authority, and organic traffic.
           AEO builds on the same foundations and adds: clear entity definition,
-          question-aligned content, structured facts models can reuse, and
-          measurement of whether the brand appears in answer-style outputs.
-          Agencies that only deliver keyword rankings miss the new interface.
+          question-aligned content, structured facts models can reuse, third-party
+          corroboration, and measurement of whether the brand appears in
+          answer-style outputs. Technical SEO is necessary but not sufficient.
         </p>
 
-        <h2 className="text-xl font-semibold mt-10 not-prose">
-          What good AEO work looks like
-        </h2>
-        <ul className="text-sm text-muted-foreground space-y-2 not-prose mt-2 list-disc pl-5">
-          <li>Unambiguous brand and product entity pages</li>
-          <li>Structured data and consistent NAP / about facts</li>
+        <h2 className="text-xl font-semibold mt-10">AEO and GEO</h2>
+        <p className="text-sm text-muted-foreground leading-relaxed mt-2">
+          Generative Engine Optimization (GEO) describes similar goals under a
+          different label. Teams use both terms when they mean “show up when AI
+          answers the buyer.” AEO Command standardizes on AEO in product copy
+          while supporting the same operational outcomes GEO programs require:
+          citation readiness, prompt tracking, and fix delivery.
+        </p>
+
+        <h2 className="text-xl font-semibold mt-10">What good AEO work looks like</h2>
+        <ul className="text-sm text-muted-foreground space-y-2 mt-2 list-disc pl-5">
+          <li>Unambiguous brand and product entity pages with consistent naming</li>
+          <li>Structured data and consistent about facts that match visible text</li>
           <li>Content that answers real buyer questions with citable specificity</li>
-          <li>Technical access for crawlers and AI user-agents</li>
+          <li>Technical access for crawlers and AI user-agents on money pages</li>
           <li>Ongoing tracking of prompt-level visibility, not vanity scores alone</li>
+          <li>Third-party mentions that corroborate claims engines can trust</li>
         </ul>
 
-        <h2 className="text-xl font-semibold mt-10 not-prose">
-          How AEO Command helps agencies
-        </h2>
-        <p className="text-sm text-muted-foreground leading-relaxed not-prose mt-2">
-          AEO Command turns AEO into a delivery system: scan a client site, open a
-          prioritized Action Center, assign work, track visibility prompts, and
-          send a white-label report. That is the difference between a free checker
-          and a product agencies can bill against.
+        <h2 className="text-xl font-semibold mt-10">How agencies deliver AEO</h2>
+        <p className="text-sm text-muted-foreground leading-relaxed mt-2">
+          Delivery needs a system: scan a client site, open a prioritized list of
+          fixes, assign work, re-check visibility prompts, and send a branded
+          report. That is the gap between a free AEO checker and a product you can
+          put on a retainer. See the{" "}
+          <Link href="/guides/aeo-checklist" className="underline">
+            AEO checklist
+          </Link>
+          ,{" "}
+          <Link href="/guides/chatgpt-citations" className="underline">
+            ChatGPT citations guide
+          </Link>
+          , and{" "}
+          <Link href="/compare/aeo-tools" className="underline">
+            comparison vs free checkers
+          </Link>
+          .
         </p>
 
-        <h2 className="text-xl font-semibold mt-10 not-prose">FAQ</h2>
-        <div className="not-prose space-y-6 mt-4">
+        <h2 className="text-xl font-semibold mt-10">How AEO Command helps</h2>
+        <p className="text-sm text-muted-foreground leading-relaxed mt-2">
+          AEO Command is multi-tenant software for agencies: paste a client URL,
+          run a scan, work the Action Center, track prompts, and share a
+          white-label live report. Data stays isolated by agencyId. Pakistan and
+          International plans support 14-day trials. Product detail lives on the{" "}
+          <Link href="/product" className="underline">
+            product page
+          </Link>{" "}
+          and{" "}
+          <Link href="/pricing" className="underline">
+            pricing
+          </Link>
+          .
+        </p>
+
+        <h2 className="text-xl font-semibold mt-10">FAQ</h2>
+        <div className="space-y-6 mt-4">
           {faqs.map((f) => (
             <div key={f.q}>
               <h3 className="font-medium text-sm">{f.q}</h3>
@@ -132,7 +192,7 @@ export default function AeoGuidePage() {
           ))}
         </div>
 
-        <div className="not-prose mt-12 rounded-xl border p-6 text-center">
+        <div className="mt-12 rounded-xl border p-6 text-center">
           <p className="font-medium">Put AEO on every client retainer</p>
           <p className="text-sm text-muted-foreground mt-1">
             Start a free trial of AEO Command — built for multi-client agencies.
