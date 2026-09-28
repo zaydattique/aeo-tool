@@ -7,6 +7,22 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+const PRINT_CSS = `
+  @media print {
+    .no-print { display: none !important; }
+    body {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      background: white !important;
+    }
+    .report-shell { background: white !important; min-height: auto !important; }
+    .report-article { max-width: 100% !important; padding: 0 !important; }
+    .report-section { break-inside: avoid; page-break-inside: avoid; }
+    a { color: inherit; text-decoration: none; }
+    @page { margin: 1.5cm; }
+  }
+`;
+
 export default async function ClientPortalPage({
   params,
 }: {
@@ -74,32 +90,36 @@ export default async function ClientPortalPage({
     (a) => a.status === "IN_PROGRESS"
   ).length;
   const todo = client.actions.filter((a) => a.status === "TODO").length;
-  const analysis = (client.scans[0]?.aiAnalysis as {
-    summary?: string;
-    scores?: Record<string, number>;
-  } | null) || null;
+  const analysis =
+    (client.scans[0]?.aiAnalysis as {
+      summary?: string;
+      scores?: Record<string, number>;
+    } | null) || null;
 
   return (
-    <div className="min-h-screen bg-slate-50 text-gray-900">
-      <style>{`
-        @media print {
-          .no-print { display: none !important; }
-          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        }
-      `}</style>
+    <div className="report-shell min-h-screen bg-slate-50 text-gray-900">
+      <style>{PRINT_CSS}</style>
 
-      <div className="no-print sticky top-0 z-10 border-b bg-white/95 backdrop-blur px-4 py-3 flex items-center justify-between">
+      <div className="no-print sticky top-0 z-10 border-b bg-white/95 backdrop-blur px-4 py-3 flex flex-wrap items-center justify-between gap-2">
         <span className="text-sm text-gray-500">Live client portal · read-only</span>
-        <a
-          href="javascript:window.print()"
-          className="rounded-md border px-3 py-1.5 text-sm hover:bg-gray-50 no-underline text-inherit"
-        >
-          Print / Save PDF
-        </a>
+        <div className="flex gap-2">
+          <a
+            href={`/api/portal/${token}/pdf`}
+            className="rounded-md bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800 no-underline"
+          >
+            Download PDF
+          </a>
+          <a
+            href="javascript:window.print()"
+            className="rounded-md border px-3 py-1.5 text-sm hover:bg-gray-50 no-underline text-inherit"
+          >
+            Print
+          </a>
+        </div>
       </div>
 
-      <article className="mx-auto max-w-3xl px-6 py-10 space-y-10">
-        <header className="border-b pb-8">
+      <article className="report-article mx-auto max-w-3xl px-6 py-10 space-y-10">
+        <header className="report-section border-b pb-8">
           <div className="flex items-center gap-4 mb-6">
             {client.agency.logoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -125,7 +145,7 @@ export default async function ClientPortalPage({
           </p>
         </header>
 
-        <section>
+        <section className="report-section">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-3">
             Visibility score
           </h2>
@@ -137,7 +157,7 @@ export default async function ClientPortalPage({
           </p>
         </section>
 
-        <section>
+        <section className="report-section">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-3">
             Action progress
           </h2>
@@ -163,7 +183,7 @@ export default async function ClientPortalPage({
         </section>
 
         {analysis?.summary && (
-          <section>
+          <section className="report-section">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-3">
               Latest analysis
             </h2>
@@ -172,13 +192,16 @@ export default async function ClientPortalPage({
         )}
 
         {analysis?.scores && (
-          <section>
+          <section className="report-section">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-3">
               Dimension scores
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {Object.entries(analysis.scores).map(([k, v]) => (
-                <div key={k} className="rounded-lg border bg-white p-3 text-center">
+                <div
+                  key={k}
+                  className="rounded-lg border bg-white p-3 text-center"
+                >
                   <p className="text-xs text-gray-500 capitalize">{k}</p>
                   <p className="text-xl font-semibold mt-1">{v}</p>
                 </div>
@@ -188,7 +211,7 @@ export default async function ClientPortalPage({
         )}
 
         {client.actions.length > 0 && (
-          <section>
+          <section className="report-section">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-3">
               Recommended actions
             </h2>
@@ -196,7 +219,7 @@ export default async function ClientPortalPage({
               {client.actions.map((a) => (
                 <div
                   key={a.id}
-                  className="border-l-2 pl-4 bg-white/50 py-2"
+                  className="border-l-2 pl-4 bg-white/50 py-2 report-section"
                   style={{ borderColor: primary }}
                 >
                   <div className="flex flex-wrap gap-2 text-xs text-gray-500 mb-1">
@@ -215,7 +238,7 @@ export default async function ClientPortalPage({
         )}
 
         {client.trackedPrompts.length > 0 && (
-          <section>
+          <section className="report-section">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-3">
               Tracked prompts
             </h2>
@@ -242,7 +265,7 @@ export default async function ClientPortalPage({
           </section>
         )}
 
-        <footer className="border-t pt-6 text-xs text-gray-400">
+        <footer className="border-t pt-6 text-xs text-gray-400 report-section">
           Prepared for you by {client.agency.name} · Live portal · Powered by AEO
           Command
         </footer>

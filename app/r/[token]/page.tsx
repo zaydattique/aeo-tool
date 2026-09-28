@@ -1,5 +1,11 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+
+export const metadata: Metadata = {
+  title: "AEO Report",
+  robots: { index: false, follow: false },
+};
 
 type ReportConfig = {
   agencyName?: string;
@@ -35,6 +41,32 @@ type ReportConfig = {
   }[];
 };
 
+const PRINT_CSS = `
+  @media print {
+    .no-print { display: none !important; }
+    body {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+      background: white !important;
+    }
+    .report-shell {
+      background: white !important;
+      min-height: auto !important;
+    }
+    .report-article {
+      max-width: 100% !important;
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+    .report-section {
+      break-inside: avoid;
+      page-break-inside: avoid;
+    }
+    a { color: inherit; text-decoration: none; }
+    @page { margin: 1.5cm; }
+  }
+`;
+
 export default async function LiveReportPage({
   params,
 }: {
@@ -53,30 +85,29 @@ export default async function LiveReportPage({
     (config.brandColors as { primary?: string } | null)?.primary || "#111827";
 
   return (
-    <div className="min-h-screen bg-white text-gray-900">
-      <style>{`
-        @media print {
-          .no-print { display: none !important; }
-          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        }
-      `}</style>
+    <div className="report-shell min-h-screen bg-white text-gray-900">
+      <style>{PRINT_CSS}</style>
 
-      <div className="no-print sticky top-0 border-b bg-white/95 backdrop-blur px-4 py-3 flex items-center justify-between">
-        <span className="text-sm text-gray-500">Live AEO Report</span>
-        <button
-          onClick={undefined}
-          className="rounded-md border px-3 py-1.5 text-sm hover:bg-gray-50"
-          // client-side print via script below
-        >
-          <a href="javascript:window.print()" className="no-underline text-inherit">
-            Print / Save PDF
+      <div className="no-print sticky top-0 z-10 border-b bg-white/95 backdrop-blur px-4 py-3 flex flex-wrap items-center justify-between gap-2">
+        <span className="text-sm text-gray-500">White-label AEO report</span>
+        <div className="flex gap-2">
+          <a
+            href={`/api/reports/${token}/pdf`}
+            className="rounded-md bg-gray-900 px-3 py-1.5 text-sm font-medium text-white hover:bg-gray-800 no-underline"
+          >
+            Download PDF
           </a>
-        </button>
+          <a
+            href="javascript:window.print()"
+            className="rounded-md border px-3 py-1.5 text-sm hover:bg-gray-50 no-underline text-inherit"
+          >
+            Print
+          </a>
+        </div>
       </div>
 
-      <article className="mx-auto max-w-3xl px-6 py-10 space-y-10">
-        {/* Header */}
-        <header className="border-b pb-8">
+      <article className="report-article mx-auto max-w-3xl px-6 py-10 space-y-10">
+        <header className="report-section border-b pb-8">
           <div className="flex items-center gap-4 mb-6">
             {config.agencyLogoUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -86,10 +117,7 @@ export default async function LiveReportPage({
                 className="h-10 object-contain"
               />
             ) : (
-              <span
-                className="text-lg font-bold"
-                style={{ color: primary }}
-              >
+              <span className="text-lg font-bold" style={{ color: primary }}>
                 {config.agencyName || "Agency"}
               </span>
             )}
@@ -108,8 +136,7 @@ export default async function LiveReportPage({
           )}
         </header>
 
-        {/* Score */}
-        <section>
+        <section className="report-section">
           <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-3">
             Visibility score
           </h2>
@@ -121,9 +148,8 @@ export default async function LiveReportPage({
           </p>
         </section>
 
-        {/* Summary */}
         {config.analysis?.summary && (
-          <section>
+          <section className="report-section">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-3">
               Summary
             </h2>
@@ -133,9 +159,8 @@ export default async function LiveReportPage({
           </section>
         )}
 
-        {/* Dimension scores */}
         {config.analysis?.scores && (
-          <section>
+          <section className="report-section">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-3">
               Dimension scores
             </h2>
@@ -150,8 +175,7 @@ export default async function LiveReportPage({
           </section>
         )}
 
-        {/* Strengths / Weaknesses */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 report-section">
           {config.analysis?.strengths &&
             config.analysis.strengths.length > 0 && (
               <section>
@@ -180,15 +204,18 @@ export default async function LiveReportPage({
             )}
         </div>
 
-        {/* Actions */}
         {config.actions && config.actions.length > 0 && (
-          <section>
+          <section className="report-section">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-3">
               Recommended actions ({config.actions.length})
             </h2>
             <div className="space-y-4">
               {config.actions.map((a, i) => (
-                <div key={i} className="border-l-2 pl-4" style={{ borderColor: primary }}>
+                <div
+                  key={i}
+                  className="border-l-2 pl-4 report-section"
+                  style={{ borderColor: primary }}
+                >
                   <div className="flex gap-2 text-xs text-gray-500 mb-1">
                     <span className="font-medium">{a.priority}</span>
                     <span>·</span>
@@ -210,9 +237,8 @@ export default async function LiveReportPage({
           </section>
         )}
 
-        {/* Prompt visibility */}
         {config.prompts && config.prompts.length > 0 && (
-          <section>
+          <section className="report-section">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-gray-500 mb-3">
               Tracked prompts
             </h2>
@@ -237,7 +263,7 @@ export default async function LiveReportPage({
           </section>
         )}
 
-        <footer className="border-t pt-6 text-xs text-gray-400">
+        <footer className="border-t pt-6 text-xs text-gray-400 report-section">
           Prepared by {config.agencyName || "Agency"} · Powered by AEO Command
         </footer>
       </article>
