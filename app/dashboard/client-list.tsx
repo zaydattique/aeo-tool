@@ -23,6 +23,12 @@ type ClientItem = {
   scans: ScanInfo[];
 };
 
+function scoreColor(score: number) {
+  if (score >= 70) return "text-green-700";
+  if (score >= 40) return "text-amber-700";
+  return "text-red-700";
+}
+
 export function ClientList({ initialClients }: { initialClients: ClientItem[] }) {
   const [clients, setClients] = useState(initialClients);
   const [showAdd, setShowAdd] = useState(false);
@@ -32,7 +38,6 @@ export function ClientList({ initialClients }: { initialClients: ClientItem[] })
   const [loading, setLoading] = useState(false);
   const [scanningIds, setScanningIds] = useState<Set<string>>(new Set());
 
-  // Poll active scans
   const activeScanIds = clients
     .filter(
       (c) =>
@@ -215,7 +220,8 @@ export function ClientList({ initialClients }: { initialClients: ClientItem[] })
         <div>
           <h2 className="text-xl font-semibold">Clients</h2>
           <p className="text-sm text-muted-foreground">
-            {clients.length} client{clients.length !== 1 ? "s" : ""}
+            {clients.length} client{clients.length !== 1 ? "s" : ""} · paste URL →
+            scan → Action Center
           </p>
         </div>
         <button
@@ -229,18 +235,18 @@ export function ClientList({ initialClients }: { initialClients: ClientItem[] })
       {error && (
         <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">
           {error}
-          <button
-            onClick={() => setError("")}
-            className="ml-2 underline"
-          >
+          <button onClick={() => setError("")} className="ml-2 underline">
             dismiss
           </button>
         </div>
       )}
 
       {showAdd && (
-        <div className="rounded-lg border bg-white p-6">
-          <h3 className="font-medium mb-4">Add new client</h3>
+        <div className="rounded-lg border bg-white p-6 shadow-sm">
+          <h3 className="font-medium mb-1">Add new client</h3>
+          <p className="text-xs text-muted-foreground mb-4">
+            Public https URL only. We block localhost and private IPs.
+          </p>
           <form onSubmit={handleAdd} className="space-y-3">
             <div>
               <label className="block text-sm font-medium">Website URL</label>
@@ -287,10 +293,18 @@ export function ClientList({ initialClients }: { initialClients: ClientItem[] })
       )}
 
       {clients.length === 0 ? (
-        <div className="rounded-lg border bg-white p-12 text-center">
-          <p className="text-muted-foreground">
-            No clients yet. Add your first client to run an AEO scan.
+        <div className="rounded-lg border border-dashed bg-white p-12 text-center">
+          <p className="font-medium">No clients yet</p>
+          <p className="text-sm text-muted-foreground mt-1 max-w-md mx-auto">
+            Add a client website to run an AEO scan and open a prioritized Action
+            Center with exact steps.
           </p>
+          <button
+            onClick={() => setShowAdd(true)}
+            className="mt-4 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground"
+          >
+            Add your first client
+          </button>
         </div>
       ) : (
         <div className="space-y-3">
@@ -306,7 +320,7 @@ export function ClientList({ initialClients }: { initialClients: ClientItem[] })
             return (
               <div
                 key={client.id}
-                className="rounded-lg border bg-white p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                className="rounded-lg border bg-white p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm"
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
@@ -344,8 +358,12 @@ export function ClientList({ initialClients }: { initialClients: ClientItem[] })
 
                   {!isScanning && client.currentVisibilityScore != null && (
                     <p className="mt-1 text-sm">
-                      Visibility score:{" "}
-                      <span className="font-medium">
+                      Visibility:{" "}
+                      <span
+                        className={`font-semibold ${
+                          scoreColor(client.currentVisibilityScore)
+                        }`}
+                      >
                         {client.currentVisibilityScore}/100
                       </span>
                       {client.lastScannedAt && (
@@ -368,9 +386,9 @@ export function ClientList({ initialClients }: { initialClients: ClientItem[] })
                   </button>
                   <Link
                     href={`/dashboard/clients/${client.id}`}
-                    className="rounded-md border px-3 py-1.5 text-sm hover:bg-gray-50"
+                    className="rounded-md bg-slate-900 text-white px-3 py-1.5 text-sm hover:opacity-90"
                   >
-                    View
+                    Open
                   </Link>
                 </div>
               </div>
