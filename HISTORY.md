@@ -1,15 +1,7 @@
 # AEO Command — HISTORY (operational memory)
 
 > Repo: `zaydattique/aeo-tool` · Last updated: **2026-09-28**  
-> [AGENTS.md](./AGENTS.md) · [PROJECT_PLAN.md](./PROJECT_PLAN.md) · [docs/FILEMAP.md](./docs/FILEMAP.md) · [docs/QUEUE_AND_JOBS.md](./docs/QUEUE_AND_JOBS.md)
-
-After every phase append: **Goal** · **What we did** · **Key files** · **Outcome** · **Gotchas**.
-
----
-
-## Product identity
-
-Multi-tenant AEO SaaS for agencies: URL → scan → Action Center → visibility → white-label report.
+> [AGENTS.md](./AGENTS.md) · [PROJECT_PLAN.md](./PROJECT_PLAN.md) · [docs/DEPLOY.md](./docs/DEPLOY.md) · [docs/QUEUE_AND_JOBS.md](./docs/QUEUE_AND_JOBS.md)
 
 ---
 
@@ -17,68 +9,58 @@ Multi-tenant AEO SaaS for agencies: URL → scan → Action Center → visibilit
 
 | Topic | Detail |
 |-------|--------|
-| Scan worker | Still in-process `setImmediate` — see QUEUE_AND_JOBS.md for Inngest/BullMQ path |
-| API keys | Firecrawl + Anthropic optional; heuristics offline |
-| Visibility | MVP estimates, not live engine checks |
-| Ranking | Content cluster live; needs domain + links |
-| Weekly re-scan | Designed only — not implemented in schema/UI yet |
+| Scan worker | In-process until queue implemented — prefer Railway-class host |
+| Rate limits | In-memory per instance |
+| Visibility | MVP estimates |
+| Weekly re-scan | Design only in QUEUE_AND_JOBS.md |
+| Super admin seed | Only if `SEED_SUPER_ADMIN_EMAIL` + `PASSWORD` (≥12 chars) set during `db:seed` |
 
 ---
 
-## Chronology (recent detail)
+## Chronology (high level)
 
-### Phases 0–9 + 10A (summary)
-
-Foundation through marketing + rank content cluster (guides, compare, /ai, llms.txt). Full narrative in prior commits of this file.
+**0–8:** Schema, auth, clients, real scan, Action Center, visibility/reports, team/Stripe/admin.  
+**9:** Marketing pages, SEO meta, llms.txt, rate limits.  
+**10A:** Guides cluster, compare page, /ai.  
+**10B:** action-mapper, Action Center UX, QUEUE_AND_JOBS.md.  
 
 ---
 
-### 2026-09-28 — Phase 10B: Product strength
+### 2026-09-28 — Phase 10C: Deploy readiness
 
-**Goal:** Make the Action Center and dashboard feel like agency delivery software — better task quality from scans, clearer UX, and a written path off the fragile in-process queue. Document weekly re-scan/email so implementation is not invented later under pressure.
+**Goal:** Make first production deploy repeatable without tribal knowledge — env vars, host choice for scans, super-admin bootstrap, post-deploy checks.
 
 **What we did:**
 
-1. **`lib/action-mapper.ts`**
-   - Sort issues: HIGH first, then lower effort (quick wins)
-   - Dedupe by normalized title
-   - Expand `suggestedFix` into ordered **steps** (list lines, sentences, or default 3-step implement/verify/close)
-   - Cap at **15** actions so the Center stays actionable
+1. **`docs/DEPLOY.md`**
+   - Railway/Render vs Vercel tradeoff for in-process scans
+   - Full production env table
+   - Stripe webhook setup
+   - Smoke-test checklist
+   - Search Console / llms.txt go-live steps
+   - Known limits until queue migrates
 
-2. **`lib/scan-worker.ts`**
-   - Uses `mapIssuesToActionDrafts` instead of 1:1 issue→single-step draft
-   - Comment points to queue migration doc
+2. **`prisma/seed.ts`**
+   - Optional SUPER_ADMIN upsert from:
+     - `SEED_SUPER_ADMIN_EMAIL`
+     - `SEED_SUPER_ADMIN_PASSWORD` (min 12)
+     - `SEED_SUPER_ADMIN_NAME` (optional)
+   - `agencyId: null`, role `SUPER_ADMIN`
 
-3. **Action Center UI**
-   - Completion **progress bar**
-   - Quick chips: All / To-do / In progress / High priority / Done
-   - Expandable **steps** list per action
-   - High-priority open count in header
+3. **`.env.example`** — production notes + seed vars documented
 
-4. **Dashboard client list**
-   - Stronger empty state + primary CTA
-   - Score color (green/amber/red)
-   - “Open” primary button styling; helper copy on add form
+4. **`README.md`** — status 0–10C, links DEPLOY + QUEUE docs, production summary, seed super-admin example
 
-5. **`docs/QUEUE_AND_JOBS.md`**
-   - Current enqueue behavior and limits
-   - Inngest vs BullMQ migration steps + acceptance checklist
-   - Weekly re-scan data model proposal, cron flow, email matrix
-   - Deploy guidance: prefer long-running Node for heavy scans
+5. **PROJECT_PLAN** — MVP roadmap closed; optional future work listed without fake phases
 
-**Key files:**
-- `lib/action-mapper.ts` (new)
-- `lib/scan-worker.ts`
-- `app/dashboard/clients/[id]/action-center.tsx`
-- `app/dashboard/client-list.tsx`
-- `docs/QUEUE_AND_JOBS.md` (new)
+**Key files:** `docs/DEPLOY.md`, `prisma/seed.ts`, `.env.example`, `README.md`, `PROJECT_PLAN.md`
 
-**Outcome:** New scans produce richer multi-step actions; Action Center is easier to triage; queue/re-scan design is documented for a future implementation phase.
+**Outcome:** Owner can deploy with a written checklist; super admin no longer requires ad-hoc SQL only.
 
-**Gotchas:** Existing Action rows from old scans are unchanged until a **new scan** runs. Weekly re-scan is **not** coded yet — only design.
+**Gotchas:** Unset seed password from long-lived host env after first seed if the platform keeps env vars forever. Column names in manual SQL may differ — prefer seed path.
 
 ---
 
 ## Deploy reminder
 
-Postgres · NEXTAUTH_URL HTTPS · secrets · Stripe webhook · Search Console · prefer non-serverless for long scans until queue migrated.
+Follow **docs/DEPLOY.md** end-to-end. Do not skip HTTPS `NEXTAUTH_URL`.
