@@ -8,6 +8,8 @@ const updateSchema = z.object({
   brandName: z.string().max(200).optional().nullable(),
   location: z.string().max(200).optional().nullable(),
   keywords: z.array(z.string().max(100)).max(50).optional(),
+  rescanEnabled: z.boolean().optional(),
+  rescanIntervalDays: z.number().int().min(1).max(90).optional(),
 });
 
 async function getOwnedClient(clientId: string, agencyId: string) {
@@ -83,20 +85,41 @@ export async function PATCH(
       );
     }
 
+    const data: Record<string, unknown> = {};
+    if (parsed.data.name !== undefined) data.name = parsed.data.name.trim();
+    if (parsed.data.brandName !== undefined)
+      data.brandName = parsed.data.brandName?.trim() || null;
+    if (parsed.data.location !== undefined)
+      data.location = parsed.data.location?.trim() || null;
+    if (parsed.data.keywords !== undefined) data.keywords = parsed.data.keywords;
+
+    if (parsed.data.rescanIntervalDays !== undefined) {
+      data.rescanIntervalDays = parsed.data.rescanIntervalDays;
+    }
+
+    if (parsed.data.rescanEnabled !== undefined) {
+      data.rescanEnabled = parsed.data.rescanEnabled;
+      if (parsed.data.rescanEnabled) {
+        const days =
+          parsed.data.rescanIntervalDays ??
+          existing.rescanIntervalDays ??
+          7;
+        data.nextRescanAt = new Date(Date.now() + days * 86400000);
+      } else {
+        data.nextRescanAt = null;
+      }
+    } else if (
+      parsed.data.rescanIntervalDays !== undefined &&
+      existing.rescanEnabled
+    ) {
+      data.nextRescanAt = new Date(
+        Date.now() + parsed.data.rescanIntervalDays * 86400000
+      );
+    }
+
     const client = await prisma.client.update({
       where: { id },
-      data: {
-        ...(parsed.data.name !== undefined && { name: parsed.data.name.trim() }),
-        ...(parsed.data.brandName !== undefined && {
-          brandName: parsed.data.brandName?.trim() || null,
-        }),
-        ...(parsed.data.location !== undefined && {
-          location: parsed.data.location?.trim() || null,
-        }),
-        ...(parsed.data.keywords !== undefined && {
-          keywords: parsed.data.keywords,
-        }),
-      },
+      data,
     });
 
     return NextResponse.json({ client });
