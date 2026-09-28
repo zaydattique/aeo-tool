@@ -7,6 +7,7 @@ import { ClientActions } from "./client-actions";
 import { ActionCenter } from "./action-center";
 import { VisibilityReports } from "./visibility-reports";
 import { ClientRescanToggle } from "@/components/client-rescan-toggle";
+import { ClientPortalToggle } from "@/components/client-portal-toggle";
 
 type AiAnalysis = {
   visibilityScore?: number;
@@ -106,6 +107,8 @@ export default async function ClientDetailPage({
             client.nextRescanAt ? client.nextRescanAt.toISOString() : null
           }
         />
+
+        <ClientPortalToggle clientId={client.id} />
 
         {analysis && (
           <>

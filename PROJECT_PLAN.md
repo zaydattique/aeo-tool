@@ -10,41 +10,32 @@ AGENTS.md → PROJECT_PLAN → HISTORY → docs/FILEMAP.md → docs/DEPLOY.md
 
 ## PHASE 0–12 — Done
 
-See HISTORY.md for full detail.
+See HISTORY.md.
 
 ---
 
-## PHASE 13 — Product value features (NEXT)
+## PHASE 13 — Product value features
 
-**Status:** In progress (2026-09-28)
+**Status:** 13.1 Done (2026-09-28). Next: 13.2
 
-**Goal:** Features agencies will pay more for, in delivery order — not feature bloat.
+**Goal:** Features agencies pay more for, in delivery order.
 
-### Ordered deliverables
+| Step | Feature | Status |
+|------|---------|--------|
+| **13.1** | Client live portal `/p/[token]` + enable/rotate/disable | **Done** |
+| **13.2** | Report PDF polish (print CSS + optional server PDF) | NEXT |
+| **13.3** | Competitor prompts + share-of-answer | Queued |
+| **13.4** | Live multi-engine checks (when keys) | Queued |
+| **13.5** | Auto-draft richer Action fixes | Queued |
 
-1. **Client live portal (13.1 — STARTING)**  
-   Persistent read-only link per client (`/p/[token]`) showing live score, action progress, and prompt visibility — not only a frozen `/r/[token]` report snapshot. Agency can enable/copy/revoke from client detail.
+**13.1 deploy note:** `npx prisma db push` for `portalToken` / `portalEnabled`.
 
-2. **Report PDF polish (13.2)**  
-   Stronger print stylesheet + optional server PDF later; print path already exists on live report.
-
-3. **Competitor prompts + share-of-answer (13.3)**  
-   Track competitor-oriented prompts and simple SOV-style comparison on visibility.
-
-4. **Live multi-engine checks (13.4)**  
-   When API keys available — expand beyond Perplexity optional + heuristics.
-
-5. **Auto-draft Action fixes (13.5)**  
-   Richer suggestedText / schema drafts from existing AI analysis path.
-
-**Out of scope:** SEO rank-tracker clone, mobile apps, guaranteed ranking claims.
-
-**After 13.1:** mark done in HISTORY with full sections; open 13.2 only after portal ships.
+**Out of scope:** SEO rank-tracker clone, mobile apps, ranking guarantees.
 
 ---
 
 ## Optional later
 
-- Public API / webhooks
+- Portal password gate
 - Custom domain for portal/report
-- Server-side PDF binary storage
+- Public API / webhooks

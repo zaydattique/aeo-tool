@@ -16,8 +16,8 @@
 
 ## Product UI
 
-`app/dashboard/*` · `app/admin` · `app/r/[token]` · `app/(auth)/*` · `app/onboarding`
+`app/dashboard/*` · `app/admin` · `app/r/[token]` (frozen white-label report) · `app/p/[token]` (live client portal) · `app/(auth)/*` · `app/onboarding` · `components/client-portal-toggle.tsx` · `components/client-rescan-toggle.tsx`
 
 ## API
 
-`app/api/auth/*` · `clients/*` · `scans/*` · `actions/*` · `team/*` · `billing/*` · `admin/*` · `onboarding` · `health` · `inngest`
+`app/api/auth/*` · `clients/*` · `clients/[id]/portal` · `scans/*` · `actions/*` · `team/*` · `billing/*` · `admin/*` · `onboarding` · `health` · `inngest`

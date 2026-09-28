@@ -8,6 +8,7 @@ export function ClientPortalToggle({ clientId }: { clientId: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [copied, setCopied] = useState(false);
+  const [origin, setOrigin] = useState("");
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/clients/${clientId}/portal`);
@@ -19,6 +20,7 @@ export function ClientPortalToggle({ clientId }: { clientId: string }) {
   }, [clientId]);
 
   useEffect(() => {
+    setOrigin(window.location.origin);
     load();
   }, [load]);
 
@@ -46,7 +48,7 @@ export function ClientPortalToggle({ clientId }: { clientId: string }) {
 
   function copyLink() {
     if (!path) return;
-    const url = `${window.location.origin}${path}`;
+    const url = `${origin || window.location.origin}${path}`;
     navigator.clipboard.writeText(url);
     setCopied(true);
   }
@@ -94,9 +96,7 @@ export function ClientPortalToggle({ clientId }: { clientId: string }) {
         </div>
       </div>
 
-      {error && (
-        <p className="text-sm text-red-600">{error}</p>
-      )}
+      {error && <p className="text-sm text-red-600">{error}</p>}
 
       {enabled && path && (
         <div className="rounded-md bg-slate-50 p-3 text-sm flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
@@ -106,9 +106,7 @@ export function ClientPortalToggle({ clientId }: { clientId: string }) {
             rel="noopener noreferrer"
             className="underline break-all"
           >
-            {typeof window !== "undefined"
-              ? `${window.location.origin}${path}`
-              : path}
+            {origin ? `${origin}${path}` : path}
           </a>
           <button
             type="button"
