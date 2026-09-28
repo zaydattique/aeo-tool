@@ -2,56 +2,24 @@
 
 > Repo: `zaydattique/aeo-tool` · Last updated: **2026-09-28**
 
----
-
 ## Governance
 
-`AGENTS.md` · `PROJECT_PLAN.md` · `HISTORY.md` · `README.md` · `docs/FILEMAP.md` · `.cursorrules` · `.env.example` · `middleware.ts` · `prisma/schema.prisma` · `prisma/seed.ts` · `public/llms.txt`
-
----
+`AGENTS.md` · `PROJECT_PLAN.md` · `HISTORY.md` · `README.md` · `docs/FILEMAP.md` · `docs/QUEUE_AND_JOBS.md` · `.env.example` · `middleware.ts` · `prisma/*` · `public/llms.txt`
 
 ## Library (`lib/`)
 
-`prisma.ts` · `auth.ts` · `session.ts` · `utils.ts` · `url.ts` · `crawl.ts` · `ai-analysis.ts` · `scan-worker.ts` · `default-prompts.ts` · `stripe.ts` · `usage.ts` · `rate-limit.ts`
+`prisma.ts` · `auth.ts` · `session.ts` · `utils.ts` · `url.ts` · `crawl.ts` · `ai-analysis.ts` · **`action-mapper.ts`** · `scan-worker.ts` · `default-prompts.ts` · `stripe.ts` · `usage.ts` · `rate-limit.ts`
 
----
+## Marketing / content
 
-## Marketing / content cluster
+`components/marketing-nav.tsx` · `app/page.tsx` · `product` · `pricing` · `aeo` · `guides/*` · `compare/aeo-tools` · `ai` · `robots.ts` · `sitemap.ts`
 
-| Path | Role |
-|------|------|
-| `components/marketing-nav.tsx` | Nav + footer |
-| `app/page.tsx` | Home |
-| `app/product/page.tsx` | Product |
-| `app/pricing/page.tsx` | Pricing PK/INT |
-| `app/aeo/page.tsx` | What is AEO |
-| `app/guides/page.tsx` | Guides hub |
-| `app/guides/aeo-checklist/page.tsx` | Checklist guide |
-| `app/guides/chatgpt-citations/page.tsx` | ChatGPT guide |
-| `app/guides/perplexity-visibility/page.tsx` | Perplexity guide |
-| `app/compare/aeo-tools/page.tsx` | vs free checkers |
-| `app/ai/page.tsx` | AI assistant summary |
-| `app/robots.ts` · `app/sitemap.ts` | Crawl control |
+## Product UI
 
----
+`app/dashboard/*` (client-list, clients/[id], action-center, settings) · `app/admin` · `app/r/[token]` · auth pages
 
-## App product UI
+## API
 
-`app/layout.tsx` · `app/(auth)/*` · `app/onboarding` · `app/dashboard/*` · `app/admin` · `app/r/[token]` · `components/providers.tsx`
+`app/api/auth/*` · `clients/*` · `scans/*` · `actions/*` · `team/*` · `billing/*` · `admin/*` · `onboarding` · `health`
 
----
-
-## API (prefix `app/api/`)
-
-Auth: `auth/[...nextauth]`, `auth/signup`, `forgot-password`, `reset-password`, `accept-invite`, `onboarding`, `health`  
-Clients/scans: `clients`, `clients/[id]`, `clients/[id]/scan`, `scans/[id]`  
-Actions: `actions`, `actions/[id]`  
-Visibility: `clients/[id]/prompts`, `prompts/[id]`, `snapshots`, `reports`  
-Team/billing: `team/members`, `team/invites`, `billing/usage|checkout|portal|webhook`  
-Admin: `admin/agencies`, `admin/agencies/[id]`, `admin/impersonate`
-
----
-
-## When you add code
-
-Update this FILEMAP + HISTORY.md in the same ship.
+Update this file when adding major paths.
