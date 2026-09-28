@@ -29,24 +29,24 @@ MVP product + marketing cluster + deploy docs. See HISTORY for full detail.
 
 ---
 
-## PHASE 12 — AEO + SEO 10/10 foundation (NEXT)
+## PHASE 12 — AEO + SEO 10/10 foundation
 
-**Status:** In progress (planning + competitor intelligence + advanced method list shipped 2026-09-28)
+**Status:** Code/content complete (2026-09-28). **Blocked only on owner host + post-deploy.**
 
-**Goal:** Take the live marketing surface from “solid foundation (~7.5/10)” to measurable 10/10 AEO readiness and competitive SEO ranking potential once the subdomain is live. No local setup required from owner; work is code + content + structured data + authority playbook.
+**Goal:** Take the marketing surface to measurable 10/10 AEO readiness and competitive SEO potential once the subdomain is live.
 
-**Deliverables (ordered):**
-1. Competitor map (agency-wise + retail-wise) and winning keyword inventory locked into docs
-2. 100 advanced, non-basic methods (AEO + SEO) documented for execution
-3. Expand existing marketing pages (edit in place: layout metadata, `/aeo`, guides, compare, home, product, pricing) with deeper entity clarity, answer-first blocks, denser FAQ schema, sameAs, Speakable where useful
-4. Strengthen `public/llms.txt` and `/ai` as the canonical AI ingestion surface
-5. Add OG image + Twitter image + WebSite/Organization graph completeness on layout
-6. Internal linking cluster between `/aeo` ↔ guides ↔ compare ↔ product ↔ pricing
-7. Post-deploy checklist: Search Console, sitemap, crawler allowlist verification, citation monitoring prompts
+**Deliverables completed in repo:**
+1. Competitor map (agency + retail) and winning keyword inventory — done
+2. 100 advanced AEO/SEO methods — done (owner conversation + HISTORY)
+3. Expand existing marketing pages (`/aeo`, `/product`, `/compare/aeo-tools`, home, guides hub, layout graph, robots AI bots, nav/footer cluster) — done in place
+4. Strengthen `public/llms.txt` and `/ai` — done
+5. OG/Twitter paths + WebSite/Organization/SoftwareApplication `@graph` on layout — done (ensure `public/og.png` binary on host)
+6. Internal linking cluster — done
+7. Post-deploy checklist — **owner** after DNS: Search Console, sitemap submit, crawler log check, citation prompt set
 
-**Out of scope for Phase 12:** building a separate blog app, new micro-sites, or parallel SEO tool pages that duplicate existing guides.
+**Out of scope (unchanged):** separate blog app, parallel SEO micro-pages.
 
-**NEXT after Phase 12:** optional Phase 13 content depth (more guides only if PROJECT_PLAN opens it) or production queue hardening.
+**NEXT:** Owner hosts subdomain with correct `NEXT_PUBLIC_APP_URL` / `NEXTAUTH_URL`, adds `public/og.png`, runs Search Console. Optional Phase 13 only if opened for more guide depth or engine APIs.
 
 ---
 
@@ -55,3 +55,4 @@ MVP product + marketing cluster + deploy docs. See HISTORY for full detail.
 - More engine APIs (ChatGPT/Bing) when keys available
 - Server-side PDF
 - Client view-only portal
+- Further densify individual guide bodies

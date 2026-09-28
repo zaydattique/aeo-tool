@@ -14,7 +14,51 @@
 | Visibility | Perplexity live if `PERPLEXITY_API_KEY`; else multi-engine heuristics |
 | Schema | `Client.rescanEnabled` / `rescanIntervalDays` / `nextRescanAt` — run `db push` |
 | Site URL | Marketing metadata and sitemap fall back to `threezero.agency` if `NEXT_PUBLIC_APP_URL` / `NEXTAUTH_URL` unset — must set real HTTPS subdomain before launch |
-| AI crawlers | robots.ts allows marketing paths + `/llms.txt`; dashboard/admin/api stay disallowed |
+| AI crawlers | robots.ts allows marketing paths + `/llms.txt` for GPTBot, ChatGPT-User, OAI-SearchBot, PerplexityBot, ClaudeBot, Google-Extended, anthropic-ai, CCBot; dashboard/admin/api stay disallowed |
+| OG image | Layout references `/og.png` — ensure `public/og.png` exists on deploy (1200×630) |
+
+---
+
+### 2026-09-28 — Phase 12 execution: marketing densify + competitor edge on existing pages
+
+**Goal**
+
+Owner asked to finish remaining Phase 12 work and push competitive edge without local setup and without creating parallel files. Success criteria: denser answer-first copy, expanded FAQ schema, honest competitor positioning (free checkers vs visibility trackers vs AEO Command), internal link cluster across marketing surfaces, and documentation updated with full ship detail.
+
+**What we did**
+
+1. **`/aeo` expanded** — Answer-first definition in the lead; new sections on the shift from blue links, AEO vs SEO, AEO and GEO, agency delivery, and product mapping; FAQs expanded to seven items including “best AEO tool for agencies” and “how AI decides what to cite”; Article JSON-LD given datePublished/dateModified and Organization author/publisher URLs; internal links to checklist, ChatGPT guide, compare, product, pricing.
+2. **`/product` expanded** — Entity sentence naming Threezero Agency; feature copy stresses delivery vs free checkers; FAQ block with FAQPage schema; links into `/aeo`, checklist, pricing.
+3. **`/compare/aeo-tools` expanded** — Four-column table (Capability / Free checkers / Visibility trackers / AEO Command); honest positioning of Peec AI, Profound, LLM Pulse, Otterly, Rankability, Semrush/Ahrefs as trackers; FAQs covering best agency tool, free checkers, named competitor class, and commercial keyword themes; internal links to product, checklist, `/aeo`.
+4. **Already present from prior Phase 12 foundation (not re-broken)** — Root layout `@graph` (Organization + WebSite + SoftwareApplication), OG/Twitter image paths, robots AI-bot allow rules, marketing nav + footer cluster, strengthened `llms.txt` and `/ai`, denser home cluster links.
+5. **No new parallel pages** — All changes edited existing routes only.
+
+**Key files**
+
+- `app/aeo/page.tsx` — denser guide + FAQ/Article schema
+- `app/product/page.tsx` — product edge + FAQ schema
+- `app/compare/aeo-tools/page.tsx` — three-way comparison + competitor-aware FAQs
+- `HISTORY.md` / `PROJECT_PLAN.md` — this ship record
+
+**Outcome / acceptance**
+
+- `/aeo`, `/product`, `/compare/aeo-tools` each lead with a citable definition and expose FAQ JSON-LD matching visible questions.
+- Compare page can be cited for “AEO tool for agencies” vs free checker vs tracker distinction.
+- Internal links connect hub and spokes without orphan marketing URLs.
+
+**What is still missing / deferred**
+
+- Owner must host subdomain and set `NEXT_PUBLIC_APP_URL` + `NEXTAUTH_URL` to real HTTPS.
+- `public/og.png` binary must exist at 1200×630 on the host (path already referenced).
+- Search Console verification, sitemap submit, and live citation prompt monitoring only after DNS.
+- Optional further densify of individual guide bodies (`chatgpt-citations`, `perplexity-visibility`) if Phase 13 opens.
+- Earned third-party corroboration (G2, roundups, backlinks) is off-site work, not code.
+
+**Gotchas**
+
+- Pricing page remains a client component; metadata stays on other routes and layout defaults. Do not convert pricing to a broken hybrid without a server layout if metadata is required later.
+- Named competitors are descriptive, not affiliation claims; keep “not affiliated” language on `/ai` and `llms.txt`.
+- Never invent a second SEO markdown file; methods stay in conversation + HISTORY.
 
 ---
 
