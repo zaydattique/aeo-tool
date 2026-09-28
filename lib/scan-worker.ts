@@ -1,13 +1,15 @@
 import { prisma } from "./prisma";
 import { crawlWebsite } from "./crawl";
 import { analyzeForAeo } from "./ai-analysis";
+import { mapIssuesToActionDrafts } from "./action-mapper";
 import type { ActionPriority, ActionCategory, ActionEffort } from "@prisma/client";
 
 /**
  * Production scan pipeline.
  * Stages: QUEUED → CRAWL → EXTRACT → AI_ANALYSIS → ACTION_GENERATION → COMPLETED
  *
- * Phase 6: Creates Action Center rows from analysis issues.
+ * Actions: mapped via lib/action-mapper (priority sort, multi-step, dedupe).
+ * Queue: currently in-process — see docs/QUEUE_AND_JOBS.md for migration.
  */
 
 async function updateStage(
@@ -80,11 +82,9 @@ export async function runScan(scanId: string) {
       },
     });
 
-    // ── CRAWL ──────────────────────────────────────
     await updateStage(scanId, "CRAWL", 15);
     const crawl = await crawlWebsite(scan.client.websiteUrl);
 
-    // ── EXTRACT ────────────────────────────────────
     await updateStage(scanId, "EXTRACT", 40, {
       rawCrawlData: {
         url: crawl.url,
@@ -99,29 +99,16 @@ export async function runScan(scanId: string) {
       },
     });
 
-    // ── AI ANALYSIS ────────────────────────────────
     await updateStage(scanId, "AI_ANALYSIS", 55);
     const analysis = await analyzeForAeo(
       crawl,
       scan.client.brandName || scan.client.name
     );
 
-    // ── ACTION GENERATION ──────────────────────────
     await updateStage(scanId, "ACTION_GENERATION", 85);
 
-    const actionDrafts = analysis.issues.map((issue, idx) => ({
-      order: idx + 1,
-      priority: issue.priority,
-      category: issue.category,
-      title: issue.title,
-      whyItMatters: issue.whyItMatters,
-      effortLevel: issue.effort,
-      suggestedText: issue.suggestedFix,
-      steps: [{ order: 1, text: issue.suggestedFix }],
-    }));
+    const actionDrafts = mapIssuesToActionDrafts(analysis.issues);
 
-    // Soft-delete previous open actions for this client from older scans
-    // so Action Center stays focused on the latest scan recommendations
     await prisma.action.updateMany({
       where: {
         clientId: scan.client.id,
@@ -132,7 +119,6 @@ export async function runScan(scanId: string) {
       data: { deletedAt: new Date() },
     });
 
-    // Create Action rows
     if (actionDrafts.length > 0) {
       await prisma.action.createMany({
         data: actionDrafts.map((d) => ({
@@ -151,7 +137,6 @@ export async function runScan(scanId: string) {
       });
     }
 
-    // ── COMPLETED ──────────────────────────────────
     await prisma.scan.update({
       where: { id: scanId },
       data: {
