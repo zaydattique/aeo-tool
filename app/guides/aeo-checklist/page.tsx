@@ -12,6 +12,7 @@ export const metadata: Metadata = {
     "AEO audit",
     "agency AEO process",
   ],
+  alternates: { canonical: "/guides/aeo-checklist" },
 };
 
 const sections = [
@@ -45,7 +46,7 @@ const sections = [
   {
     title: "4. Technical access",
     items: [
-      "Important pages not blocked in robots.txt",
+      "Important pages not blocked in robots.txt for Google or major AI bots",
       "Fast enough HTML response; critical content not trapped only in client JS",
       "Canonical URLs consistent; no accidental noindex on money pages",
       "HTTPS and stable URLs",
@@ -70,9 +71,34 @@ const sections = [
   },
 ];
 
+const faq = [
+  {
+    q: "How often should agencies run an AEO checklist?",
+    a: "At client kickoff, after major site launches, and at least quarterly. Re-scan faster when visibility prompts drop or competitors ship large content updates.",
+  },
+  {
+    q: "Is this checklist the same as a free AEO score?",
+    a: "No. A score is a snapshot. This checklist is a delivery definition of done that maps to assignable work, team ownership, and client reporting — the workflow AEO Command productizes.",
+  },
+];
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: faq.map((f) => ({
+    "@type": "Question",
+    name: f.q,
+    acceptedAnswer: { "@type": "Answer", text: f.a },
+  })),
+};
+
 export default function AeoChecklistPage() {
   return (
     <div className="flex min-h-screen flex-col bg-white">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
       <MarketingNav />
       <main className="flex-1 mx-auto max-w-3xl px-4 py-16">
         <p className="text-sm font-medium text-primary">Guide</p>
@@ -80,8 +106,9 @@ export default function AeoChecklistPage() {
           AEO checklist for agencies
         </h1>
         <p className="mt-3 text-sm text-muted-foreground leading-relaxed">
-          Use this list on every new client and every quarterly review. It is
-          designed for delivery teams — not academic debate. Pair it with{" "}
+          Use this Answer Engine Optimization checklist on every new client and
+          every quarterly review. It is designed for delivery teams — not academic
+          debate. Pair it with{" "}
           <Link href="/product" className="underline">
             AEO Command
           </Link>{" "}
@@ -112,6 +139,18 @@ export default function AeoChecklistPage() {
           </Link>
           .
         </p>
+
+        <h2 className="text-xl font-semibold mt-8">FAQ</h2>
+        <div className="mt-4 space-y-6">
+          {faq.map((f) => (
+            <div key={f.q}>
+              <h3 className="font-medium text-sm">{f.q}</h3>
+              <p className="mt-1 text-sm text-muted-foreground leading-relaxed">
+                {f.a}
+              </p>
+            </div>
+          ))}
+        </div>
 
         <div className="mt-12 rounded-xl border p-6 text-center">
           <Link

@@ -8,11 +8,11 @@
 
 ## Library (`lib/`)
 
-`prisma.ts` · `auth.ts` · `session.ts` · `utils.ts` · `url.ts` · `crawl.ts` · `ai-analysis.ts` · `action-mapper.ts` · `scan-worker.ts` · `default-prompts.ts` · `stripe.ts` · `usage.ts` · `rate-limit.ts`
+`prisma.ts` · `auth.ts` · `session.ts` · `utils.ts` · `url.ts` · `crawl.ts` · `ai-analysis.ts` · `action-mapper.ts` · `scan-worker.ts` · `default-prompts.ts` · `stripe.ts` · `usage.ts` · `rate-limit.ts` · `email.ts` · `visibility-check.ts` · `inngest/*`
 
-## Marketing
+## Marketing (AEO/SEO surface)
 
-`components/marketing-nav.tsx` · `app/page.tsx` · `product` · `pricing` · `aeo` · `guides/*` · `compare/aeo-tools` · `ai` · `robots.ts` · `sitemap.ts`
+`components/marketing-nav.tsx` · `app/page.tsx` · `app/layout.tsx` · `app/opengraph-image.tsx` · `app/twitter-image.tsx` · `app/product/page.tsx` · `app/pricing/page.tsx` · `app/pricing/layout.tsx` · `app/aeo/page.tsx` · `app/guides/*` · `app/compare/aeo-tools/page.tsx` · `app/case-studies/page.tsx` · `app/ai/page.tsx` · `app/robots.ts` · `app/sitemap.ts` · `public/llms.txt`
 
 ## Product UI
 
@@ -20,4 +20,4 @@
 
 ## API
 
-`app/api/auth/*` · `clients/*` · `scans/*` · `actions/*` · `team/*` · `billing/*` · `admin/*` · `onboarding` · `health`
+`app/api/auth/*` · `clients/*` · `scans/*` · `actions/*` · `team/*` · `billing/*` · `admin/*` · `onboarding` · `health` · `inngest`
