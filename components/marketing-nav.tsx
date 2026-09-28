@@ -14,6 +14,9 @@ export function MarketingNav() {
           <Link href="/pricing" className="hover:text-foreground">
             Pricing
           </Link>
+          <Link href="/aeo" className="hover:text-foreground">
+            What is AEO
+          </Link>
           <Link href="/guides" className="hover:text-foreground">
             Guides
           </Link>
@@ -44,7 +47,7 @@ export function MarketingFooter() {
         <div>
           <p className="font-semibold">AEO Command</p>
           <p className="text-muted-foreground mt-2">
-            Answer Engine Optimization platform for agencies. By{" "}
+            Multi-tenant Answer Engine Optimization platform for agencies. By{" "}
             <a href="https://threezero.agency" className="underline">
               Threezero Agency
             </a>
@@ -67,6 +70,11 @@ export function MarketingFooter() {
             <li>
               <Link href="/compare/aeo-tools" className="hover:underline">
                 vs free checkers
+              </Link>
+            </li>
+            <li>
+              <Link href="/case-studies" className="hover:underline">
+                Case studies
               </Link>
             </li>
             <li>
