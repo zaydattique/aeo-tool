@@ -8,41 +8,32 @@
 
 ---
 
-## PHASE 0–9 — Done
+## PHASE 0–9 + 10A — Done
 
-See HISTORY.md for full detail.
+See HISTORY.md.
 
 ---
 
-## PHASE 10 — Rank-first content + product strength
-
-### 10A — Content cluster (ranking)
+## PHASE 10B — Product strength
 
 **Status:** Done (2026-09-28)
 
 **Deliverables completed:**
-- Guides hub `/guides`
-- Comparison `/compare/aeo-tools` (vs free checkers) + FAQ schema
-- Guides: AEO checklist, ChatGPT citations, Perplexity visibility
-- `/ai` assistant summary page
-- Expanded `llms.txt`, sitemap, robots
-- Nav/footer internal links across cluster
+- `lib/action-mapper.ts` — priority/effort sort, dedupe, multi-step expansion, max 15 actions
+- Scan worker uses mapper for Action rows
+- Action Center UX: progress bar, quick filter chips, expandable steps
+- Dashboard client list: stronger empty state, score colors, Open CTA
+- `docs/QUEUE_AND_JOBS.md` — durable queue (Inngest/BullMQ) + weekly re-scan + email design
 
-### 10B — Product strength
+---
+
+## PHASE 10C — Deploy readiness
 
 **Status:** Open ← **NEXT**
 
-- Stronger Action Center defaults / issue→task mapping
-- Dashboard UX polish
-- Durable queue migration path documented
-- Email / weekly re-scan design notes or stubs
-
-### 10C — Deploy readiness
-
-**Status:** Open
-
 - Production env checklist in README
-- Super-admin seed / documented SQL
+- Super-admin seed script or documented SQL
+- Final deploy notes (Vercel vs Railway for scans)
 
 ---
 
@@ -52,5 +43,5 @@ See HISTORY.md for full detail.
 |-------|--------|
 | 0–9 | Done |
 | 10A Content cluster | Done |
-| 10B Product strength | Open ← NEXT |
-| 10C Deploy readiness | Open |
+| 10B Product strength | Done |
+| 10C Deploy readiness | Open ← NEXT |
