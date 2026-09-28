@@ -10,6 +10,8 @@ const siteUrl =
   process.env.NEXTAUTH_URL ||
   "https://threezero.agency";
 
+const root = siteUrl.replace(/\/$/, "");
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
@@ -25,27 +27,41 @@ export const metadata: Metadata = {
     "Generative Engine Optimization",
     "AEO tool",
     "AEO platform",
-    "AI SEO",
-    "ChatGPT optimization",
-    "Perplexity SEO",
+    "AEO tool for agencies",
     "agency AEO software",
     "white-label AEO report",
+    "multi-client AEO",
+    "AI SEO",
+    "ChatGPT optimization",
+    "Perplexity visibility",
+    "AI visibility tracking",
   ],
-  authors: [{ name: "Threezero Agency" }],
+  authors: [{ name: "Threezero Agency", url: "https://threezero.agency" }],
+  creator: "Threezero Agency",
+  publisher: "Threezero Agency",
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: siteUrl,
+    url: root,
     siteName: "AEO Command",
     title: "AEO Command — Answer Engine Optimization for Agencies",
     description:
-      "Paste a client URL → prioritized Action Center → track AI visibility → white-label report. Built for agencies.",
+      "Paste a client URL → prioritized Action Center → track AI visibility → white-label report. Built for multi-tenant agencies.",
+    images: [
+      {
+        url: `${root}/og.png`,
+        width: 1200,
+        height: 630,
+        alt: "AEO Command — Answer Engine Optimization for agencies",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "AEO Command — AEO Platform for Agencies",
     description:
       "Scan, act, track, and report on Answer Engine Optimization — multi-client control for agencies.",
+    images: [`${root}/og.png`],
   },
   robots: {
     index: true,
@@ -53,30 +69,65 @@ export const metadata: Metadata = {
     googleBot: { index: true, follow: true },
   },
   alternates: {
-    canonical: siteUrl,
+    canonical: root,
   },
 };
 
-const orgJsonLd = {
+const graphJsonLd = {
   "@context": "https://schema.org",
-  "@type": "SoftwareApplication",
-  name: "AEO Command",
-  applicationCategory: "BusinessApplication",
-  operatingSystem: "Web",
-  offers: {
-    "@type": "Offer",
-    price: "0",
-    priceCurrency: "USD",
-    description: "14-day free trial",
-  },
-  description:
-    "Multi-tenant Answer Engine Optimization (AEO) platform for marketing agencies. Scan websites, prioritize fixes, track AI visibility, deliver white-label reports.",
-  url: siteUrl,
-  publisher: {
-    "@type": "Organization",
-    name: "Threezero Agency",
-    url: "https://threezero.agency",
-  },
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${root}/#organization`,
+      name: "Threezero Agency",
+      url: "https://threezero.agency",
+      logo: {
+        "@type": "ImageObject",
+        url: `${root}/og.png`,
+      },
+      sameAs: ["https://threezero.agency", "https://github.com/zaydattique"],
+      description:
+        "Threezero Agency builds and operates AEO Command, a multi-tenant Answer Engine Optimization platform for marketing agencies.",
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${root}/#website`,
+      url: root,
+      name: "AEO Command",
+      description:
+        "Multi-tenant Answer Engine Optimization (AEO) SaaS for agencies — scan, Action Center, visibility tracking, white-label reports.",
+      publisher: { "@id": `${root}/#organization` },
+      inLanguage: "en",
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": `${root}/#software`,
+      name: "AEO Command",
+      applicationCategory: "BusinessApplication",
+      operatingSystem: "Web",
+      url: root,
+      image: `${root}/og.png`,
+      description:
+        "Multi-tenant Answer Engine Optimization (AEO) platform for marketing agencies. Scan websites, prioritize fixes in an Action Center, track AI visibility prompts, and deliver white-label live reports.",
+      offers: {
+        "@type": "Offer",
+        price: "0",
+        priceCurrency: "USD",
+        description: "14-day free trial",
+        url: `${root}/signup`,
+      },
+      publisher: { "@id": `${root}/#organization` },
+      brand: { "@id": `${root}/#organization` },
+      featureList: [
+        "Website AEO scan",
+        "Prioritized Action Center",
+        "AI visibility prompt tracking",
+        "White-label live reports",
+        "Multi-tenant agency isolation",
+        "Team invites and roles",
+      ],
+    },
+  ],
 };
 
 export default function RootLayout({
@@ -89,7 +140,7 @@ export default function RootLayout({
       <head>
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(graphJsonLd) }}
         />
       </head>
       <body className={inter.className}>
