@@ -5,11 +5,8 @@ import { mapIssuesToActionDrafts } from "./action-mapper";
 import type { ActionPriority, ActionCategory, ActionEffort } from "@prisma/client";
 
 /**
- * Production scan pipeline.
- * Stages: QUEUED → CRAWL → EXTRACT → AI_ANALYSIS → ACTION_GENERATION → COMPLETED
- *
- * Actions: mapped via lib/action-mapper (priority sort, multi-step, dedupe).
- * Queue: currently in-process — see docs/QUEUE_AND_JOBS.md for migration.
+ * Scan pipeline: CRAWL → EXTRACT → AI_ANALYSIS → ACTION_GENERATION → COMPLETED
+ * Enqueue via Inngest when configured; else in-process setImmediate fallback.
  */
 
 async function updateStage(
@@ -207,7 +204,24 @@ export async function runScan(scanId: string) {
   }
 }
 
-export function enqueueScan(scanId: string) {
+/** Prefer durable Inngest; fall back to in-process for local/dev without keys. */
+export async function enqueueScan(scanId: string) {
+  try {
+    const { isInngestConfigured, inngest } = await import(
+      "@/lib/inngest/client"
+    );
+    if (isInngestConfigured()) {
+      await inngest.send({ name: "scan/run", data: { scanId } });
+      console.log(`[scan-worker] Enqueued scan ${scanId} via Inngest`);
+      return;
+    }
+  } catch (err) {
+    console.warn(
+      "[scan-worker] Inngest unavailable, using in-process:",
+      err instanceof Error ? err.message : err
+    );
+  }
+
   setImmediate(() => {
     runScan(scanId).catch((err) => {
       console.error(`[scan-worker] Unhandled error for ${scanId}:`, err);
@@ -215,5 +229,7 @@ export function enqueueScan(scanId: string) {
   });
 }
 
-export const enqueueSimulatedScan = enqueueScan;
+export const enqueueSimulatedScan = (scanId: string) => {
+  void enqueueScan(scanId);
+};
 export const runSimulatedScan = runScan;
