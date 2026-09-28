@@ -1,12 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAgency, canManageClients } from "@/lib/session";
+import { checkPromptVisibility } from "@/lib/visibility-check";
 
-/**
- * POST — Record a visibility check for all active prompts on a client.
- * Uses current client visibility score ± variance as MVP estimate.
- * Real multi-engine citation checks can replace this later.
- */
 export async function POST(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -33,7 +29,6 @@ export async function POST(
     where: { clientId, agencyId: auth.agencyId, deletedAt: null },
   });
 
-  // Auto-seed defaults if none
   if (prompts.length === 0) {
     const { getDefaultPrompts } = await import("@/lib/default-prompts");
     const defaults = getDefaultPrompts(
@@ -57,30 +52,35 @@ export async function POST(
     client.currentVisibilityScore != null
       ? client.currentVisibilityScore
       : 50;
+  const brand = client.brandName || client.name;
 
   const created = [];
   for (const prompt of prompts) {
-    // Deterministic-ish variance per prompt for demo realism
-    const hash = prompt.id
-      .split("")
-      .reduce((a, c) => a + c.charCodeAt(0), 0);
-    const variance = ((hash + Date.now() / 100000) % 21) - 10;
-    const score = Math.max(0, Math.min(100, Math.round(base + variance)));
+    const check = await checkPromptVisibility({
+      promptText: prompt.promptText,
+      brandName: brand,
+      baseScore: base,
+    });
 
     const snapshot = await prisma.visibilitySnapshot.create({
       data: {
         agencyId: auth.agencyId,
         clientId,
         promptId: prompt.id,
-        score,
+        score: check.score,
         sources: {
-          method: "estimated",
-          note: "MVP estimate from scan visibility ± variance. Real engine checks coming later.",
+          method: check.method,
+          engines: check.engines,
           baseScore: base,
+          recordedAt: new Date().toISOString(),
         },
       },
     });
-    created.push({ ...snapshot, score: Number(snapshot.score) });
+    created.push({
+      ...snapshot,
+      score: Number(snapshot.score),
+      engines: check.engines,
+    });
   }
 
   await prisma.activityLog.create({
@@ -90,7 +90,10 @@ export async function POST(
       action: "visibility.snapshot_recorded",
       resourceType: "client",
       resourceId: clientId,
-      metadata: { count: created.length },
+      metadata: {
+        count: created.length,
+        methods: [...new Set(created.map((c) => c.engines))],
+      },
     },
   });
 
