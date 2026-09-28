@@ -57,6 +57,7 @@ export async function POST(
   const brand = client.brandName || client.name;
 
   const created = [];
+  let maxLive = 0;
   for (const prompt of prompts) {
     const check = await checkPromptVisibility({
       promptText: prompt.promptText,
@@ -65,6 +66,8 @@ export async function POST(
       kind: prompt.kind || "brand",
       competitorName: prompt.targetName,
     });
+
+    maxLive = Math.max(maxLive, check.liveEngineCount);
 
     const snapshot = await prisma.visibilitySnapshot.create({
       data: {
@@ -75,6 +78,7 @@ export async function POST(
         sources: {
           method: check.method,
           engines: check.engines,
+          liveEngineCount: check.liveEngineCount,
           baseScore: base,
           brandMentioned: check.brandMentioned,
           competitorMentioned: check.competitorMentioned,
@@ -88,6 +92,8 @@ export async function POST(
       ...snapshot,
       score: Number(snapshot.score),
       engines: check.engines,
+      liveEngineCount: check.liveEngineCount,
+      method: check.method,
     });
   }
 
@@ -98,11 +104,14 @@ export async function POST(
       action: "visibility.snapshot_recorded",
       resourceType: "client",
       resourceId: clientId,
-      metadata: { count: created.length },
+      metadata: { count: created.length, maxLiveEngines: maxLive },
     },
   });
 
-  return NextResponse.json({ snapshots: created }, { status: 201 });
+  return NextResponse.json(
+    { snapshots: created, maxLiveEngines: maxLive },
+    { status: 201 }
+  );
 }
 
 export async function GET(

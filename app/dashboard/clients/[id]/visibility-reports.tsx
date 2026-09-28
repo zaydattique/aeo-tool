@@ -36,23 +36,33 @@ type Sov = {
   note: string;
 };
 
+type EngineCap = {
+  engine: string;
+  configured: boolean;
+  envVar: string;
+};
+
 export function VisibilityReports({ clientId }: { clientId: string }) {
   const [prompts, setPrompts] = useState<Prompt[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [competitors, setCompetitors] = useState<string[]>([]);
   const [competitorInput, setCompetitorInput] = useState("");
   const [sov, setSov] = useState<Sov | null>(null);
+  const [engineCaps, setEngineCaps] = useState<EngineCap[]>([]);
+  const [engineNote, setEngineNote] = useState("");
   const [newPrompt, setNewPrompt] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [lastLiveUrl, setLastLiveUrl] = useState("");
+  const [lastCheckInfo, setLastCheckInfo] = useState("");
 
   const load = useCallback(async () => {
     try {
-      const [pRes, rRes] = await Promise.all([
+      const [pRes, rRes, eRes] = await Promise.all([
         fetch(`/api/clients/${clientId}/prompts`),
         fetch(`/api/clients/${clientId}/reports`),
+        fetch("/api/visibility/status"),
       ]);
       if (pRes.ok) {
         const data = await pRes.json();
@@ -63,6 +73,11 @@ export function VisibilityReports({ clientId }: { clientId: string }) {
       if (rRes.ok) {
         const data = await rRes.json();
         setReports(data.reports || []);
+      }
+      if (eRes.ok) {
+        const data = await eRes.json();
+        setEngineCaps(data.engines || []);
+        setEngineNote(data.note || "");
       }
     } finally {
       setLoading(false);
@@ -128,8 +143,10 @@ export function VisibilityReports({ clientId }: { clientId: string }) {
   }
 
   function removeCompetitor(name: string) {
-    const next = competitors.filter((c) => c !== name);
-    saveCompetitors(next, false);
+    saveCompetitors(
+      competitors.filter((c) => c !== name),
+      false
+    );
   }
 
   async function addPrompt(e: React.FormEvent) {
@@ -168,6 +185,7 @@ export function VisibilityReports({ clientId }: { clientId: string }) {
   async function recordSnapshots() {
     setBusy(true);
     setError("");
+    setLastCheckInfo("");
     try {
       const res = await fetch(`/api/clients/${clientId}/snapshots`, {
         method: "POST",
@@ -176,6 +194,12 @@ export function VisibilityReports({ clientId }: { clientId: string }) {
       if (!res.ok) {
         setError(data.error || "Failed to record");
       } else {
+        const live = data.maxLiveEngines ?? 0;
+        setLastCheckInfo(
+          live > 0
+            ? `Check saved · up to ${live} live engine(s) responded`
+            : "Check saved · heuristic only (no live API keys)"
+        );
         await load();
       }
     } finally {
@@ -215,6 +239,42 @@ export function VisibilityReports({ clientId }: { clientId: string }) {
 
   return (
     <div className="space-y-8">
+      {/* Live engines status */}
+      <div className="rounded-lg border bg-white p-4">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">
+          Live engines
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {(engineCaps.length
+            ? engineCaps
+            : [
+                { engine: "perplexity", configured: false, envVar: "" },
+                { engine: "chatgpt", configured: false, envVar: "" },
+                { engine: "gemini", configured: false, envVar: "" },
+                { engine: "claude", configured: false, envVar: "" },
+              ]
+          ).map((e) => (
+            <span
+              key={e.engine}
+              className={`rounded-full px-2.5 py-1 text-xs border ${
+                e.configured
+                  ? "bg-green-50 border-green-200 text-green-800"
+                  : "bg-slate-50 text-slate-500"
+              }`}
+            >
+              {e.engine}
+              {e.configured ? " · live" : " · heuristic"}
+            </span>
+          ))}
+          <span className="rounded-full px-2.5 py-1 text-xs border bg-slate-50 text-slate-500">
+            ai_overviews · heuristic
+          </span>
+        </div>
+        {engineNote && (
+          <p className="text-xs text-muted-foreground mt-2">{engineNote}</p>
+        )}
+      </div>
+
       {/* Competitors + SOV */}
       <div className="rounded-lg border bg-white p-5 space-y-4">
         <div>
@@ -324,7 +384,7 @@ export function VisibilityReports({ clientId }: { clientId: string }) {
           <div>
             <h2 className="font-medium text-lg">Visibility tracking</h2>
             <p className="text-sm text-muted-foreground">
-              Track how prompts score over time
+              Track how prompts score over time across live + heuristic engines
             </p>
           </div>
           <div className="flex gap-2">
@@ -350,6 +410,11 @@ export function VisibilityReports({ clientId }: { clientId: string }) {
         {error && (
           <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">
             {error}
+          </div>
+        )}
+        {lastCheckInfo && (
+          <div className="rounded-md bg-green-50 p-3 text-sm text-green-800">
+            {lastCheckInfo}
           </div>
         )}
 

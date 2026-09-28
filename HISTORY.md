@@ -8,70 +8,76 @@
 
 | Topic | Detail |
 |-------|--------|
-| Schema | `db push` for portal + `competitors` + `TrackedPrompt.kind` / `targetName` |
+| Schema | `db push` for portal + competitors + prompt kind/targetName |
 | PDF | `npm install` for pdfkit |
-| SOV | Relative scores on tracked prompts — not a live SERP guarantee |
-| Live engines | Perplexity only when `PERPLEXITY_API_KEY`; else heuristics |
+| Live engines | Without keys, checks are heuristic-only; UI shows live vs heuristic badges |
+| AI Overviews | No public API — always heuristic row |
+| Cost | Each Record check can call up to 4 live APIs × N prompts — watch quotas |
 
 ---
 
-### 2026-09-28 — Phase 13.3: Competitor prompts + share-of-answer
+### 2026-09-28 — Phase 13.4: Live multi-engine visibility
 
 **Goal**
 
-Agencies need competitor context in visibility work: named rivals, vs-style prompts, and a simple share-of-answer view for QBRs — without claiming impossible engine ranks.
+Move beyond Perplexity-only live checks. Parallel live providers where keys exist; honest heuristic fallback; agency-visible status of which engines are live.
 
 **What we did**
 
-1. **Schema** — `Client.competitors String[]`; `TrackedPrompt.kind` (`brand` | `category` | `competitor`); `TrackedPrompt.targetName` for rival brand.
-2. **Seeds** — `getDefaultPromptSeeds` + `getCompetitorPromptSeeds` (vs / is-better prompts per competitor).
-3. **API** — `GET/PUT /api/clients/[id]/competitors` with optional `seedPrompts`; prompts GET returns `sov`; snapshots pass kind + targetName into visibility check.
-4. **`lib/sov.ts`** — Client vs competitor avg scores → share %; breakdown by competitor name.
-5. **`lib/visibility-check.ts`** — Competitor-aware heuristics + live Perplexity brand/competitor mention flags stored on snapshot sources.
-6. **UI** — Competitors editor, SOV cards, kind badges on prompt list.
+1. **`lib/visibility-check.ts`** — Parallel live callers:
+   - Perplexity (`PERPLEXITY_API_KEY`)
+   - OpenAI → engine `chatgpt` (`OPENAI_API_KEY`)
+   - Gemini (`GEMINI_API_KEY` or `GOOGLE_GENERATIVE_AI_API_KEY`)
+   - Claude (`ANTHROPIC_API_KEY`)
+   - `ai_overviews` remains heuristic-only
+2. Shared mention scoring + competitor-aware adjustments; `liveEngineCount` + method `live` | `live+heuristic` | `heuristic`.
+3. **`getLiveEngineCapabilities()`** + **`GET /api/visibility/status`** (agency auth, no secrets).
+4. Snapshots store `liveEngineCount`; Record check response includes `maxLiveEngines`.
+5. Visibility UI engine strip (live/heuristic badges) + post-check feedback.
+6. `.env.example` documents all visibility keys and optional model overrides.
 
 **Key files**
 
-- `prisma/schema.prisma`
-- `lib/default-prompts.ts`, `lib/sov.ts`, `lib/visibility-check.ts`
-- `app/api/clients/[id]/competitors/route.ts`
-- `app/api/clients/[id]/prompts/route.ts`, `snapshots/route.ts`
+- `lib/visibility-check.ts`
+- `app/api/visibility/status/route.ts`
+- `app/api/clients/[id]/snapshots/route.ts`
 - `app/dashboard/clients/[id]/visibility-reports.tsx`
+- `.env.example`
 
 **Outcome / acceptance**
 
-- Add competitor → auto seed vs-prompts (plan limit aware).
-- Record check → SOV panel shows client vs competitor share when both sides have scores.
-- Prompt list shows kind badges (brand / category / competitor).
+- With zero keys: checks still work (heuristic), badges show heuristic.
+- With any key: that engine row is `live: true` on snapshot sources; UI reflects configured engines.
+- Failures on one provider do not block others or the snapshot write.
 
 **Missing / deferred**
 
-- 13.4 deeper live multi-engine APIs
-- SOV on white-label report PDF (can include later)
-- Historical SOV trend chart
+- Official Google AI Overviews / Bing Copilot consumer APIs (not generally available)
+- Rate limiting / credit metering per live call (usage meter can be extended later)
+- Phase 13.5 auto-draft Action fixes
 
 **Gotchas**
 
-- Existing prompts without `kind` default to brand in SOV math.
-- SOV is relative to tracked set, not global market share.
+- Live checks cost tokens; prefer fewer prompts or staged checks on large client lists.
+- Model names may need host-specific overrides via `*_VISIBILITY_MODEL` env vars.
 
 ---
 
-### 2026-09-28 — Phase 13.2: PDF download
+### 2026-09-28 — Phase 13.3: Competitors + SOV
 
-PDFKit server PDFs for `/api/reports/[token]/pdf` and `/api/portal/[token]/pdf`; print CSS polish.
-
----
-
-### 2026-09-28 — Phase 13.1: Client live portal
-
-`/p/[token]` read-only live progress; enable/rotate/disable.
+Client.competitors, prompt kinds, vs-prompt seeds, sov.ts, UI SOV panel.
 
 ---
 
-### 2026-09-28 — Phase 12: AEO/SEO foundation
+### 2026-09-28 — Phase 13.2: PDF
 
-Dynamic OG, densified marketing, FAQ schema, AI robots.
+PDFKit downloads for report + portal; print CSS.
+
+---
+
+### 2026-09-28 — Phase 13.1: Client portal
+
+`/p/[token]` live read-only portal.
 
 ---
 

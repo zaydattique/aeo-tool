@@ -14,20 +14,20 @@ AGENTS.md → PROJECT_PLAN → HISTORY → docs/FILEMAP.md → docs/DEPLOY.md
 
 ## PHASE 13 — Product value features
 
-**Status:** 13.1–13.3 Done. **NEXT: 13.4** (needs API keys)
+**Status:** 13.1–13.4 Done. **NEXT: 13.5**
 
 | Step | Feature | Status |
 |------|---------|--------|
 | **13.1** | Client live portal | **Done** |
 | **13.2** | Server PDF + print CSS | **Done** |
-| **13.3** | Competitor prompts + share-of-answer | **Done** |
-| **13.4** | Live multi-engine checks (when keys) | **NEXT** |
-| **13.5** | Auto-draft richer Action fixes | Queued |
+| **13.3** | Competitor prompts + SOV | **Done** |
+| **13.4** | Live multi-engine checks | **Done** |
+| **13.5** | Auto-draft richer Action fixes | **NEXT** |
 
-**Deploy:** `npx prisma db push` (competitors, prompt kind/targetName) · `npm install` (pdfkit)
+**Live engines (optional env):** `PERPLEXITY_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`
 
 ---
 
 ## Optional later
 
-- Portal password · custom domain · public API
+- Portal password · custom domain · public API · Bing/AI Overviews official APIs if/when available
