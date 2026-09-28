@@ -23,30 +23,43 @@ Product: **AEO Command** (Answer Engine Optimization platform for agencies)
 - If file is **>10KB** → split into multiple smaller **verified** pushes **OR** use git from local. Do not invent partial content.
 - If any file becomes empty or corrupt → **STOP and ask human**.
 - Critical paths (never tiny): schema, scan worker, Action Center, auth middleware, report generator, crawl/AI libs.
+- **Prefer edit existing files** over creating new ones when the same concern can be solved by extending an existing page, component, lib, or doc. Do not create parallel files for the same topic (e.g. two competing SEO guides).
 
 ---
 
-## DOCUMENTATION RULES (MANDATORY AFTER EVERY SHIP)
+## DOCUMENTATION RULES (MANDATORY AFTER EVERY SHIP) — OWNER STRENGTHENED 2026-09-28
 
-Owner requirement: docs must explain **what was built**, not only that a phase number is done.
+Owner requirement: docs must explain **what was built**, **why**, **how it works**, **what remains**, and **how to verify** — never one-liners.
 
 ### HISTORY.md — after every phase or meaningful ship
 
-Append a section that includes **all** of:
+Append a section that includes **all** of the following in full prose (not bullets alone):
 
 1. **Date + phase/name**
-2. **Goal** — what problem this ship solved
-3. **What we did** — concrete behaviors (APIs, UI, data model changes)
-4. **Key files** — paths created or substantially changed
-5. **Outcome / acceptance** — how to verify it works
-6. **Gotchas** — anything the next agent will trip on
+2. **Goal** — the exact problem this ship solved and the success criteria that were set before work began
+3. **What we did** — concrete behaviors: every API route changed, every UI surface, every data-model field, every external integration, every content page. Name the user-visible outcome.
+4. **Key files** — paths created or substantially changed, with a one-sentence role for each
+5. **Outcome / acceptance** — how a human or the next agent can verify the ship works (commands, URLs, expected UI states)
+6. **What is still missing / deferred** — explicit list of related work that was intentionally left out and why
+7. **Gotchas** — anything the next agent will trip on (env vars, migrations, race conditions, plan limits)
 
-**Forbidden:** one-liners like “Phase 6 complete (Grok)” with no substance.
+**Forbidden:** one-liners like “Phase 6 complete (Grok)” with no substance. HISTORY entries must be long enough that a new agent can reconstruct intent without reading the code.
 
-### README.md — keep accurate
+### README.md — must stay the single source of truth for architecture
 
-- Must describe **current architecture** (backend + frontend), core flows, env vars, and how to run.
-- After structural changes (new major area: billing, admin, reports), update the architecture / API / flow sections — not only the “Current phase” bullet.
+README **must** contain, in full detail:
+
+- Product identity and promise
+- Current architecture diagram (text) and every major layer (runtime, DB, auth, scans, billing, email, jobs)
+- Frontend surface map (marketing routes, product UI, public report, admin)
+- Core user flows end-to-end
+- Local development steps and production deploy summary
+- Environment variables (required vs optional) with purpose of each
+- Tech stack versions and why each was chosen
+- Goals achieved to date and goals remaining
+- License / ownership note
+
+After any structural change (new major area: billing, admin, reports, queue, AEO content cluster), update the corresponding README sections in the **same** ship — not only a phase bullet.
 
 ### docs/FILEMAP.md — keep accurate
 
@@ -57,6 +70,7 @@ Append a section that includes **all** of:
 
 - Mark phase Done with a short **deliverables completed** list (can be tighter than HISTORY).
 - Point **NEXT** at the single open phase.
+- Never invent parallel phase numbers outside this file.
 
 ---
 
@@ -73,10 +87,12 @@ Append a section that includes **all** of:
 
 - Placeholder / stub / incomplete critical files
 - Thin HISTORY that only says a phase is done
+- Thin README that only lists tech names without explaining architecture and flows
 - Blind restore over newer main
 - Commit `.env` / private keys / secrets
 - Skip `agencyId` isolation on any business table or query
 - Ship expensive ops (scans, AI, reports) without plan limits / rate awareness where already established
+- Create a new file when editing an existing one solves the same need
 
 ---
 
