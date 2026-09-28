@@ -6,6 +6,7 @@ import Link from "next/link";
 import { ClientActions } from "./client-actions";
 import { ActionCenter } from "./action-center";
 import { VisibilityReports } from "./visibility-reports";
+import { ClientRescanToggle } from "@/components/client-rescan-toggle";
 
 type AiAnalysis = {
   visibilityScore?: number;
@@ -72,10 +73,7 @@ export default async function ClientDetailPage({
               {client.websiteUrl}
             </a>
           </div>
-          <ClientActions
-            clientId={client.id}
-            initialStatus={client.status}
-          />
+          <ClientActions clientId={client.id} initialStatus={client.status} />
         </div>
       </header>
 
@@ -99,6 +97,15 @@ export default async function ClientDetailPage({
             }
           />
         </div>
+
+        <ClientRescanToggle
+          clientId={client.id}
+          initialEnabled={client.rescanEnabled}
+          initialIntervalDays={client.rescanIntervalDays}
+          initialNextRescanAt={
+            client.nextRescanAt ? client.nextRescanAt.toISOString() : null
+          }
+        />
 
         {analysis && (
           <>
