@@ -43,7 +43,8 @@ export default withAuth(
           path.startsWith("/r/") ||
           path.startsWith("/api/auth") ||
           path.startsWith("/api/health") ||
-          path.startsWith("/api/billing/webhook")
+          path.startsWith("/api/billing/webhook") ||
+          path.startsWith("/api/inngest")
         ) {
           return true;
         }
