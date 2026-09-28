@@ -2,11 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAgency, canManageClients } from "@/lib/session";
-import { getDefaultPrompts } from "@/lib/default-prompts";
+import { getDefaultPromptSeeds } from "@/lib/default-prompts";
+import { computeSov } from "@/lib/sov";
 
 const createSchema = z.object({
   promptText: z.string().min(3).max(500),
   seedDefaults: z.boolean().optional(),
+  kind: z.enum(["brand", "category", "competitor"]).optional(),
+  targetName: z.string().max(120).optional().nullable(),
 });
 
 export async function GET(
@@ -22,6 +25,7 @@ export async function GET(
 
   const client = await prisma.client.findFirst({
     where: { id: clientId, agencyId, deletedAt: null },
+    select: { id: true, competitors: true },
   });
   if (!client) {
     return NextResponse.json({ error: "Client not found" }, { status: 404 });
@@ -38,14 +42,40 @@ export async function GET(
     },
   });
 
-  return NextResponse.json({
-    prompts: prompts.map((p) => ({
+  const mapped = prompts.map((p) => {
+    const latest = p.snapshots[0];
+    const sources = (latest?.sources as {
+      brandMentioned?: boolean;
+      competitorMentioned?: boolean;
+    } | null) || null;
+    return {
       ...p,
       snapshots: p.snapshots.map((s) => ({
         ...s,
         score: Number(s.score),
       })),
-    })),
+      latestScore: latest != null ? Number(latest.score) : null,
+      brandMentioned: sources?.brandMentioned ?? null,
+      competitorMentioned: sources?.competitorMentioned ?? null,
+    };
+  });
+
+  const sov = computeSov(
+    mapped.map((p) => ({
+      id: p.id,
+      promptText: p.promptText,
+      kind: p.kind || "brand",
+      targetName: p.targetName,
+      latestScore: p.latestScore,
+      brandMentioned: p.brandMentioned,
+      competitorMentioned: p.competitorMentioned,
+    }))
+  );
+
+  return NextResponse.json({
+    prompts: mapped,
+    competitors: client.competitors || [],
+    sov,
   });
 }
 
@@ -78,22 +108,23 @@ export async function POST(
       return NextResponse.json({ error: "Invalid input" }, { status: 400 });
     }
 
-    // Seed defaults if requested and none exist
     if (parsed.data.seedDefaults) {
       const existing = await prisma.trackedPrompt.count({
         where: { clientId, deletedAt: null },
       });
       if (existing === 0) {
-        const defaults = getDefaultPrompts(
+        const defaults = getDefaultPromptSeeds(
           client.brandName || client.name,
           client.location
         );
         await prisma.trackedPrompt.createMany({
-          data: defaults.map((promptText) => ({
+          data: defaults.map((s) => ({
             agencyId: auth.agencyId!,
             clientId,
-            promptText,
+            promptText: s.promptText,
             isCustom: false,
+            kind: s.kind,
+            targetName: s.targetName || null,
           })),
         });
         const prompts = await prisma.trackedPrompt.findMany({
@@ -104,7 +135,6 @@ export async function POST(
       }
     }
 
-    // Plan limit
     const agency = await prisma.agency.findUnique({
       where: { id: auth.agencyId },
       include: { plan: true },
@@ -129,6 +159,8 @@ export async function POST(
         clientId,
         promptText: parsed.data.promptText.trim(),
         isCustom: true,
+        kind: parsed.data.kind || "brand",
+        targetName: parsed.data.targetName?.trim() || null,
       },
     });
 

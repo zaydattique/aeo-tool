@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAgency, canManageClients } from "@/lib/session";
 import { checkPromptVisibility } from "@/lib/visibility-check";
+import { getDefaultPromptSeeds } from "@/lib/default-prompts";
 
 export async function POST(
   _req: NextRequest,
@@ -30,17 +31,18 @@ export async function POST(
   });
 
   if (prompts.length === 0) {
-    const { getDefaultPrompts } = await import("@/lib/default-prompts");
-    const defaults = getDefaultPrompts(
+    const defaults = getDefaultPromptSeeds(
       client.brandName || client.name,
       client.location
     );
     await prisma.trackedPrompt.createMany({
-      data: defaults.map((promptText) => ({
+      data: defaults.map((s) => ({
         agencyId: auth.agencyId!,
         clientId,
-        promptText,
+        promptText: s.promptText,
         isCustom: false,
+        kind: s.kind,
+        targetName: s.targetName || null,
       })),
     });
     prompts = await prisma.trackedPrompt.findMany({
@@ -60,6 +62,8 @@ export async function POST(
       promptText: prompt.promptText,
       brandName: brand,
       baseScore: base,
+      kind: prompt.kind || "brand",
+      competitorName: prompt.targetName,
     });
 
     const snapshot = await prisma.visibilitySnapshot.create({
@@ -72,6 +76,10 @@ export async function POST(
           method: check.method,
           engines: check.engines,
           baseScore: base,
+          brandMentioned: check.brandMentioned,
+          competitorMentioned: check.competitorMentioned,
+          kind: prompt.kind,
+          targetName: prompt.targetName,
           recordedAt: new Date().toISOString(),
         },
       },
@@ -90,10 +98,7 @@ export async function POST(
       action: "visibility.snapshot_recorded",
       resourceType: "client",
       resourceId: clientId,
-      metadata: {
-        count: created.length,
-        methods: [...new Set(created.map((c) => c.engines))],
-      },
+      metadata: { count: created.length },
     },
   });
 
@@ -115,7 +120,9 @@ export async function GET(
     where: { clientId, agencyId },
     orderBy: { recordedAt: "asc" },
     include: {
-      prompt: { select: { id: true, promptText: true } },
+      prompt: {
+        select: { id: true, promptText: true, kind: true, targetName: true },
+      },
     },
   });
 
