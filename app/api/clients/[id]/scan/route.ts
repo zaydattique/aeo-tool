@@ -18,7 +18,7 @@ export async function POST(
   }
 
   // Burst protection: max 10 scan starts per agency per 10 minutes
-  const rl = rateLimit(`scan:${auth.agencyId}`, 10, 10 * 60 * 1000);
+  const rl = await rateLimit(`scan:${auth.agencyId}`, 10, 10 * 60 * 1000);
   if (!rl.ok) {
     return NextResponse.json(
       { error: "Too many scans started. Wait a few minutes." },

@@ -2,6 +2,7 @@ import { prisma } from "./prisma";
 import { crawlWebsite } from "./crawl";
 import { analyzeForAeo } from "./ai-analysis";
 import { mapIssuesToActionDrafts } from "./action-mapper";
+import { validateWebsiteUrl } from "./url";
 import type { ActionPriority, ActionCategory, ActionEffort } from "@prisma/client";
 
 /**
@@ -68,6 +69,12 @@ export async function runScan(scanId: string) {
       return;
     }
 
+    // Re-validate at scan time — DNS / policy can change after client create
+    const urlCheck = validateWebsiteUrl(scan.client.websiteUrl);
+    if (!urlCheck.ok) {
+      throw new Error(`Unsafe website URL: ${urlCheck.error}`);
+    }
+
     await prisma.scan.update({
       where: { id: scanId },
       data: {
@@ -80,7 +87,7 @@ export async function runScan(scanId: string) {
     });
 
     await updateStage(scanId, "CRAWL", 15);
-    const crawl = await crawlWebsite(scan.client.websiteUrl);
+    const crawl = await crawlWebsite(urlCheck.url);
 
     await updateStage(scanId, "EXTRACT", 40, {
       rawCrawlData: {

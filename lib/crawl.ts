@@ -1,8 +1,11 @@
 /**
  * Website crawl service.
  * Primary: Firecrawl API (when FIRECRAWL_API_KEY is set)
- * Fallback: basic fetch + lightweight HTML signal extraction
+ * Fallback: SSRF-safe basic fetch + lightweight HTML signal extraction
  */
+
+import { safeFetch } from "./safe-fetch";
+import { validateWebsiteUrl } from "./url";
 
 export type CrawlResult = {
   url: string;
@@ -100,7 +103,6 @@ function extractSignals(html: string, url: string): ExtractedSignals {
         } else if (Array.isArray(t)) {
           jsonLdTypes.push(...t);
         }
-        // @graph support
         if (Array.isArray(item["@graph"])) {
           for (const g of item["@graph"]) {
             if (typeof g["@type"] === "string") {
@@ -137,7 +139,11 @@ function extractSignals(html: string, url: string): ExtractedSignals {
   let internalLinkCount = 0;
   let externalLinkCount = 0;
   for (const href of hrefs) {
-    if (href.startsWith("#") || href.startsWith("mailto:") || href.startsWith("tel:"))
+    if (
+      href.startsWith("#") ||
+      href.startsWith("mailto:") ||
+      href.startsWith("tel:")
+    )
       continue;
     try {
       const abs = new URL(href, url);
@@ -182,6 +188,9 @@ function extractSignals(html: string, url: string): ExtractedSignals {
 
 async function crawlWithFirecrawl(url: string): Promise<CrawlResult> {
   const start = Date.now();
+  // Defense in depth: never send an unvalidated URL to a third party
+  const v = validateWebsiteUrl(url);
+  if (!v.ok) throw new Error(v.error);
   const apiKey = process.env.FIRECRAWL_API_KEY!;
 
   const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
@@ -191,7 +200,7 @@ async function crawlWithFirecrawl(url: string): Promise<CrawlResult> {
       Authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      url,
+      url: v.url,
       formats: ["markdown", "html"],
       onlyMainContent: false,
       timeout: 30000,
@@ -210,10 +219,10 @@ async function crawlWithFirecrawl(url: string): Promise<CrawlResult> {
   const markdown: string = data.markdown || "";
   const metadata = data.metadata || {};
 
-  const signals = extractSignals(html || markdown, url);
+  const signals = extractSignals(html || markdown, v.url);
 
   return {
-    url,
+    url: v.url,
     title: metadata.title || null,
     description: metadata.description || null,
     markdown: markdown || null,
@@ -229,16 +238,7 @@ async function crawlWithFirecrawl(url: string): Promise<CrawlResult> {
 async function crawlBasic(url: string): Promise<CrawlResult> {
   const start = Date.now();
 
-  const res = await fetch(url, {
-    headers: {
-      "User-Agent":
-        "AEOCommandBot/1.0 (+https://threezero.agency; AEO audit)",
-      Accept: "text/html,application/xhtml+xml",
-    },
-    redirect: "follow",
-    signal: AbortSignal.timeout(25000),
-  });
-
+  const res = await safeFetch(url);
   if (!res.ok) {
     throw new Error(`Fetch failed ${res.status} for ${url}`);
   }
@@ -256,7 +256,7 @@ async function crawlBasic(url: string): Promise<CrawlResult> {
     );
 
   return {
-    url,
+    url: res.url || url,
     title: titleMatch?.[1]?.trim() || null,
     description: descMatch?.[1]?.trim() || null,
     markdown: null,
@@ -270,6 +270,12 @@ async function crawlBasic(url: string): Promise<CrawlResult> {
 }
 
 export async function crawlWebsite(url: string): Promise<CrawlResult> {
+  const v = validateWebsiteUrl(url);
+  if (!v.ok) {
+    throw new Error(v.error);
+  }
+  url = v.url;
+
   if (process.env.FIRECRAWL_API_KEY) {
     try {
       return await crawlWithFirecrawl(url);
