@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
+import { rateLimit } from "@/lib/rate-limit";
 
 const schema = z.object({
   email: z.string().email().max(255),
@@ -9,6 +10,18 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    const ip =
+      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      req.headers.get("x-real-ip") ||
+      "unknown";
+    const rl = await rateLimit(`forgot-password:${ip}`, 5, 60 * 60 * 1000);
+    if (!rl.ok) {
+      return NextResponse.json(
+        { error: "Too many requests. Try again later." },
+        { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } }
+      );
+    }
+
     const body = await req.json();
     const parsed = schema.safeParse(body);
 
@@ -42,15 +55,12 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // In production: send email with link
-    // For now log the token (dev only)
     const resetUrl = `${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/reset-password?token=${token}`;
     console.log("[DEV] Password reset link:", resetUrl);
 
     return NextResponse.json({
       success: true,
       message: "If an account exists, a reset link has been sent.",
-      // Dev only — remove in production
       ...(process.env.NODE_ENV === "development" ? { devResetUrl: resetUrl } : {}),
     });
   } catch (err) {

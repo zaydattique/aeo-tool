@@ -2,6 +2,7 @@ import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
+import { rateLimit } from "./rate-limit";
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -25,6 +26,12 @@ export const authOptions: NextAuthOptions = {
         }
 
         const email = credentials.email.toLowerCase().trim();
+
+        // Login throttle per email (and coarse global)
+        const rl = await rateLimit(`login:${email}`, 20, 15 * 60 * 1000);
+        if (!rl.ok) {
+          throw new Error("TooManyLoginAttempts");
+        }
 
         const user = await prisma.user.findFirst({
           where: {
@@ -56,7 +63,6 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        // Block suspended agencies (unless pure super_admin)
         if (
           user.role !== "SUPER_ADMIN" &&
           user.agency &&
@@ -67,7 +73,6 @@ export const authOptions: NextAuthOptions = {
           throw new Error("AgencySuspended");
         }
 
-        // Update last login
         await prisma.user.update({
           where: { id: user.id },
           data: { lastLoginAt: new Date() },
@@ -95,7 +100,6 @@ export const authOptions: NextAuthOptions = {
         token.onboardingCompleted = user.onboardingCompleted;
       }
 
-      // Allow session update after onboarding
       if (trigger === "update" && session) {
         if (session.onboardingCompleted !== undefined) {
           token.onboardingCompleted = session.onboardingCompleted;

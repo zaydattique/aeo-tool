@@ -1,11 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { buildReportPdf } from "@/lib/report-pdf";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ token: string }> }
 ) {
+  const ip =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("x-real-ip") ||
+    "unknown";
+  const rl = await rateLimit(`pdf-portal:${ip}`, 30, 60 * 1000);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } }
+    );
+  }
+
   const { token } = await params;
 
   const client = await prisma.client.findFirst({
@@ -41,12 +54,13 @@ export async function GET(
     return NextResponse.json({ error: "Portal not found" }, { status: 404 });
   }
 
-  const analysis = (client.scans[0]?.aiAnalysis as {
-    summary?: string;
-    scores?: Record<string, number>;
-    strengths?: string[];
-    weaknesses?: string[];
-  } | null) || null;
+  const analysis =
+    (client.scans[0]?.aiAnalysis as {
+      summary?: string;
+      scores?: Record<string, number>;
+      strengths?: string[];
+      weaknesses?: string[];
+    } | null) || null;
 
   try {
     const pdf = await buildReportPdf({

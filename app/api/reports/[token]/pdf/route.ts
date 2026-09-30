@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { buildReportPdf } from "@/lib/report-pdf";
+import { rateLimit } from "@/lib/rate-limit";
 
 type ReportConfig = {
   agencyName?: string;
@@ -26,9 +27,21 @@ type ReportConfig = {
 };
 
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ token: string }> }
 ) {
+  const ip =
+    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    req.headers.get("x-real-ip") ||
+    "unknown";
+  const rl = await rateLimit(`pdf-report:${ip}`, 30, 60 * 1000);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } }
+    );
+  }
+
   const { token } = await params;
 
   const report = await prisma.report.findFirst({
