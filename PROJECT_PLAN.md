@@ -9,6 +9,26 @@ AGENTS.md → **this file** → HISTORY → docs/FILEMAP.md → docs/DEPLOY.md
 
 ---
 
+## PHASE 14B — Security (SSRF, rate limits, headers, API audit)
+
+**Status:** Done (code shipped 2026-09-30)  
+**Goal:** Close SSRF on crawl/fetch, harden URL validation, rate-limit abuse surfaces, security headers, API IDOR audit.
+
+| Item | Deliverable |
+|------|-------------|
+| **safeFetch** | `lib/safe-fetch.ts` — DNS resolve, block private/loopback/CGNAT/IPv6, manual redirects, timeouts, 5MB cap |
+| **validateWebsiteUrl** | Reject credentials, IP literals, non-public TLDs |
+| **crawl / runScan** | `safeFetch` in basic crawl; validate before Firecrawl; re-validate in `runScan` |
+| **rateLimit** | Backend interface + Upstash optional via `UPSTASH_REDIS_REST_*`; applied to signup, login, forgot/reset, scan, PDF |
+| **headers** | HSTS, nosniff, Referrer-Policy, Permissions-Policy, CSP, X-Frame DENY on dashboard/admin |
+| **API audit** | Findings in HISTORY; agency scoping reviewed |
+| **tokens** | portal/report tokens = `randomBytes(24)` (≥128-bit); impersonation ActivityLog confirmed |
+| **tests** | vitest: `lib/__tests__/url-and-safe-fetch.test.ts` |
+
+**Exit criteria:** Unit tests pass; no string-only hostname SSRF path on crawl.
+
+---
+
 ## PHASE 0–13 — Done
 
 | Block | What |
@@ -89,7 +109,7 @@ AGENTS.md → **this file** → HISTORY → docs/FILEMAP.md → docs/DEPLOY.md
 | Session | ~20 min | Focus |
 |---------|---------|--------|
 | **17.S1** | Live engine plan gate | Visibility live calls respect plan / monthly cap |
-| **17.S2** | Public token rate limit | Rate-limit `/r`, `/p`, PDF routes |
+| **17.S2** | Public token rate limit | Rate-limit `/r`, `/p` page renders (API PDF done in 14B) |
 | **17.S3** | Scan fail banner | Client detail shows last error clearly |
 | **17.S4** | Legal microcopy | Report/portal footer: no ranking guarantees |
 | **17.S5** | Retention note | Settings: data retention one-pager text |
@@ -151,4 +171,5 @@ Each item below should be split into new 20‑min sessions **only when opened**:
 ## NEXT
 
 **→ Phase 14 · Session 14.S1** (owner: DNS + subdomain)  
-When 14.S6 is green, agents may open **15.S1** without waiting for 14.S7–S8.
+When 14.S6 is green, agents may open **15.S1** without waiting for 14.S7–S8.  
+Phase **14B Security** is complete on `main`.

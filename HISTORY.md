@@ -1,6 +1,6 @@
 # AEO Command — HISTORY
 
-> Repo: `zaydattique/aeo-tool` · Updated **2026-09-28**
+> Repo: `zaydattique/aeo-tool` · Updated **2026-09-30**
 
 ---
 
@@ -13,6 +13,86 @@
 | Schema | `db push` when first deploying (portal, competitors, prompt kind) |
 | PDF | `pdfkit` on `npm install` |
 | Live engines | Optional keys; heuristic fallback always |
+| Rate limit | `rateLimit()` is **async** — always `await`. Optional Upstash: `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` |
+| SSRF | Never use raw `fetch` for user-supplied URLs; use `safeFetch` from `lib/safe-fetch.ts` |
+
+---
+
+### 2026-09-30 — Phase 14B Security (SSRF, rate limits, headers, API audit)
+
+**1. Date + phase/name**
+
+2026-09-30 — **Phase 14B Security**
+
+**2. Goal**
+
+`lib/url.ts` only string-matched hostnames and `crawlBasic` used `fetch` with `redirect: "follow"`, which is an SSRF hole on a VPS (metadata IP, alternate loopback, CGNAT, IPv6, decimal/hex hosts, DNS rebinding, redirect-to-internal). Success criteria: DNS-aware blocklist, manual redirects with per-hop validation, hardened `validateWebsiteUrl`, rate limits on auth and public PDF routes, security headers, API agency-scoping audit documented, unit tests for bypass forms, docs updated. No pricing or role model changes.
+
+**3. What we did**
+
+- Added **`lib/safe-fetch.ts`**: `safeFetch` / `isBlockedIp` / `assertPublicHostname`. Allows only http(s) ports 80/443; resolves with `dns.promises.lookup({ all: true })` and rejects if any address is private/loopback/link-local/CGNAT/multicast/reserved (IPv4 + IPv6 + IPv4-mapped); follows redirects **manually** (max 5) re-validating each hop; 10s connect / 25s total; 5MB streamed body cap; content-type allowlist; User-Agent `AEOCommandBot/1.0 (+<APP_URL>/bot)`.
+- **`lib/url.ts`**: reject URL credentials (`user:pass@`), reject **all IP-literal hosts** (dotted, IPv6, decimal, hex, octal forms), reject non-public TLDs (`.local`, `.internal`, `.localhost`, `.lan`, etc.), require FQDN, ports 80/443 only.
+- **`lib/crawl.ts`**: `crawlBasic` uses `safeFetch`; `crawlWebsite` and Firecrawl path validate with `validateWebsiteUrl` before any network/third-party call.
+- **`lib/scan-worker.ts`**: re-validates `client.websiteUrl` inside `runScan` before crawl (DNS/policy can change after client create).
+- **`lib/rate-limit.ts`**: `RateLimitBackend` interface; memory default; Upstash REST when env set; `rateLimit` is async.
+- Rate limits applied/updated: signup, credentials login (`lib/auth.ts`), forgot-password, reset-password, client scan, report PDF, portal PDF.
+- **`next.config.ts`**: HSTS, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, CSP (self + Stripe), X-Frame-Options DENY on `/dashboard` and `/admin`.
+- Tokens: portal/report already `randomBytes(24)` hex (≥192 bits); password reset `randomBytes(32)`. Impersonation already writes `ActivityLog` (`admin.impersonation_started` / `_stopped`).
+- Vitest tests: `lib/__tests__/url-and-safe-fetch.test.ts` covering IP literals, credentials, TLDs, `isBlockedIp` cases including metadata and mapped IPv6.
+
+**API audit findings (agency scoping / IDOR)**
+
+| Route area | Session | agencyId scope | Notes |
+|------------|---------|----------------|-------|
+| `/api/clients`, `/api/clients/[id]/*` | `requireAgency` | Queries use `agencyId: auth.agencyId` | OK |
+| `/api/clients/[id]/scan` | requireAgency + rate limit | Client lookup scoped | OK |
+| `/api/actions`, `/api/actions/[id]` | requireAgency | Expected agency filter on mutations | Confirm any findUnique by id alone includes agencyId in WHERE |
+| `/api/scans/[id]` | requireAgency | Must include agencyId | Standard pattern |
+| `/api/prompts/[id]` | requireAgency | Same | Standard pattern |
+| `/api/reports/[token]/pdf`, `/api/portal/[token]/pdf` | public token | Token unguessable; rate-limited | OK; revoke = disable portal / soft-delete report |
+| `/api/admin/*` | SUPER_ADMIN only | Cross-tenant by design | Impersonation logged |
+| `/api/billing/webhook` | Stripe signature | N/A | Outside session |
+| `/api/inngest` | Inngest signing | N/A | Outside session |
+
+No clear cross-agency IDOR found on client/scan paths that use `findFirst({ where: { id, agencyId } })`. Residual risk: any route that loads by primary key only without `agencyId` — agents should keep the `findFirst` + `agencyId` pattern on every new route.
+
+**4. Key files**
+
+- `lib/safe-fetch.ts` — SSRF-safe HTTP client  
+- `lib/url.ts` — strict website URL validation  
+- `lib/crawl.ts` — uses safeFetch + validation  
+- `lib/scan-worker.ts` — validate-at-scan-time  
+- `lib/rate-limit.ts` — pluggable backend  
+- `lib/auth.ts` — login rate limit  
+- `next.config.ts` — security headers  
+- `app/api/auth/*`, PDF routes — rate limits  
+- `lib/__tests__/url-and-safe-fetch.test.ts` — unit tests  
+- `vitest.config.ts`, `package.json` — test runner
+
+**5. Outcome / acceptance**
+
+```bash
+npm i
+npm test
+# expect url-and-safe-fetch tests green
+```
+
+Manual: create client with `https://169.254.169.254` → rejected; `https://user:pass@evil.com` → rejected; legitimate domain still creates.
+
+**6. What is still missing / deferred**
+
+- Rate-limit on HTML `/r/[token]` and `/p/[token]` page renders (listed under Phase 17.S2); API PDF routes are limited.
+- Visible “impersonating” dashboard banner UI (ActivityLog exists; banner not added this ship).
+- Constant-time token compare for portal/report DB lookups (Postgres `=` on unique high-entropy tokens is acceptable risk; can add `crypto.timingSafeEqual` if tokens are loaded then compared in app code).
+- Full integration test that performs live DNS to a controlled host (unit tests cover validators / IP classification).
+- README architecture paragraph for safeFetch (brief note in FILEMAP; full README pass can follow).
+
+**7. Gotchas**
+
+- All `rateLimit(...)` call sites must **`await`**.  
+- After pull: `npm i` pulls vitest. Optional: set Upstash env for multi-instance rate limits.  
+- `safeFetch` rejects non-HTML-ish content-types for known-bad types; empty content-type still allowed for odd origin servers.  
+- Do not reintroduce `fetch(userUrl, { redirect: "follow" })` anywhere.
 
 ---
 
