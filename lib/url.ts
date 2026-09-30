@@ -1,7 +1,34 @@
 /**
  * Validate and normalize a website URL for client creation.
- * Rejects private IPs, non-http(s) schemes, and overly long URLs.
+ * Rejects private IPs, IP literals, credentials, non-public TLDs,
+ * non-http(s) schemes, and overly long URLs.
  */
+
+const BLOCKED_TLDS = new Set([
+  "local",
+  "localhost",
+  "internal",
+  "lan",
+  "intranet",
+  "home",
+  "corp",
+  "private",
+  "test",
+  "invalid",
+  "example",
+  "localdomain",
+]);
+
+function isIpLiteral(hostname: string): boolean {
+  const h = hostname.replace(/^\[|\]$/g, "");
+  if (/^\d{1,3}(\.\d{1,3}){3}$/.test(h)) return true;
+  if (h.includes(":")) return true;
+  if (/^0x[0-9a-f]+$/i.test(h)) return true;
+  if (/^0[0-7]+$/.test(h)) return true;
+  if (/^\d+$/.test(h) && h.length >= 8) return true; // e.g. 2130706433
+  return false;
+}
+
 export function validateWebsiteUrl(raw: string): {
   ok: true;
   url: string;
@@ -21,7 +48,6 @@ export function validateWebsiteUrl(raw: string): {
 
   let parsed: URL;
   try {
-    // Auto-prepend https if no scheme
     const withScheme = /^https?:\/\//i.test(trimmed)
       ? trimmed
       : `https://${trimmed}`;
@@ -34,24 +60,60 @@ export function validateWebsiteUrl(raw: string): {
     return { ok: false, error: "Only http and https URLs are allowed" };
   }
 
-  const hostname = parsed.hostname.toLowerCase();
+  if (parsed.username || parsed.password) {
+    return { ok: false, error: "URLs with credentials are not allowed" };
+  }
 
-  // Block localhost and private ranges
+  const port = parsed.port
+    ? parseInt(parsed.port, 10)
+    : parsed.protocol === "https:"
+      ? 443
+      : 80;
+  if (port !== 80 && port !== 443) {
+    return { ok: false, error: "Only ports 80 and 443 are allowed" };
+  }
+
+  const hostname = parsed.hostname.toLowerCase().replace(/^\[|\]$/g, "");
+
+  if (!hostname) {
+    return { ok: false, error: "Invalid hostname" };
+  }
+
+  if (isIpLiteral(hostname)) {
+    return {
+      ok: false,
+      error: "IP addresses are not allowed; use a public domain name",
+    };
+  }
+
+  const labels = hostname.split(".");
+  const tld = labels[labels.length - 1] || "";
+  if (BLOCKED_TLDS.has(tld) || hostname === "localhost") {
+    return {
+      ok: false,
+      error: "Private or non-public domains are not allowed",
+    };
+  }
+
+  if (!hostname.includes(".")) {
+    return {
+      ok: false,
+      error: "Hostname must be a fully-qualified public domain",
+    };
+  }
+
   if (
-    hostname === "localhost" ||
-    hostname === "127.0.0.1" ||
-    hostname === "0.0.0.0" ||
-    hostname === "::1" ||
     hostname.endsWith(".local") ||
-    hostname.startsWith("192.168.") ||
-    hostname.startsWith("10.") ||
-    /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname)
+    hostname.endsWith(".internal") ||
+    hostname.endsWith(".lan") ||
+    hostname.endsWith(".localhost")
   ) {
     return { ok: false, error: "Private or local URLs are not allowed" };
   }
 
-  // Normalize: strip trailing slash from pathname if root
-  const normalized = parsed.origin + (parsed.pathname === "/" ? "" : parsed.pathname) +
+  const normalized =
+    parsed.origin +
+    (parsed.pathname === "/" ? "" : parsed.pathname) +
     parsed.search;
 
   return { ok: true, url: normalized };
