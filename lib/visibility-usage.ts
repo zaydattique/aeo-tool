@@ -4,7 +4,9 @@
  * Unit model (P0-A):
  * - 1 visibility op = 1 expected live provider call, OR 1 prompt when no live engines.
  * - Reserve before enqueue (agency meter).
- * - Settle once per job inside a DB transaction that flips VisibilityJob.usageSettled.
+ * - Settle once per job inside a DB transaction that flips VisibilityJob.usageSettled
+ *   via a conditional UPDATE (WHERE usageSettled = false). Concurrent retries cannot
+ *   both apply meter deltas.
  *
  * Retries never double-settle: usageSettled is the durable guard.
  */
@@ -138,6 +140,53 @@ export function cappedConsume(
   return Math.min(requested, room);
 }
 
+/**
+ * Pure settlement math for a single job (no DB).
+ * Models Cases A–E from the P0-A review without touching another job's reservation.
+ */
+export function computeJobSettlement(opts: {
+  opsReserved: number;
+  opsConsumed: number;
+  usageSettled: boolean;
+  requestedConsume: number;
+}): {
+  alreadySettled: boolean;
+  appliedConsume: number;
+  appliedRelease: number;
+  finalOpsConsumed: number;
+  meterUsedDelta: number;
+  meterReservedDelta: number;
+} {
+  if (opts.usageSettled) {
+    return {
+      alreadySettled: true,
+      appliedConsume: 0,
+      appliedRelease: 0,
+      finalOpsConsumed: opts.opsConsumed,
+      meterUsedDelta: 0,
+      meterReservedDelta: 0,
+    };
+  }
+
+  const appliedConsume = cappedConsume(
+    opts.opsReserved,
+    opts.opsConsumed,
+    opts.requestedConsume
+  );
+  const finalOpsConsumed = opts.opsConsumed + appliedConsume;
+  const appliedRelease = Math.max(0, opts.opsReserved - finalOpsConsumed);
+
+  // Meter: used += consume; reserved -= (consume + release) == reserved -= opsReserved
+  return {
+    alreadySettled: false,
+    appliedConsume,
+    appliedRelease,
+    finalOpsConsumed,
+    meterUsedDelta: appliedConsume,
+    meterReservedDelta: -(appliedConsume + appliedRelease),
+  };
+}
+
 export type JobSettlementResult = {
   alreadySettled: boolean;
   appliedConsume: number;
@@ -148,11 +197,11 @@ export type JobSettlementResult = {
 /**
  * Final job-owned settlement (consume + release remainder) in one transaction.
  *
- * - If job.usageSettled already true → no-op (retry-safe).
- * - appliedConsume = min(requestedConsume, opsReserved - opsConsumed)
- * - appliedRelease = opsReserved - finalOpsConsumed
- * - Meter: used += appliedConsume; reserved -= (appliedConsume + appliedRelease)
- *   which equals reserved -= opsReserved (the job's original reservation).
+ * Atomicity:
+ * 1. Conditional UPDATE VisibilityJob SET usageSettled=true WHERE usageSettled=false
+ *    → only one concurrent worker wins.
+ * 2. Winner applies meter deltas for exactly this job's reservation.
+ * 3. Loser (or later retry) returns alreadySettled with zero meter deltas.
  *
  * Never touches another job's reservation: only the delta for this job.
  */
@@ -189,29 +238,50 @@ export async function settleVisibilityJobUsage(opts: {
       };
     }
 
-    const appliedConsume = cappedConsume(
-      job.opsReserved,
-      job.opsConsumed,
-      requestedConsume
-    );
-    const finalOpsConsumed = job.opsConsumed + appliedConsume;
-    const appliedRelease = Math.max(0, job.opsReserved - finalOpsConsumed);
-
-    await tx.visibilityJob.update({
-      where: { id: jobId },
-      data: {
-        opsConsumed: finalOpsConsumed,
-        usageSettled: true,
-      },
+    const plan = computeJobSettlement({
+      opsReserved: job.opsReserved,
+      opsConsumed: job.opsConsumed,
+      usageSettled: false,
+      requestedConsume,
     });
 
-    const meterDelta = appliedConsume + appliedRelease;
-    if (meterDelta > 0 || appliedConsume > 0) {
+    // Conditional claim — concurrent retry loses and must not touch the meter
+    const claimed = await tx.$executeRaw`
+      UPDATE "VisibilityJob"
+      SET
+        "opsConsumed" = ${plan.finalOpsConsumed},
+        "usageSettled" = true,
+        "updatedAt" = NOW()
+      WHERE "id" = ${jobId}
+        AND "usageSettled" = false
+    `;
+
+    if (Number(claimed) === 0) {
+      const again = await tx.visibilityJob.findUnique({ where: { id: jobId } });
+      console.info(
+        JSON.stringify({
+          event: "usage_settlement_skipped",
+          jobId,
+          agencyId,
+          reason: "lost_race_or_already_settled",
+          opsConsumed: again?.opsConsumed ?? job.opsConsumed,
+        })
+      );
+      return {
+        alreadySettled: true,
+        appliedConsume: 0,
+        appliedRelease: 0,
+        finalOpsConsumed: again?.opsConsumed ?? job.opsConsumed,
+      };
+    }
+
+    const meterDelta = plan.appliedConsume + plan.appliedRelease;
+    if (meterDelta > 0 || plan.appliedConsume > 0) {
       await tx.$executeRaw`
         UPDATE "UsageMeter"
         SET
           "visibilityOpsReserved" = GREATEST(0, "visibilityOpsReserved" - ${meterDelta}),
-          "visibilityOpsUsed" = "visibilityOpsUsed" + ${appliedConsume},
+          "visibilityOpsUsed" = "visibilityOpsUsed" + ${plan.appliedConsume},
           "updatedAt" = NOW()
         WHERE "agencyId" = ${agencyId}
           AND "periodStart" = ${start}
@@ -223,18 +293,18 @@ export async function settleVisibilityJobUsage(opts: {
         event: "usage_settled",
         jobId,
         agencyId,
-        appliedConsume,
-        appliedRelease,
-        finalOpsConsumed,
+        appliedConsume: plan.appliedConsume,
+        appliedRelease: plan.appliedRelease,
+        finalOpsConsumed: plan.finalOpsConsumed,
         opsReserved: job.opsReserved,
       })
     );
 
     return {
       alreadySettled: false,
-      appliedConsume,
-      appliedRelease,
-      finalOpsConsumed,
+      appliedConsume: plan.appliedConsume,
+      appliedRelease: plan.appliedRelease,
+      finalOpsConsumed: plan.finalOpsConsumed,
     };
   });
 }
