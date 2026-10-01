@@ -1,5 +1,10 @@
 import { inngest } from "./client";
 import { runScan } from "@/lib/scan-worker";
+import { runVisibilityJob } from "@/lib/visibility-job";
+import {
+  visibilityGlobalConcurrency,
+  visibilityAgencyConcurrency,
+} from "@/lib/visibility-config";
 import { prisma } from "@/lib/prisma";
 import {
   sendEmail,
@@ -82,6 +87,32 @@ export const runScanJob = inngest.createFunction(
   }
 );
 
+/**
+ * Durable visibility snapshot — global + per-agency concurrency.
+ * Retries are idempotent via snapshot unique(jobId, promptId) + terminal job status.
+ */
+export const runVisibilitySnapshotJob = inngest.createFunction(
+  {
+    id: "visibility-snapshot",
+    retries: 2,
+    concurrency: [
+      { limit: visibilityGlobalConcurrency() },
+      {
+        key: "event.data.agencyId",
+        limit: visibilityAgencyConcurrency(),
+      },
+    ],
+  },
+  { event: "visibility/snapshot" },
+  async ({ event, step }) => {
+    const jobId = event.data.jobId as string;
+    await step.run("execute-visibility", async () => {
+      await runVisibilityJob(jobId);
+    });
+    return { jobId, ok: true };
+  }
+);
+
 /** Hourly: enqueue due weekly re-scans */
 export const weeklyRescanCron = inngest.createFunction(
   { id: "weekly-rescan-cron", retries: 1 },
@@ -122,7 +153,6 @@ export const weeklyRescanCron = inngest.createFunction(
         });
         if (active) return;
 
-        // Monthly plan limit
         if (client.agency.plan) {
           const periodStart = new Date();
           periodStart.setDate(1);
@@ -248,6 +278,7 @@ export const weeklyDigestCron = inngest.createFunction(
 
 export const inngestFunctions = [
   runScanJob,
+  runVisibilitySnapshotJob,
   weeklyRescanCron,
   weeklyDigestCron,
 ];

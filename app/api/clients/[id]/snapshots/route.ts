@@ -1,11 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAgency, canManageClients } from "@/lib/session";
-import { checkPromptVisibility } from "@/lib/visibility-check";
-import { getDefaultPromptSeeds } from "@/lib/default-prompts";
+import { rateLimit } from "@/lib/rate-limit";
+import { createAndEnqueueVisibilityJob } from "@/lib/visibility-job";
+import {
+  visibilitySnapshotRateLimit,
+  visibilitySnapshotRateWindowMs,
+} from "@/lib/visibility-config";
 
+/**
+ * POST — enqueue durable visibility snapshot job (no synchronous AI work).
+ * Returns 202 with job metadata. Poll job status or GET snapshots when complete.
+ */
 export async function POST(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   const auth = await requireAgency();
@@ -17,100 +25,77 @@ export async function POST(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  const rl = await rateLimit(
+    `visibility:${auth.agencyId}`,
+    visibilitySnapshotRateLimit(),
+    visibilitySnapshotRateWindowMs()
+  );
+  if (!rl.ok) {
+    console.info(
+      JSON.stringify({
+        event: "visibility_snapshot_rate_limited",
+        agencyId: auth.agencyId,
+        retryAfterSec: rl.retryAfterSec,
+      })
+    );
+    return NextResponse.json(
+      {
+        error: "Too many visibility snapshots. Wait a few minutes.",
+        code: "RATE_LIMITED",
+        retryAfterSec: rl.retryAfterSec,
+      },
+      {
+        status: 429,
+        headers: { "Retry-After": String(rl.retryAfterSec) },
+      }
+    );
+  }
+
   const { id: clientId } = await params;
 
   const client = await prisma.client.findFirst({
     where: { id: clientId, agencyId: auth.agencyId, deletedAt: null },
+    select: { id: true },
   });
   if (!client) {
     return NextResponse.json({ error: "Client not found" }, { status: 404 });
   }
 
-  let prompts = await prisma.trackedPrompt.findMany({
-    where: { clientId, agencyId: auth.agencyId, deletedAt: null },
+  const idempotencyKey =
+    req.headers.get("idempotency-key") ||
+    req.headers.get("x-idempotency-key") ||
+    null;
+
+  const result = await createAndEnqueueVisibilityJob({
+    agencyId: auth.agencyId,
+    clientId,
+    actorId: auth.session.user.id,
+    idempotencyKey,
   });
 
-  if (prompts.length === 0) {
-    const defaults = getDefaultPromptSeeds(
-      client.brandName || client.name,
-      client.location
-    );
-    await prisma.trackedPrompt.createMany({
-      data: defaults.map((s) => ({
-        agencyId: auth.agencyId!,
-        clientId,
-        promptText: s.promptText,
-        isCustom: false,
-        kind: s.kind,
-        targetName: s.targetName || null,
-      })),
-    });
-    prompts = await prisma.trackedPrompt.findMany({
-      where: { clientId, deletedAt: null },
-    });
-  }
-
-  const base =
-    client.currentVisibilityScore != null
-      ? client.currentVisibilityScore
-      : 50;
-  const brand = client.brandName || client.name;
-
-  const created = [];
-  let maxLive = 0;
-  for (const prompt of prompts) {
-    const check = await checkPromptVisibility({
-      promptText: prompt.promptText,
-      brandName: brand,
-      baseScore: base,
-      kind: prompt.kind || "brand",
-      competitorName: prompt.targetName,
-    });
-
-    maxLive = Math.max(maxLive, check.liveEngineCount);
-
-    const snapshot = await prisma.visibilitySnapshot.create({
-      data: {
-        agencyId: auth.agencyId,
-        clientId,
-        promptId: prompt.id,
-        score: check.score,
-        sources: {
-          method: check.method,
-          engines: check.engines,
-          liveEngineCount: check.liveEngineCount,
-          baseScore: base,
-          brandMentioned: check.brandMentioned,
-          competitorMentioned: check.competitorMentioned,
-          kind: prompt.kind,
-          targetName: prompt.targetName,
-          recordedAt: new Date().toISOString(),
-        },
+  if (!result.ok) {
+    return NextResponse.json(
+      {
+        error: result.error,
+        code: result.code,
+        jobId: result.jobId,
+        usage: result.usage,
       },
-    });
-    created.push({
-      ...snapshot,
-      score: Number(snapshot.score),
-      engines: check.engines,
-      liveEngineCount: check.liveEngineCount,
-      method: check.method,
-    });
+      { status: result.status }
+    );
   }
-
-  await prisma.activityLog.create({
-    data: {
-      agencyId: auth.agencyId,
-      actorId: auth.session.user.id,
-      action: "visibility.snapshot_recorded",
-      resourceType: "client",
-      resourceId: clientId,
-      metadata: { count: created.length, maxLiveEngines: maxLive },
-    },
-  });
 
   return NextResponse.json(
-    { snapshots: created, maxLiveEngines: maxLive },
-    { status: 201 }
+    {
+      job: result.job,
+      jobId: result.job.id,
+      status: result.job.status,
+      deduplicated: result.job.deduplicated ?? false,
+      message: result.job.deduplicated
+        ? "Existing visibility job in progress or matched by idempotency key"
+        : "Visibility snapshot job queued",
+    },
+    { status: result.job.deduplicated ? 200 : 202 }
   );
 }
 
@@ -125,20 +110,48 @@ export async function GET(
 
   const { id: clientId } = await params;
 
-  const snapshots = await prisma.visibilitySnapshot.findMany({
-    where: { clientId, agencyId },
-    orderBy: { recordedAt: "asc" },
-    include: {
-      prompt: {
-        select: { id: true, promptText: true, kind: true, targetName: true },
-      },
-    },
+  const client = await prisma.client.findFirst({
+    where: { id: clientId, agencyId, deletedAt: null },
+    select: { id: true },
   });
+  if (!client) {
+    return NextResponse.json({ error: "Client not found" }, { status: 404 });
+  }
+
+  const [snapshots, activeJob] = await Promise.all([
+    prisma.visibilitySnapshot.findMany({
+      where: { clientId, agencyId },
+      orderBy: { recordedAt: "asc" },
+      include: {
+        prompt: {
+          select: { id: true, promptText: true, kind: true, targetName: true },
+        },
+      },
+    }),
+    prisma.visibilityJob.findFirst({
+      where: {
+        clientId,
+        agencyId,
+        status: { in: ["QUEUED", "RUNNING"] },
+      },
+      orderBy: { createdAt: "desc" },
+    }),
+  ]);
 
   return NextResponse.json({
     snapshots: snapshots.map((s) => ({
       ...s,
       score: Number(s.score),
     })),
+    activeJob: activeJob
+      ? {
+          id: activeJob.id,
+          status: activeJob.status,
+          progress: activeJob.progress,
+          promptCount: activeJob.promptCount,
+          successCount: activeJob.successCount,
+          failureCount: activeJob.failureCount,
+        }
+      : null,
   });
 }
