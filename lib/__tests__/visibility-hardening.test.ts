@@ -12,7 +12,11 @@ import {
   setRateLimitBackend,
   type RateLimitBackend,
 } from "../rate-limit";
-import { countExpectedOps } from "../visibility-job";
+import {
+  countExpectedOps,
+  idempotencyKeyMatchesClient,
+} from "../visibility-job";
+import { cappedConsume } from "../visibility-usage";
 import { getLiveEngineCapabilities } from "../visibility-check";
 
 class MemoryTestBackend implements RateLimitBackend {
@@ -107,5 +111,44 @@ describe("live engine capabilities (no secrets)", () => {
       expect(c).toHaveProperty("envVar");
       expect(JSON.stringify(c)).not.toMatch(/sk-/);
     }
+  });
+});
+
+describe("idempotency key is client-scoped", () => {
+  it("same client matches", () => {
+    expect(idempotencyKeyMatchesClient("client-a", "client-a")).toBe(true);
+  });
+
+  it("different client is a collision (must 409)", () => {
+    expect(idempotencyKeyMatchesClient("client-a", "client-b")).toBe(false);
+  });
+});
+
+describe("cappedConsume — usage retry / consumption cap", () => {
+  it("consumes exactly requested when under reserved", () => {
+    expect(cappedConsume(100, 0, 40)).toBe(40);
+  });
+
+  it("cannot consume beyond opsReserved", () => {
+    expect(cappedConsume(100, 90, 20)).toBe(10);
+    expect(cappedConsume(100, 100, 20)).toBe(0);
+    expect(cappedConsume(100, 0, 150)).toBe(100);
+  });
+
+  it("job A release math is independent of job B reservation", () => {
+    const a = cappedConsume(100, 0, 50);
+    expect(a).toBe(50);
+    expect(100 - a).toBe(50);
+    expect(cappedConsume(100, 0, 100)).toBe(100);
+  });
+
+  it("negative or zero requests apply zero", () => {
+    expect(cappedConsume(100, 10, 0)).toBe(0);
+    expect(cappedConsume(100, 10, -5)).toBe(0);
+  });
+
+  it("after 40 consumed, another 40 request is capped by remaining room only", () => {
+    expect(cappedConsume(100, 40, 40)).toBe(40);
+    expect(cappedConsume(100, 40, 80)).toBe(60);
   });
 });
