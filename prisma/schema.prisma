@@ -198,7 +198,6 @@ model Client {
   brandName              String?
   location               String?
   keywords               String[]
-  // Phase 13.3 — competitor names for SOV prompts
   competitors            String[]
   currentVisibilityScore Int?
   lastScannedAt          DateTime?
@@ -294,7 +293,6 @@ model TrackedPrompt {
   clientId       String
   promptText     String
   isCustom       Boolean  @default(false)
-  // brand | category | competitor
   kind           String   @default("brand")
   targetName     String?
   createdAt      DateTime @default(now())
@@ -344,10 +342,12 @@ model VisibilityJob {
   promptCount      Int                 @default(0)
   opsReserved      Int                 @default(0)
   opsConsumed      Int                 @default(0)
+  /// Once true, meter settle for this job must not run again (retry-safe)
+  usageSettled     Boolean             @default(false)
   liveEngineCount  Int                 @default(0)
   successCount     Int                 @default(0)
   failureCount     Int                 @default(0)
-  /// When set, concurrent/duplicate POSTs with same key return this job
+  /// When set, concurrent/duplicate POSTs with same key return this job (same client only)
   idempotencyKey   String?
   /// Non-null only while QUEUED/RUNNING — enables unique active job per client
   activeClientKey  String?
