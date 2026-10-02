@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   rateLimit,
   resetRateLimitBackendForTests,
@@ -6,23 +6,16 @@ import {
 } from "../rate-limit";
 
 describe("rate-limit fail-closed behavior", () => {
-  const previous = new Map<string, string | undefined>();
-
   afterEach(() => {
-    for (const [key, value] of previous) {
-      if (value == null) delete process.env[key];
-      else process.env[key] = value;
-    }
-    previous.clear();
+    vi.unstubAllEnvs();
+    delete process.env.UPSTASH_REDIS_REST_URL;
+    delete process.env.UPSTASH_REDIS_REST_TOKEN;
     setRateLimitBackend(null);
     resetRateLimitBackendForTests();
   });
 
   it("fails closed in production when Redis is missing", async () => {
-    previous.set("NODE_ENV", process.env.NODE_ENV);
-    previous.set("UPSTASH_REDIS_REST_URL", process.env.UPSTASH_REDIS_REST_URL);
-    previous.set("UPSTASH_REDIS_REST_TOKEN", process.env.UPSTASH_REDIS_REST_TOKEN);
-    process.env.NODE_ENV = "production";
+    vi.stubEnv("NODE_ENV", "production");
     delete process.env.UPSTASH_REDIS_REST_URL;
     delete process.env.UPSTASH_REDIS_REST_TOKEN;
 
@@ -32,8 +25,9 @@ describe("rate-limit fail-closed behavior", () => {
   });
 
   it("fails closed when the distributed backend throws", async () => {
-    previous.set("NODE_ENV", process.env.NODE_ENV);
-    process.env.NODE_ENV = "production";
+    vi.stubEnv("NODE_ENV", "production");
+    vi.stubEnv("UPSTASH_REDIS_REST_URL", "https://redis.example");
+    vi.stubEnv("UPSTASH_REDIS_REST_TOKEN", "token");
     setRateLimitBackend({
       hit: async () => {
         throw new Error("redis unavailable");
@@ -46,10 +40,7 @@ describe("rate-limit fail-closed behavior", () => {
   });
 
   it("keeps local development usable without Redis", async () => {
-    previous.set("NODE_ENV", process.env.NODE_ENV);
-    previous.set("UPSTASH_REDIS_REST_URL", process.env.UPSTASH_REDIS_REST_URL);
-    previous.set("UPSTASH_REDIS_REST_TOKEN", process.env.UPSTASH_REDIS_REST_TOKEN);
-    process.env.NODE_ENV = "test";
+    vi.stubEnv("NODE_ENV", "test");
     delete process.env.UPSTASH_REDIS_REST_URL;
     delete process.env.UPSTASH_REDIS_REST_TOKEN;
     resetRateLimitBackendForTests();
