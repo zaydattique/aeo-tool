@@ -32,6 +32,7 @@ function normalizeKey(key: string): string {
 
 export interface RateLimitBackend {
   hit(key: string, limit: number, windowMs: number): Promise<RateLimitResult>;
+  hitPair?(first: { key: string; limit: number }, second: { key: string; limit: number }, windowMs: number): Promise<{ first: RateLimitResult; second: RateLimitResult }>;
 }
 
 class MemoryBackend implements RateLimitBackend {
@@ -44,6 +45,28 @@ class MemoryBackend implements RateLimitBackend {
         if (now >= v.resetAt) this.buckets.delete(k);
       }
     }, 60_000).unref?.();
+  }
+
+  async hitPair(first: { key: string; limit: number }, second: { key: string; limit: number }, windowMs: number): Promise<{ first: RateLimitResult; second: RateLimitResult }> {
+    const rawTimeout = Number.parseInt(process.env.RATE_LIMIT_REDIS_TIMEOUT_MS || "1500", 10);
+    const timeoutMs = Number.isFinite(rawTimeout) ? Math.min(5000, Math.max(250, rawTimeout)) : 1500;
+    const res = await fetch(`${this.baseUrl}/pipeline`, {
+      method: "POST",
+      signal: AbortSignal.timeout(timeoutMs),
+      headers: { Authorization: `Bearer ${this.token}`, "Content-Type": "application/json" },
+      body: JSON.stringify([["EVAL", ATOMIC_PAIR_SCRIPT, "2", `rl:${normalizeKey(first.key)}`, `rl:${normalizeKey(second.key)}`, String(first.limit), String(second.limit), String(Math.max(1, Math.ceil(windowMs / 1000)))]])
+    });
+    if (!res.ok) throw new Error(`Upstash HTTP ${res.status}`);
+    const data = (await res.json()) as { result: unknown }[];
+    const out = Array.isArray(data[0]?.result) ? data[0].result.map(Number) : [];
+    if (out[0] !== 1) {
+      const denied = { ok: false, remaining: 0, retryAfterSec: Math.max(1, Number(out[1] || 1)) };
+      return { first: denied, second: denied };
+    }
+    return {
+      first: { ok: true, remaining: Math.max(0, Number(out[1] || 0)), retryAfterSec: 0 },
+      second: { ok: true, remaining: Math.max(0, Number(out[2] || 0)), retryAfterSec: 0 },
+    };
   }
 
   async hit(
@@ -72,6 +95,27 @@ class MemoryBackend implements RateLimitBackend {
     };
   }
 }
+
+const ATOMIC_PAIR_SCRIPT = `
+local a = tonumber(redis.call('get', KEYS[1]) or '0')
+local b = tonumber(redis.call('get', KEYS[2]) or '0')
+local limitA = tonumber(ARGV[1])
+local limitB = tonumber(ARGV[2])
+local windowSec = tonumber(ARGV[3])
+if a >= limitA then
+  local ttl = redis.call('ttl', KEYS[1])
+  return {0, math.max(1, ttl)}
+end
+if b >= limitB then
+  local ttl = redis.call('ttl', KEYS[2])
+  return {0, math.max(1, ttl)}
+end
+a = redis.call('incr', KEYS[1])
+redis.call('expire', KEYS[1], windowSec, 'NX')
+b = redis.call('incr', KEYS[2])
+redis.call('expire', KEYS[2], windowSec, 'NX')
+return {1, limitA - a, limitB - b}
+`;
 
 class UpstashBackend implements RateLimitBackend {
   constructor(
@@ -138,6 +182,25 @@ function getBackend(): RateLimitBackend {
 /** Allow tests to inject a backend */
 export function setRateLimitBackend(b: RateLimitBackend | null) {
   backend = b;
+}
+
+export async function rateLimitPair(first: { key: string; limit: number }, second: { key: string; limit: number }, windowMs: number): Promise<{ first: RateLimitResult; second: RateLimitResult }> {
+  if (!redisConfigured() && requireDistributedRateLimit()) {
+    const denied = failClosedResult();
+    return { first: denied, second: denied };
+  }
+  try {
+    const b = getBackend();
+    if (b.hitPair) return await b.hitPair(first, second, windowMs);
+    const a = await b.hit(first.key, first.limit, windowMs);
+    if (!a.ok) return { first: a, second: a };
+    const c = await b.hit(second.key, second.limit, windowMs);
+    return { first: a, second: c };
+  } catch (err) {
+    console.error("[rate-limit] pair backend failure", err instanceof Error ? err.message : "unknown");
+    const denied = requireDistributedRateLimit() ? failClosedResult() : { ok: true, remaining: first.limit, retryAfterSec: 0 };
+    return { first: denied, second: denied };
+  }
 }
 
 export async function rateLimit(
