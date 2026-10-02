@@ -3,6 +3,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAgency } from "@/lib/session";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
+import { rateLimit } from "@/lib/rate-limit";
+import { billingCheckoutLimit, billingCheckoutWindowMs } from "@/lib/expensive-rate-limits";
 
 const schema = z.object({
   planSlug: z.string().min(1),
