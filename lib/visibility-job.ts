@@ -23,6 +23,15 @@ export function countExpectedOps(promptCount: number): number {
   return promptCount * live;
 }
 
+/** Only fresh provider calls consume usage; cached live observations cost zero new calls. */
+export function countFreshVisibilityOps(
+  liveEngineCount: number,
+  freshLiveEngineCount: number
+): number {
+  if (liveEngineCount === 0) return 1;
+  return Math.max(0, Math.min(liveEngineCount, freshLiveEngineCount));
+}
+
 /** Pure check: same agency+key must map to same client. */
 export function idempotencyKeyMatchesClient(
   existingClientId: string,
@@ -534,10 +543,10 @@ export async function runVisibilityJob(jobId: string): Promise<void> {
       // Full per-engine FAILED status is deferred to P1.
       // Only fresh provider calls consume AI ops. Shared-cache hits remain
       // live observations but cost zero new provider calls.
-      const ops =
-        check.liveEngineCount === 0
-          ? 1
-          : check.freshLiveEngineCount;
+      const ops = countFreshVisibilityOps(
+        check.liveEngineCount,
+        check.freshLiveEngineCount
+      );
       opsEarnedThisRun += ops;
 
       await prisma.visibilitySnapshot.upsert({
