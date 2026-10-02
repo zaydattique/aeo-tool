@@ -293,3 +293,28 @@ Client IP extraction is centralized with an explicit trust-boundary comment: for
 - Added bounded list responses for clients, actions, and visibility snapshots with explicit `hasMore` metadata.
 - Documented bounded Prisma connection-pool guidance for production Postgres.
 - Preserved the prior P0-A through P0-I controls.
+
+
+---
+
+### 2026-10-02 — Phase 0-S: Worker queue saturation hardening
+
+**Goal**
+
+Prevent durable-queue outages and overlapping scheduled workers from turning bounded scan admission into unbounded application-process work.
+
+**Changes**
+
+- Production scan enqueue now fails closed when Inngest is unavailable instead of silently falling back to in-process `setImmediate` execution that bypasses the distributed scan execution concurrency limits.
+- An explicit `ALLOW_IN_PROCESS_SCAN_FALLBACK=1` escape hatch remains available for development/non-production environments.
+- Stale-scan recovery, weekly rescan, and weekly digest cron functions now use an environment-scoped concurrency limit of 1 so overlapping scheduled invocations cannot amplify database/provider/email work.
+- Weekly rescan discovery remains bounded to 50 due clients per invocation.
+- Added regression coverage and a dedicated Prisma/TypeScript/Vitest CI workflow.
+
+**Important behavior**
+
+In production, a missing/unavailable durable scan queue now terminalizes the admitted scan as FAILED rather than executing it inside the web process. This is intentional: local fallback cannot enforce the existing global Inngest execution cap across horizontally scaled app instances.
+
+**Remaining**
+
+Production/staging load testing still requires a populated database and approved credentials. Edge/WAF DDoS protection remains separate from application queue controls.

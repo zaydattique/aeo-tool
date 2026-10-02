@@ -311,3 +311,11 @@ Phase **14B Security** is complete on `main`.
 - [x] Extended the repeatable DB load harness to exercise scan backlog, quota, active-scan, and stale-recovery query paths.
 - [x] Kept the load test bounded and environment-driven; no production credentials or production-sized run claimed.
 - [ ] Production/staging benchmark still requires a populated database and approved credentials.
+
+
+### P0-S — Worker queue saturation hardening
+- [x] Production scan enqueue fails closed instead of bypassing distributed execution concurrency through in-process fallback.
+- [x] Scheduled recovery/rescan/digest cron jobs cannot overlap within the environment.
+- [x] Weekly rescan fan-out remains bounded to 50 due clients per invocation.
+- [x] Added worker saturation regression tests and dedicated CI.
+- [ ] Future: bounded pagination/fairness for very large scheduled-rescan and digest populations; production/staging benchmark still requires populated data and approved credentials.
