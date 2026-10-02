@@ -77,13 +77,14 @@ async function get<T>(key: string): Promise<T | null> {
   }
 }
 
-async function setNx(key: string, value: string, ttl: number): Promise<boolean> {
+async function setNx(key: string, value: string, ttl: number): Promise<"acquired" | "busy" | "unavailable"> {
   const cfg = redisConfig();
-  if (!cfg) return false;
+  if (!cfg) return "unavailable";
   const result = await pipeline<{ result: string }>(cfg.url, cfg.token, [
     ["SET", key, value, "NX", "EX", String(ttl)],
   ]);
-  return result?.[0]?.result === "OK";
+  if (!result) return "unavailable";
+  return result[0]?.result === "OK" ? "acquired" : "busy";
 }
 
 async function setCache(key: string, value: unknown, ttl: number): Promise<void> {
@@ -140,7 +141,14 @@ export async function withProviderCache<T>(
   const lockKey = `${key}:lock`;
   const owner = randomUUID();
 
-  if (await setNx(lockKey, owner, lockSeconds())) {
+  const lock = await setNx(lockKey, owner, lockSeconds());
+  if (lock === "unavailable") {
+    // Redis is an optimization/cost-control layer, not a hard dependency for
+    // completing a measurement. Fail open immediately if Redis is unhealthy.
+    return { value: await loader(), cacheHit: false };
+  }
+
+  if (lock === "acquired") {
     try {
       const secondCheck = await get<T>(key);
       if (secondCheck != null) return { value: secondCheck, cacheHit: true };
