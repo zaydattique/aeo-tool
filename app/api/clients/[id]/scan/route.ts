@@ -88,7 +88,7 @@ export async function POST(
     );
   }
 
-  if (scanAdmission.reason === "GLOBAL_BACKLOG" || scanAdmission.reason === "AGENCY_BACKLOG") {
+  if (scanAdmission.reason === "GLOBAL_BACKLOG" || scanAdmission.reason === "AGENCY_BACKLOG" || scanAdmission.reason === "ADMISSION_BUSY") {
     return NextResponse.json(
       {
         error: "Scan queue is currently full. Please retry shortly.",

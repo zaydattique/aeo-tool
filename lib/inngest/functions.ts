@@ -174,7 +174,7 @@ export const weeklyRescanCron = inngest.createFunction(
         );
 
         if (!admission.scan) {
-          if (admission.reason === "GLOBAL_BACKLOG" || admission.reason === "AGENCY_BACKLOG") {
+          if (admission.reason === "GLOBAL_BACKLOG" || admission.reason === "AGENCY_BACKLOG" || admission.reason === "ADMISSION_BUSY") {
             await prisma.client.update({
               where: { id: client.id },
               data: { nextRescanAt: new Date(Date.now() + 30 * 60 * 1000) },
