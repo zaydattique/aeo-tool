@@ -491,7 +491,10 @@ export async function runVisibilityJob(jobId: string): Promise<void> {
   const donePromptIds = new Set(existingForJob.map((s) => s.promptId));
 
   for (const s of existingForJob) {
-    const src = s.sources as { liveEngineCount?: number } | null;
+    const src = s.sources as {
+      liveEngineCount?: number;
+      freshLiveEngineCount?: number;
+    } | null;
     const live = src?.liveEngineCount ?? 0;
     const fresh = src?.freshLiveEngineCount;
     opsEarnedThisRun += fresh != null ? fresh : live > 0 ? live : 1;
@@ -566,6 +569,7 @@ export async function runVisibilityJob(jobId: string): Promise<void> {
             method: check.method,
             engines: check.engines,
             liveEngineCount: check.liveEngineCount,
+            freshLiveEngineCount: check.freshLiveEngineCount,
             baseScore: base,
             brandMentioned: check.brandMentioned,
             competitorMentioned: check.competitorMentioned,
@@ -583,7 +587,9 @@ export async function runVisibilityJob(jobId: string): Promise<void> {
           jobId,
           promptId: prompt.id,
           liveEngineCount: check.liveEngineCount,
+          freshLiveEngineCount: check.freshLiveEngineCount,
           method: check.method,
+          cacheHits: check.engines.filter((e) => e.cacheHit).length,
         })
       );
     } catch (err) {
