@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAgency, canManageClients } from "@/lib/session";
 import { getDefaultPromptSeeds } from "@/lib/default-prompts";
@@ -167,6 +168,8 @@ export async function POST(
 
     return NextResponse.json({ prompt }, { status: 201 });
   } catch (err) {
+    if (err instanceof Error && err.message === "PROMPT_LIMIT_REACHED") return NextResponse.json({ error: "Prompt limit reached. Upgrade your plan." }, { status: 403 });
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2034") return NextResponse.json({ error: "Concurrent prompt creation detected. Please retry." }, { status: 409 });
     console.error("Create prompt error:", err);
     return NextResponse.json(
       { error: "Internal server error" },
