@@ -1,0 +1,23 @@
+name: P0-N worker and retry hardening
+
+on:
+  push:
+    branches: [main, phase0n-worker-retry-hardening]
+  pull_request:
+    branches: [main]
+
+jobs:
+  worker-hardening:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --legacy-peer-deps --no-audit --no-fund
+      - run: npx prisma generate
+      - run: npx prisma validate
+      - run: npx vitest run lib/__tests__/scan-worker-hardening.test.ts
+      - run: npx tsc --noEmit

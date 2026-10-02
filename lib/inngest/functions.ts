@@ -27,7 +27,11 @@ const appUrl = () =>
 export const runScanJob = inngest.createFunction(
   {
     id: "scan-run",
-    retries: 2,
+    // runScan performs its own terminal failure transition. Keep the durable
+    // function non-retrying so a provider failure cannot multiply provider
+    // spend or race a second worker against the same scan.
+    retries: 0,
+    idempotency: "event.data.scanId",
     concurrency: [
       { scope: "env", key: '"scan-execution"', limit: scanGlobalExecutionConcurrency() },
       { key: "event.data.agencyId", limit: scanAgencyExecutionConcurrency() },
