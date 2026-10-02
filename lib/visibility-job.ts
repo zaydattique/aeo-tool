@@ -493,7 +493,8 @@ export async function runVisibilityJob(jobId: string): Promise<void> {
   for (const s of existingForJob) {
     const src = s.sources as { liveEngineCount?: number } | null;
     const live = src?.liveEngineCount ?? 0;
-    opsEarnedThisRun += live > 0 ? live : 1;
+    const fresh = src?.freshLiveEngineCount;
+    opsEarnedThisRun += fresh != null ? fresh : live > 0 ? live : 1;
   }
 
   const concurrency = visibilityPromptConcurrency();
@@ -528,7 +529,12 @@ export async function runVisibilityJob(jobId: string): Promise<void> {
       // live | live+heuristic | heuristic. Provider HTTP failures become
       // heuristic fills inside checkPromptVisibility — not claimed as live.
       // Full per-engine FAILED status is deferred to P1.
-      const ops = check.liveEngineCount > 0 ? check.liveEngineCount : 1;
+      // Only fresh provider calls consume AI ops. Shared-cache hits remain
+      // live observations but cost zero new provider calls.
+      const ops =
+        check.liveEngineCount === 0
+          ? 1
+          : check.freshLiveEngineCount;
       opsEarnedThisRun += ops;
 
       await prisma.visibilitySnapshot.upsert({
@@ -545,6 +551,7 @@ export async function runVisibilityJob(jobId: string): Promise<void> {
             method: check.method,
             engines: check.engines,
             liveEngineCount: check.liveEngineCount,
+            freshLiveEngineCount: check.freshLiveEngineCount,
             baseScore: base,
             brandMentioned: check.brandMentioned,
             competitorMentioned: check.competitorMentioned,
