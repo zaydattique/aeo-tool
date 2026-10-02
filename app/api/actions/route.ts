@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
 
   const actions = await prisma.action.findMany({
     where,
-    take: limit,
+    take: limit + 1,
     orderBy: [
       { priority: "asc" }, // HIGH first if we map carefully — Prisma enums order by definition
       { createdAt: "desc" },
@@ -65,6 +65,9 @@ export async function GET(req: NextRequest) {
     },
   });
 
+  const hasMore = actions.length > limit;
+  if (hasMore) actions.splice(limit);
+
   // Sort HIGH → MEDIUM → LOW manually (Prisma enum order is definition order)
   const priorityOrder = { HIGH: 0, MEDIUM: 1, LOW: 2 };
   actions.sort(
@@ -72,5 +75,5 @@ export async function GET(req: NextRequest) {
       (priorityOrder[a.priority] ?? 9) - (priorityOrder[b.priority] ?? 9)
   );
 
-  return NextResponse.json({ actions });
+  return NextResponse.json({ actions, hasMore });
 }
