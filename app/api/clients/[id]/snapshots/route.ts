@@ -127,7 +127,7 @@ export async function GET(
   const [snapshots, activeJob] = await Promise.all([
     prisma.visibilitySnapshot.findMany({
       where: { clientId, agencyId, ...(cursorData ? { OR: [{ recordedAt: { gt: new Date(cursorData.recordedAt) } }, { recordedAt: new Date(cursorData.recordedAt), id: { gt: cursorData.id } }] } : {}) },
-      orderBy: { recordedAt: "asc" },
+      orderBy: [{ recordedAt: "asc" }, { id: "asc" }],
       take: limit + 1,
       include: {
         prompt: {
