@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAgency } from "@/lib/session";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
+import { rateLimit } from "@/lib/rate-limit";
+import { billingPortalLimit, billingPortalWindowMs } from "@/lib/expensive-rate-limits";
 
 export async function POST() {
   const auth = await requireAgency();
