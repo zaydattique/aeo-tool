@@ -3,6 +3,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAgency } from "@/lib/session";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
+import { rateLimit } from "@/lib/rate-limit";
+import { billingCheckoutLimit, billingCheckoutWindowMs } from "@/lib/expensive-rate-limits";
 
 const schema = z.object({
   planSlug: z.string().min(1),
@@ -16,6 +18,11 @@ export async function POST(req: NextRequest) {
 
   if (auth.session.user.role !== "AGENCY_OWNER" && auth.session.user.role !== "SUPER_ADMIN") {
     return NextResponse.json({ error: "Only owners can manage billing" }, { status: 403 });
+  }
+
+  const rl = await rateLimit(`billing-checkout:${auth.agencyId}`, billingCheckoutLimit(), billingCheckoutWindowMs());
+  if (!rl.ok) {
+    return NextResponse.json({ error: "Too many billing checkout attempts. Try again later." }, { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } });
   }
 
   if (!isStripeConfigured()) {

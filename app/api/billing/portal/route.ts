@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAgency } from "@/lib/session";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
+import { rateLimit } from "@/lib/rate-limit";
+import { billingPortalLimit, billingPortalWindowMs } from "@/lib/expensive-rate-limits";
 
 export async function POST() {
   const auth = await requireAgency();
@@ -11,6 +13,11 @@ export async function POST() {
 
   if (auth.session.user.role !== "AGENCY_OWNER" && auth.session.user.role !== "SUPER_ADMIN") {
     return NextResponse.json({ error: "Only owners can manage billing" }, { status: 403 });
+  }
+
+  const rl = await rateLimit(`billing-portal:${auth.agencyId}`, billingPortalLimit(), billingPortalWindowMs());
+  if (!rl.ok) {
+    return NextResponse.json({ error: "Too many billing portal requests. Try again later." }, { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } });
   }
 
   if (!isStripeConfigured()) {

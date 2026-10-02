@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAgency, canManageClients } from "@/lib/session";
 import { enrichActionFields } from "@/lib/action-mapper";
 import { rateLimit } from "@/lib/rate-limit";
+import { consumeProviderBudget } from "@/lib/provider-budget";
 import { actionRedraftRateLimit, actionRedraftRateWindowMs, visibilityProviderTimeoutMs } from "@/lib/visibility-config";
 
 async function aiRedraft(opts: {
@@ -53,11 +54,16 @@ Requirements:
     });
 
     if (!res.ok) return null;
-    const json = await res.json();
+    const raw = await res.text();
+    if (raw.length > 1_000_000) return null;
+
+    const json = JSON.parse(raw) as {
+      content?: Array<{ text?: string }>;
+    };
     const text = Array.isArray(json.content)
-      ? json.content.map((c: { text?: string }) => c.text || "").join("")
+      ? json.content.map((c) => c.text || "").join("")
       : "";
-    return text.trim() || null;
+    return text.slice(0, 8000).trim() || null;
   } catch {
     return null;
   }
@@ -101,6 +107,16 @@ export async function POST(
 
   if (!existing) {
     return NextResponse.json({ error: "Action not found" }, { status: 404 });
+  }
+
+  if (process.env.ANTHROPIC_API_KEY) {
+    const aiBudget = await consumeProviderBudget("ai", auth.agencyId);
+    if (!aiBudget.ok) {
+      return NextResponse.json(
+        { error: "AI provider budget exhausted. Try again later." },
+        { status: 429, headers: { "Retry-After": String(aiBudget.retryAfterSec) } }
+      );
+    }
   }
 
   const brand = existing.client.brandName || existing.client.name;
