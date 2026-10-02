@@ -210,6 +210,8 @@ async function checkPerplexityLiveUncached(
 
 
 async function checkPerplexityLive(
+  agencyId: string,
+  clientId: string,
   promptText: string,
   brandName: string,
   competitorName?: string | null,
@@ -269,6 +271,8 @@ async function checkOpenAiLiveUncached(
 
 
 async function checkOpenAiLive(
+  agencyId: string,
+  clientId: string,
   promptText: string,
   brandName: string,
   competitorName?: string | null,
@@ -334,6 +338,8 @@ async function checkGeminiLiveUncached(
 
 
 async function checkGeminiLive(
+  agencyId: string,
+  clientId: string,
   promptText: string,
   brandName: string,
   competitorName?: string | null,
@@ -395,6 +401,8 @@ async function checkClaudeLiveUncached(
 
 
 async function checkClaudeLive(
+  agencyId: string,
+  clientId: string,
   promptText: string,
   brandName: string,
   competitorName?: string | null,
@@ -437,10 +445,10 @@ export async function checkPromptVisibility(opts: {
   });
 
   const liveResults = await Promise.all([
-    checkPerplexityLive(promptText, brandName, competitorName, kind),
-    checkOpenAiLive(promptText, brandName, competitorName, kind),
-    checkGeminiLive(promptText, brandName, competitorName, kind),
-    checkClaudeLive(promptText, brandName, competitorName, kind),
+    checkPerplexityLive(agencyId, clientId, promptText, brandName, competitorName, kind),
+    checkOpenAiLive(agencyId, clientId, promptText, brandName, competitorName, kind),
+    checkGeminiLive(agencyId, clientId, promptText, brandName, competitorName, kind),
+    checkClaudeLive(agencyId, clientId, promptText, brandName, competitorName, kind),
   ]);
 
   let liveEngineCount = 0;
