@@ -218,7 +218,7 @@ The concurrency tests should show that one provider never exceeds its configured
 
 **What is still missing / deferred**
 
-Provider-specific adaptive backoff and vendor-specific quota discovery are intentionally deferred. P0-C limits simultaneous work but does not attempt to predict each provider's billing or rate-limit policy. A future phase can add response-aware backoff for HTTP 429/5xx without changing the concurrency contract. Per-engine result status remains the existing visibility model; this ship does not redesign scoring or snapshot semantics.
+The repository also had a pre-existing TypeScript syntax error in lib/email.ts; it was corrected in this branch because it blocked the required TypeScript acceptance gate. Provider-specific adaptive backoff and vendor-specific quota discovery are intentionally deferred. P0-C limits simultaneous work but does not attempt to predict each provider's billing or rate-limit policy. A future phase can add response-aware backoff for HTTP 429/5xx without changing the concurrency contract. Per-engine result status remains the existing visibility model; this ship does not redesign scoring or snapshot semantics.
 
 **Gotchas**
 
