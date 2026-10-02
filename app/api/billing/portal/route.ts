@@ -13,6 +13,11 @@ export async function POST() {
     return NextResponse.json({ error: "Only owners can manage billing" }, { status: 403 });
   }
 
+  const rl = await rateLimit(`billing-portal:${auth.agencyId}`, billingPortalLimit(), billingPortalWindowMs());
+  if (!rl.ok) {
+    return NextResponse.json({ error: "Too many billing portal requests. Try again later." }, { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } });
+  }
+
   if (!isStripeConfigured()) {
     return NextResponse.json(
       { error: "Stripe is not configured" },
