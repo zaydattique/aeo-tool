@@ -125,7 +125,7 @@ export async function GET(
     prisma.visibilitySnapshot.findMany({
       where: { clientId, agencyId },
       orderBy: { recordedAt: "asc" },
-      take: limit,
+      take: limit + 1,
       include: {
         prompt: {
           select: { id: true, promptText: true, kind: true, targetName: true },
@@ -142,11 +142,14 @@ export async function GET(
     }),
   ]);
 
+  const hasMore = snapshots.length > limit;
+
   return NextResponse.json({
-    snapshots: snapshots.map((s) => ({
+    snapshots: (hasMore ? snapshots.slice(0, limit) : snapshots).map((s) => ({
       ...s,
       score: Number(s.score),
     })),
+    hasMore,
     activeJob: activeJob
       ? {
           id: activeJob.id,
