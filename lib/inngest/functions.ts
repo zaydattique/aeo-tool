@@ -4,7 +4,13 @@ import { runVisibilityJob } from "@/lib/visibility-job";
 import {
   visibilityGlobalConcurrency,
   visibilityAgencyConcurrency,
+  scanAgencyExecutionConcurrency,
+  scanGlobalExecutionConcurrency,
+  scanAgencyBacklogLimit,
+  scanGlobalBacklogLimit,
+  scanAdmissionLockTimeoutMs,
 } from "@/lib/visibility-config";
+import { admitScan } from "@/lib/scan-admission";
 import { prisma } from "@/lib/prisma";
 import {
   sendEmail,
@@ -22,7 +28,10 @@ export const runScanJob = inngest.createFunction(
   {
     id: "scan-run",
     retries: 2,
-    concurrency: [{ limit: 3 }],
+    concurrency: [
+      { scope: "env", key: '"scan-execution"', limit: scanGlobalExecutionConcurrency() },
+      { key: "event.data.agencyId", limit: scanAgencyExecutionConcurrency() },
+    ],
   },
   { event: "scan/run" },
   async ({ event, step }) => {
@@ -145,68 +154,39 @@ export const weeklyRescanCron = inngest.createFunction(
 
     for (const client of due) {
       await step.run(`rescan-${client.id}`, async () => {
-        const scan = await prisma.$transaction(async (tx) => {
-          await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${client.id}))`;
-
-          const active = await tx.scan.findFirst({
-            where: {
-              clientId: client.id,
-              status: { in: ["QUEUED", "RUNNING"] },
-            },
-          });
-          if (active) return null;
-
-          if (client.agency.plan) {
-            const periodStart = new Date();
-            periodStart.setDate(1);
-            periodStart.setHours(0, 0, 0, 0);
-            const used = await tx.scan.count({
-              where: {
-                agencyId: client.agencyId,
-                createdAt: { gte: periodStart },
-                status: { not: "FAILED" },
-              },
-            });
-            if (used >= client.agency.plan.maxScansPerMonth) {
-              await tx.client.update({
-                where: { id: client.id },
-                data: {
-                  nextRescanAt: new Date(
-                    Date.now() + client.rescanIntervalDays * 86400000
-                  ),
-                },
-              });
-              return null;
-            }
-          }
-
-          const newScan = await tx.scan.create({
-            data: {
+        const admission = await prisma.$transaction((tx) =>
+          admitScan(
+            tx,
+            {
               agencyId: client.agencyId,
               clientId: client.id,
-              status: "QUEUED",
-              stage: "QUEUED",
-              progress: 0,
+              websiteUrl: client.websiteUrl,
+              maxScansPerMonth: client.agency.plan?.maxScansPerMonth ?? null,
+              rescanIntervalDays: client.rescanIntervalDays,
+              updateNextRescanAt: true,
             },
-          });
+            {
+              globalBacklogLimit: scanGlobalBacklogLimit(),
+              agencyBacklogLimit: scanAgencyBacklogLimit(),
+              lockTimeoutMs: scanAdmissionLockTimeoutMs(),
+            }
+          )
+        );
 
-          await tx.client.update({
-            where: { id: client.id },
-            data: {
-              status: "SCANNING",
-              nextRescanAt: new Date(
-                Date.now() + client.rescanIntervalDays * 86400000
-              ),
-            },
-          });
+        if (!admission.scan) {
+          if (admission.reason === "GLOBAL_BACKLOG" || admission.reason === "AGENCY_BACKLOG") {
+            await prisma.client.update({
+              where: { id: client.id },
+              data: { nextRescanAt: new Date(Date.now() + 30 * 60 * 1000) },
+            }).catch(() => {});
+          }
+          return;
+        }
 
-          return newScan;
-        });
-
-        if (!scan) return;
+        const scan = admission.scan;
 
         try {
-          await inngest.send({ name: "scan/run", data: { scanId: scan.id } });
+          await inngest.send({ name: "scan/run", data: { scanId: scan.id, agencyId: client.agencyId } });
           enqueued += 1;
         } catch (err) {
           await prisma.scan.update({
