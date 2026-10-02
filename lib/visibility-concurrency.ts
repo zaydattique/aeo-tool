@@ -25,6 +25,7 @@ import {
   visibilityProviderConcurrency,
   visibilityAgencyProviderConcurrency,
   visibilityConcurrencyRequireRedis,
+  visibilityProviderTimeoutMs,
 } from "./visibility-config";
 
 type RedisConfig = { url: string; token: string };
@@ -161,7 +162,7 @@ async function acquireRedis(
       redisKey(`provider:${engine}`),
       redisKey(`agency:${agencyId}`),
       String(now),
-      String(now + visibilityConcurrencyLeaseMs()),
+      String(now + Math.max(visibilityConcurrencyLeaseMs(), visibilityProviderTimeoutMs() + 1000)),
       token,
       String(visibilityGlobalProviderConcurrency()),
       String(visibilityProviderConcurrency()),
