@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { buildReportPdf } from "@/lib/report-pdf";
-import { rateLimit } from "@/lib/rate-limit";
+import { checkPdfRateLimit } from "@/lib/expensive-rate-limits";
+import { getClientIp } from "@/lib/request-security";
 
 type ReportConfig = {
   agencyName?: string;
@@ -30,19 +31,15 @@ export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ token: string }> }
 ) {
-  const ip =
-    req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-    req.headers.get("x-real-ip") ||
-    "unknown";
-  const rl = await rateLimit(`pdf-report:${ip}`, 30, 60 * 1000);
+  const { token } = await params;
+  const ip = getClientIp(req);
+  const rl = await checkPdfRateLimit(ip, token, "report");
   if (!rl.ok) {
     return NextResponse.json(
       { error: "Too many requests" },
       { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } }
     );
   }
-
-  const { token } = await params;
 
   const report = await prisma.report.findFirst({
     where: { liveLinkToken: token, deletedAt: null },
