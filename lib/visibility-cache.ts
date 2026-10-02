@@ -26,6 +26,8 @@ function redisConfig() {
 }
 
 function cacheKey(input: {
+  agencyId: string;
+  clientId: string;
   engine: string;
   model: string;
   promptText: string;
@@ -35,6 +37,8 @@ function cacheKey(input: {
 }) {
   const canonical = JSON.stringify({
     v: CACHE_VERSION,
+    agencyId: input.agencyId,
+    clientId: input.clientId,
     engine: input.engine,
     model: input.model,
     promptText: input.promptText,
@@ -123,6 +127,8 @@ async function sleep(ms: number) {
  */
 export async function withProviderCache<T>(
   input: {
+    agencyId: string;
+    clientId: string;
     engine: string;
     model: string;
     promptText: string;
