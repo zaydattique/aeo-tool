@@ -31,3 +31,21 @@ export async function readJsonBody<T>(
   const text = new TextDecoder().decode(body);
   return JSON.parse(text) as T;
 }
+
+export async function readJsonResponse<T>(
+  res: Response,
+  maxBytes = DEFAULT_MAX_JSON_BODY_BYTES
+): Promise<T> {
+  const contentLength = res.headers.get("content-length");
+  if (contentLength) {
+    const length = Number(contentLength);
+    if (!Number.isFinite(length) || length < 0 || length > maxBytes) {
+      throw new Error("RESPONSE_BODY_TOO_LARGE");
+    }
+  }
+  const body = await res.arrayBuffer();
+  if (body.byteLength > maxBytes) {
+    throw new Error("RESPONSE_BODY_TOO_LARGE");
+  }
+  return JSON.parse(new TextDecoder().decode(body)) as T;
+}
