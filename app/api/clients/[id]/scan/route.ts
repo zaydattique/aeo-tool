@@ -124,35 +124,7 @@ export async function POST(
   }
 
   const scan = scanAdmission.scan!;
-  const scan = await prisma.$transaction(async (tx) => {
-    const newScan = await tx.scan.create({
-      data: {
-        agencyId: auth.agencyId!,
-        clientId,
-        status: "QUEUED",
-        stage: "QUEUED",
-        progress: 0,
-      },
-    });
 
-    await tx.client.update({
-      where: { id: clientId },
-      data: { status: "SCANNING" },
-    });
-
-    await tx.activityLog.create({
-      data: {
-        agencyId: auth.agencyId!,
-        actorId: auth.session!.user.id,
-        action: "scan.started",
-        resourceType: "scan",
-        resourceId: newScan.id,
-        metadata: { clientId, websiteUrl: client.websiteUrl },
-      },
-    });
-
-    return newScan;
-  });
 
   enqueueSimulatedScan(scan.id);
 
