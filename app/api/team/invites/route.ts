@@ -4,6 +4,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAgency, canManageClients } from "@/lib/session";
 import { getUsageSummary } from "@/lib/usage";
+import { rateLimit } from "@/lib/rate-limit";
+import { teamInviteLimit, teamInviteWindowMs } from "@/lib/expensive-rate-limits";
 
 const createSchema = z.object({
   email: z.string().email().max(255),
@@ -48,17 +50,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
-  const rl = await rateLimit(`team-invite:${auth.agencyId}`, teamInviteLimit(), teamInviteWindowMs());
-  if (!rl.ok) {
-    return NextResponse.json({ error: "Too many team invitations. Try again later." }, { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } });
-  }
-
   // Only owners can invite
   if (
     auth.session.user.role !== "AGENCY_OWNER" &&
     auth.session.user.role !== "SUPER_ADMIN"
   ) {
     return NextResponse.json({ error: "Only owners can invite" }, { status: 403 });
+  }
+
+  const rl = await rateLimit(`team-invite:${auth.agencyId}`, teamInviteLimit(), teamInviteWindowMs());
+  if (!rl.ok) {
+    return NextResponse.json({ error: "Too many team invitations. Try again later." }, { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } });
   }
 
   try {
