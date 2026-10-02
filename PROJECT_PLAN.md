@@ -264,3 +264,11 @@ Phase **14B Security** is complete on `main`.
 | CI | Dedicated P0-H TypeScript/Prisma verification |
 
 **Deferred:** MFA, adaptive CAPTCHA/bot management, edge/WAF enforcement, and trusted proxy configuration remain separate controls.
+
+
+### P0-I — Provider/network cost isolation
+- [x] Distributed global + agency hourly crawl/AI provider budgets.
+- [x] Paid AI call timeout and response-size caps.
+- [x] Firecrawl output/link/metadata caps.
+- [x] Dedicated CI covering provider budget, rate-limit, SSRF fetch, Prisma generation, and TypeScript.
+- [ ] Future: multi-page crawl budgets if/when crawler fan-out is introduced; current scan performs one primary page crawl.

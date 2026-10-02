@@ -266,6 +266,14 @@ async function analyzeWithClaude(
   brandName?: string | null
 ): Promise<AiAnalysisResult> {
   const start = Date.now();
+  const timeoutMs = Math.max(
+    5_000,
+    Math.min(60_000, Number.parseInt(process.env.AI_PROVIDER_TIMEOUT_MS || "30_000", 10) || 30_000)
+  );
+  const maxResponseBytes = Math.max(
+    64 * 1024,
+    Math.min(2 * 1024 * 1024, Number.parseInt(process.env.AI_PROVIDER_MAX_RESPONSE_BYTES || "1048576", 10) || 1048576)
+  );
   const apiKey = process.env.ANTHROPIC_API_KEY!;
 
   const signalsJson = JSON.stringify(crawl.signals, null, 0);
@@ -312,13 +320,19 @@ ${signalsJson}
 Content excerpt:
 ${contentSnippet}`;
 
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  let res: Response;
+  try {
+    res = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "x-api-key": apiKey,
       "anthropic-version": "2023-06-01",
     },
+    signal: controller.signal,
     body: JSON.stringify({
       model: "claude-sonnet-4-20250514",
       max_tokens: 2500,
@@ -326,14 +340,32 @@ ${contentSnippet}`;
       system,
       messages: [{ role: "user", content: user }],
     }),
-  });
+    });
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error(`Anthropic error ${res.status}: ${text.slice(0, 300)}`);
   }
 
-  const json = await res.json();
+  const responseText = await res.text();
+  if (Buffer.byteLength(responseText, "utf8") > maxResponseBytes) {
+    throw new Error("Anthropic response exceeded configured size limit");
+  }
+
+  let json: {
+    content?: Array<{ type: string; text?: string }>;
+    model?: string;
+    usage?: { input_tokens?: number; output_tokens?: number };
+  };
+  try {
+    json = JSON.parse(responseText);
+  } catch {
+    throw new Error("Invalid Anthropic JSON response");
+  }
+
   const textBlock = json.content?.find(
     (b: { type: string }) => b.type === "text"
   );
@@ -353,7 +385,12 @@ ${contentSnippet}`;
   }
 
   const issues = Array.isArray(parsed.issues)
-    ? (parsed.issues as AeoIssue[])
+    ? (parsed.issues as AeoIssue[]).slice(0, 12).map((issue) => ({
+        ...issue,
+        title: String(issue.title || "").slice(0, 500),
+        whyItMatters: String(issue.whyItMatters || "").slice(0, 2_000),
+        suggestedFix: String(issue.suggestedFix || "").slice(0, 8_000),
+      }))
     : [];
 
   const scores = (parsed.scores as AiAnalysisResult["scores"]) || {
