@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "lib/provider-budget.ts"
+      - "lib/provider-budget.ts"
       - "lib/scan-worker.ts"
       - "lib/ai-analysis.ts"
       - "lib/crawl.ts"
