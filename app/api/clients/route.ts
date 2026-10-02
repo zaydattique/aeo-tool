@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
   const clients = await prisma.client.findMany({
     where: { agencyId, deletedAt: null },
     orderBy: { createdAt: "desc" },
-    take: limit,
+    take: limit + 1,
     select: {
       id: true,
       name: true,
@@ -49,7 +49,8 @@ export async function GET(req: NextRequest) {
     },
   });
 
-  return NextResponse.json({ clients });
+  const hasMore = clients.length > limit;
+  return NextResponse.json({ clients: hasMore ? clients.slice(0, limit) : clients, hasMore });
 }
 
 export async function POST(req: NextRequest) {
