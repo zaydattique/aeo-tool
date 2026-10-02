@@ -47,6 +47,31 @@ export type LiveEngineCapability = {
 const USER_PROMPT_SUFFIX =
   "\n\n(Answer briefly in under 120 words. Name relevant brands if they apply.)";
 
+async function guardedProviderCache<T>(
+  input: {
+    agencyId: string;
+    clientId: string;
+    engine: string;
+    model: string;
+    promptText: string;
+    brandName: string;
+    competitorName?: string | null;
+    kind?: string;
+  },
+  loader: () => Promise<T | null>
+) {
+  try {
+    return await withProviderCache(input, loader);
+  } catch (err) {
+    console.warn(
+      "[visibility] provider concurrency/cache failure",
+      input.engine,
+      err instanceof Error ? err.message : "unknown"
+    );
+    return { value: null as T | null, cacheHit: false };
+  }
+}
+
 function hashScore(seed: string, base: number, spread: number) {
   let h = 0;
   for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
@@ -221,7 +246,7 @@ async function checkPerplexityLive(
   kind?: string
 ): Promise<EngineResult | null> {
   const model = "sonar";
-  const cached = await withProviderCache(
+  const cached = await guardedProviderCache(
     { agencyId, clientId, engine: "perplexity", model, promptText, brandName, competitorName, kind },
     () =>
       withVisibilityProviderConcurrency(
@@ -287,7 +312,7 @@ async function checkOpenAiLive(
   kind?: string
 ): Promise<EngineResult | null> {
   const model = process.env.OPENAI_VISIBILITY_MODEL || "gpt-4o-mini";
-  const cached = await withProviderCache(
+  const cached = await guardedProviderCache(
     { agencyId, clientId, engine: "chatgpt", model, promptText, brandName, competitorName, kind },
     () =>
       withVisibilityProviderConcurrency(
@@ -359,7 +384,7 @@ async function checkGeminiLive(
   kind?: string
 ): Promise<EngineResult | null> {
   const model = process.env.GEMINI_VISIBILITY_MODEL || "gemini-2.0-flash";
-  const cached = await withProviderCache(
+  const cached = await guardedProviderCache(
     { agencyId, clientId, engine: "gemini", model, promptText, brandName, competitorName, kind },
     () =>
       withVisibilityProviderConcurrency(
@@ -397,6 +422,7 @@ async function checkClaudeLiveUncached(
           },
         ],
       }),
+      signal: AbortSignal.timeout(visibilityProviderTimeoutMs()),
     });
 
     if (!res.ok) {
@@ -426,7 +452,7 @@ async function checkClaudeLive(
   kind?: string
 ): Promise<EngineResult | null> {
   const model = process.env.ANTHROPIC_VISIBILITY_MODEL || "claude-3-5-haiku-latest";
-  const cached = await withProviderCache(
+  const cached = await guardedProviderCache(
     { agencyId, clientId, engine: "claude", model, promptText, brandName, competitorName, kind },
     () =>
       withVisibilityProviderConcurrency(
