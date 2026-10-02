@@ -20,6 +20,37 @@ export type CrawlResult = {
   durationMs: number;
 };
 
+const DEFAULT_FIRECRAWL_MAX_RESPONSE_BYTES = 5 * 1024 * 1024;
+const DEFAULT_MAX_LINKS_STORED = 2_000;
+const DEFAULT_MAX_METADATA_BYTES = 100 * 1024;
+
+function envInt(name: string, fallback: number, min: number, max: number): number {
+  const raw = Number.parseInt(process.env[name] || "", 10);
+  return Number.isFinite(raw) ? Math.min(max, Math.max(min, raw)) : fallback;
+}
+
+function firecrawlMaxResponseBytes(): number {
+  return envInt("CRAWL_PROVIDER_MAX_RESPONSE_BYTES", DEFAULT_FIRECRAWL_MAX_RESPONSE_BYTES, 64 * 1024, 10 * 1024 * 1024);
+}
+
+function maxLinksStored(): number {
+  return envInt("CRAWL_MAX_LINKS_STORED", DEFAULT_MAX_LINKS_STORED, 0, 10_000);
+}
+
+function maxMetadataBytes(): number {
+  return envInt("CRAWL_MAX_METADATA_BYTES", DEFAULT_MAX_METADATA_BYTES, 4 * 1024, 512 * 1024);
+}
+
+function capMetadata(metadata: Record<string, unknown>): Record<string, unknown> {
+  try {
+    const json = JSON.stringify(metadata);
+    if (Buffer.byteLength(json, "utf8") <= maxMetadataBytes()) return metadata;
+    return { truncated: true };
+  } catch {
+    return { truncated: true };
+  }
+}
+
 export type ExtractedSignals = {
   hasTitle: boolean;
   titleLength: number;
@@ -221,12 +252,12 @@ async function crawlWithFirecrawl(url: string): Promise<CrawlResult> {
   }
 
   const contentLength = Number(res.headers.get("content-length") || 0);
-  if (contentLength > 10 * 1024 * 1024) {
-    throw new Error("Firecrawl response exceeded 10MB");
+  if (contentLength > firecrawlMaxResponseBytes()) {
+    throw new Error("Firecrawl response exceeded configured limit");
   }
   const jsonText = await res.text();
-  if (Buffer.byteLength(jsonText, "utf8") > 10 * 1024 * 1024) {
-    throw new Error("Firecrawl response exceeded 10MB");
+  if (Buffer.byteLength(jsonText, "utf8") > firecrawlMaxResponseBytes()) {
+    throw new Error("Firecrawl response exceeded configured limit");
   }
   const json = JSON.parse(jsonText);
   const data = json.data || json;
@@ -243,8 +274,8 @@ async function crawlWithFirecrawl(url: string): Promise<CrawlResult> {
     description: metadata.description || null,
     markdown: markdown || null,
     html: html ? html.slice(0, 500000) : null,
-    links: data.links || [],
-    metadata,
+    links: Array.isArray(data.links) ? data.links.slice(0, maxLinksStored()) : [],
+    metadata: capMetadata(metadata),
     signals,
     provider: "firecrawl",
     durationMs: Date.now() - start,
