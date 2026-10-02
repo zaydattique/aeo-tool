@@ -119,12 +119,15 @@ export async function GET(
   }
 
   const rawLimit = Number.parseInt(_req.nextUrl.searchParams.get("limit") || "200", 10);
+  const cursor = _req.nextUrl.searchParams.get("cursor");
+  let cursorData: { recordedAt: string; id: string } | null = null;
+  if (cursor) { try { cursorData = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8")); } catch { return NextResponse.json({ error: "Invalid cursor" }, { status: 400 }); } }
   const limit = Number.isFinite(rawLimit) ? Math.min(500, Math.max(1, rawLimit)) : 200;
 
   const [snapshots, activeJob] = await Promise.all([
     prisma.visibilitySnapshot.findMany({
-      where: { clientId, agencyId },
-      orderBy: { recordedAt: "asc" },
+      where: { clientId, agencyId, ...(cursorData ? { OR: [{ recordedAt: { gt: new Date(cursorData.recordedAt) } }, { recordedAt: new Date(cursorData.recordedAt), id: { gt: cursorData.id } }] } : {}) },
+      orderBy: [{ recordedAt: "asc" }, { id: "asc" }],
       take: limit + 1,
       include: {
         prompt: {
@@ -143,13 +146,17 @@ export async function GET(
   ]);
 
   const hasMore = snapshots.length > limit;
+  const page = hasMore ? snapshots.slice(0, limit) : snapshots;
+  const last = page[page.length - 1];
+  const nextCursor = hasMore && last ? Buffer.from(JSON.stringify({ recordedAt: last.recordedAt.toISOString(), id: last.id })).toString("base64url") : null;
 
   return NextResponse.json({
-    snapshots: (hasMore ? snapshots.slice(0, limit) : snapshots).map((s) => ({
+    snapshots: page.map((s) => ({
       ...s,
       score: Number(s.score),
     })),
     hasMore,
+    nextCursor,
     activeJob: activeJob
       ? {
           id: activeJob.id,
