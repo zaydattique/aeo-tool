@@ -269,3 +269,12 @@ This phase is specifically about queue admission correctness; it does not claim 
 P0-F adds bounded crawl resource controls for hostile or unusually large websites. The SSRF-safe fetcher now supports bounded total/connect timeouts, redirect counts, and response bytes through environment configuration, with conservative defaults and hard min/max bounds. Firecrawl requests receive an explicit execution timeout and a 10MB response-payload ceiling. The existing SSRF protections, manual redirect validation, content-type restrictions, and response cap remain in place.
 
 These controls reduce application/provider resource amplification from slow, redirect-heavy, or oversized targets. They are not a substitute for edge/WAF DDoS mitigation, provider-side quotas, or a full distributed crawl scheduler.
+
+
+---
+
+### 2026-10-02 — Phase 0-H: Public authentication abuse hardening
+
+P0-H adds defense-in-depth controls to public account and recovery endpoints. Signup now has a per-email bucket in addition to its existing per-IP bucket. Password recovery has a per-email bucket in addition to its existing per-IP bucket, reducing reset-email flooding against one account. Reset-password requests add a hashed-token bucket, and invite acceptance receives a per-IP bucket.
+
+Client IP extraction is centralized with an explicit trust-boundary comment: forwarding headers are only trustworthy when the public edge/proxy strips and rewrites client-supplied values. This phase does not claim edge/WAF bot protection or DDoS immunity.
