@@ -240,6 +240,7 @@ export async function createAndEnqueueVisibilityJob(opts: {
         progress: 0,
         promptCount: prompts.length,
         opsReserved: opsNeeded,
+        usageMeterId: reserve.meterId,
         liveEngineCount: getLiveEngineCapabilities().filter((e) => e.configured)
           .length,
         idempotencyKey: idempotencyKey || null,
@@ -338,15 +339,21 @@ export async function createAndEnqueueVisibilityJob(opts: {
         },
       });
     } catch (settleErr) {
-      console.error("[visibility-job] settle after enqueue fail", settleErr);
-      await releaseVisibilityOpsAgencyOnly(agencyId, opsNeeded);
+      // Do not release through the agency-level meter after a job row exists:
+      // the reservation belongs to this exact job/meter. Leave the durable
+      // record for reconciliation rather than risking another job's budget.
+      console.error(
+        "[visibility-job] CRITICAL: settlement after enqueue failure failed; reservation requires reconciliation",
+        settleErr
+      );
       await prisma.visibilityJob
         .update({
           where: { id: job.id },
           data: {
             status: "FAILED",
             activeClientKey: null,
-            errorMessage: "Failed to enqueue durable job",
+            errorMessage:
+              "Failed to enqueue durable job; usage settlement requires reconciliation",
             completedAt: new Date(),
           },
         })
