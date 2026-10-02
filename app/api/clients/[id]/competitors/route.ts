@@ -3,6 +3,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAgency, canManageClients } from "@/lib/session";
 import { getCompetitorPromptSeeds } from "@/lib/default-prompts";
+import { Prisma } from "@prisma/client";
+import { readJsonBody } from "@/lib/request-security";
 
 const schema = z.object({
   competitors: z.array(z.string().min(1).max(120)).max(15),
@@ -68,77 +70,69 @@ export async function PUT(
       ),
     ];
 
-    await prisma.client.update({
-      where: { id: clientId },
-      data: { competitors },
-    });
-
     let seeded = 0;
-
-    if (parsed.data.seedPrompts && competitors.length > 0) {
-      const brand = client.brandName || client.name;
-      const seeds = getCompetitorPromptSeeds(
-        brand,
-        competitors,
-        client.location
-      );
-
-      const existing = await prisma.trackedPrompt.findMany({
-        where: {
-          clientId,
-          agencyId: auth.agencyId,
-          deletedAt: null,
-          kind: "competitor",
-        },
-        select: { promptText: true },
+    await prisma.$transaction(async (tx) => {
+      await tx.client.update({
+        where: { id: clientId },
+        data: { competitors },
       });
-      const existingSet = new Set(existing.map((e) => e.promptText));
 
-      const agency = await prisma.agency.findUnique({
-        where: { id: auth.agencyId },
-        include: { plan: true },
-      });
-      let remaining = 999;
-      if (agency?.plan) {
-        const count = await prisma.trackedPrompt.count({
-          where: { agencyId: auth.agencyId, deletedAt: null },
-        });
-        remaining = Math.max(0, agency.plan.maxTrackedPrompts - count);
-      }
-
-      const toCreate = seeds
-        .filter((s) => !existingSet.has(s.promptText))
-        .slice(0, remaining);
-
-      if (toCreate.length > 0) {
-        await prisma.trackedPrompt.createMany({
-          data: toCreate.map((s) => ({
-            agencyId: auth.agencyId!,
+      if (parsed.data.seedPrompts && competitors.length > 0) {
+        const brand = client.brandName || client.name;
+        const seeds = getCompetitorPromptSeeds(brand, competitors, client.location);
+        const existing = await tx.trackedPrompt.findMany({
+          where: {
             clientId,
-            promptText: s.promptText,
-            isCustom: false,
-            kind: s.kind,
-            targetName: s.targetName || null,
-          })),
+            agencyId: auth.agencyId!,
+            deletedAt: null,
+            kind: "competitor",
+          },
+          select: { promptText: true },
         });
-        seeded = toCreate.length;
+        const existingSet = new Set(existing.map((e) => e.promptText));
+        const agency = await tx.agency.findUnique({
+          where: { id: auth.agencyId! },
+          include: { plan: true },
+        });
+        const maxPrompts = agency?.plan?.maxTrackedPrompts ?? Number.MAX_SAFE_INTEGER;
+        const count = await tx.trackedPrompt.count({
+          where: { agencyId: auth.agencyId!, deletedAt: null },
+        });
+        const remaining = Math.max(0, maxPrompts - count);
+        const toCreate = seeds.filter((s) => !existingSet.has(s.promptText));
+        if (toCreate.length > remaining) throw new Error("PROMPT_LIMIT_REACHED");
+        if (toCreate.length) {
+          await tx.trackedPrompt.createMany({
+            data: toCreate.map((s) => ({
+              agencyId: auth.agencyId!,
+              clientId,
+              promptText: s.promptText,
+              isCustom: false,
+              kind: s.kind,
+              targetName: s.targetName || null,
+            })),
+          });
+          seeded = toCreate.length;
+        }
       }
-    }
 
-    await prisma.activityLog.create({
-      data: {
-        agencyId: auth.agencyId,
-        actorId: auth.session.user.id,
-        action: "client.competitors.updated",
-        resourceType: "client",
-        resourceId: clientId,
-        metadata: { competitors, seeded },
-      },
-    });
+      await tx.activityLog.create({
+        data: {
+          agencyId: auth.agencyId!,
+          actorId: auth.session!.user.id,
+          action: "client.competitors.updated",
+          resourceType: "client",
+          resourceId: clientId,
+          metadata: { competitors, seeded },
+        },
+      });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
     return NextResponse.json({ competitors, seeded });
   } catch (err) {
     if (err instanceof Error && err.message === "REQUEST_BODY_TOO_LARGE") return NextResponse.json({ error: "Request body too large" }, { status: 413 });
+    if (err instanceof Error && err.message === "PROMPT_LIMIT_REACHED") return NextResponse.json({ error: "Prompt limit reached. Upgrade your plan." }, { status: 403 });
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2034") return NextResponse.json({ error: "Concurrent update detected. Please retry." }, { status: 409 });
     console.error("Competitors update error:", err);
     return NextResponse.json(
       { error: "Internal server error" },
