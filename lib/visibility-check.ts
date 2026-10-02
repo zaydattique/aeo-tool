@@ -280,7 +280,7 @@ async function checkOpenAiLive(
     () => checkOpenAiLiveUncached(promptText, brandName, competitorName)
   );
   if (!cached.value) return null;
-  return { ...cached.value, cacheHit: cached.cacheHit };
+  return { ...cached.value, cacheHit: cached.cacheHit, cachedAt: cached.cachedAt };
 }
 
 async function checkGeminiLiveUncached(
@@ -345,7 +345,7 @@ async function checkGeminiLive(
     () => checkGeminiLiveUncached(promptText, brandName, competitorName)
   );
   if (!cached.value) return null;
-  return { ...cached.value, cacheHit: cached.cacheHit };
+  return { ...cached.value, cacheHit: cached.cacheHit, cachedAt: cached.cachedAt };
 }
 
 async function checkClaudeLiveUncached(
@@ -406,7 +406,7 @@ async function checkClaudeLive(
     () => checkClaudeLiveUncached(promptText, brandName, competitorName)
   );
   if (!cached.value) return null;
-  return { ...cached.value, cacheHit: cached.cacheHit };
+  return { ...cached.value, cacheHit: cached.cacheHit, cachedAt: cached.cachedAt };
 }
 
 export async function checkPromptVisibility(opts: {
