@@ -272,3 +272,11 @@ Phase **14B Security** is complete on `main`.
 - [x] Firecrawl output/link/metadata caps.
 - [x] Dedicated CI covering provider budget, rate-limit, SSRF fetch, Prisma generation, and TypeScript.
 - [ ] Future: multi-page crawl budgets if/when crawler fan-out is introduced; current scan performs one primary page crawl.
+
+
+### P0-J — Database/query hardening
+- [x] Tenant-scoped composite indexes for common status/time queries.
+- [x] Bounded clients/actions/snapshots list queries with `hasMore`.
+- [x] Prisma pool sizing guidance documented.
+- [x] Prisma schema validation + TypeScript CI.
+- [ ] Future: cursor pagination for arbitrarily large histories and deeper query-plan/load testing against production-sized datasets.
