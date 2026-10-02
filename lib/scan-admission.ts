@@ -4,7 +4,8 @@ export type ScanAdmissionReason =
   | "ACTIVE_SCAN"
   | "MONTHLY_QUOTA"
   | "GLOBAL_BACKLOG"
-  | "AGENCY_BACKLOG";
+  | "AGENCY_BACKLOG"
+  | "ADMISSION_BUSY";
 
 export type ScanAdmissionResult = {
   scan: Awaited<ReturnType<PrismaClient["scan"]["create"]>> | null;
@@ -43,12 +44,21 @@ export async function admitScan(
     lockTimeoutMs: number;
   }
 ): Promise<ScanAdmissionResult> {
-  await tx.$executeRawUnsafe(
-    `SET LOCAL lock_timeout = '${Math.max(100, Math.min(10_000, Math.floor(limits.lockTimeoutMs)))}ms'`
-  );
+  void limits.lockTimeoutMs;
 
-  await tx.$executeRaw`SELECT pg_advisory_xact_lock(${LOCK_NAMESPACE}, 0)`;
-  await tx.$executeRaw`SELECT pg_advisory_xact_lock(${LOCK_NAMESPACE}, hashtext(${input.agencyId}))`;
+  const globalLock = await tx.$queryRaw<{ locked: boolean }[]>\`
+    SELECT pg_try_advisory_xact_lock(${LOCK_NAMESPACE}, 0) AS locked
+  \`;
+  if (!globalLock[0]?.locked) {
+    return { scan: null, reason: "ADMISSION_BUSY" };
+  }
+
+  const agencyLock = await tx.$queryRaw<{ locked: boolean }[]>\`
+    SELECT pg_try_advisory_xact_lock(${LOCK_NAMESPACE}, hashtext(${input.agencyId})) AS locked
+  \`;
+  if (!agencyLock[0]?.locked) {
+    return { scan: null, reason: "ADMISSION_BUSY" };
+  }
 
   const globalPending = await tx.scan.count({
     where: { status: { in: ["QUEUED", "RUNNING"] } },
