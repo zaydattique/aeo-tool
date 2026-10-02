@@ -54,7 +54,7 @@ export async function PUT(
   }
 
   try {
-    const parsed = schema.safeParse(await req.json());
+    const parsed = schema.safeParse(await readJsonBody<unknown>(req));
     if (!parsed.success) {
       return NextResponse.json({ error: "Invalid input" }, { status: 400 });
     }
@@ -138,6 +138,7 @@ export async function PUT(
 
     return NextResponse.json({ competitors, seeded });
   } catch (err) {
+    if (err instanceof Error && err.message === "REQUEST_BODY_TOO_LARGE") return NextResponse.json({ error: "Request body too large" }, { status: 413 });
     console.error("Competitors update error:", err);
     return NextResponse.json(
       { error: "Internal server error" },
