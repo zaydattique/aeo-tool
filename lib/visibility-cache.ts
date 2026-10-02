@@ -47,26 +47,31 @@ function cacheKey(input: {
   return `visibility:provider:${createHash("sha256").update(canonical).digest("hex")}`;
 }
 
-async function redisCommand<T>(baseUrl: string, token: string, command: unknown[]): Promise<T | null> {
-  const res = await fetch(`${baseUrl}/${command[0] === "pipeline" ? "pipeline" : command[0].toString().toLowerCase()}`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(command[0] === "pipeline" ? command[1] : command.slice(1)),
-  });
-  if (!res.ok) return null;
-  return (await res.json()) as T;
+async function pipeline<T>(baseUrl: string, token: string, commands: unknown[][]): Promise<T[] | null> {
+  try {
+    const res = await fetch(`${baseUrl}/pipeline`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(commands),
+    });
+    if (!res.ok) return null;
+    return (await res.json()) as T[];
+  } catch {
+    return null;
+  }
 }
 
 async function get<T>(key: string): Promise<T | null> {
   const cfg = redisConfig();
   if (!cfg) return null;
+  const result = await pipeline<{ result: string | null }>(cfg.url, cfg.token, [["GET", key]]);
+  const raw = result?.[0]?.result;
+  if (!raw) return null;
   try {
-    const result = await redisCommand<{ result: string | null }>(cfg.url, cfg.token, ["GET", key]);
-    const raw = result?.result;
-    return raw ? (JSON.parse(raw) as T) : null;
+    return JSON.parse(raw) as T;
   } catch {
     return null;
   }
@@ -75,29 +80,31 @@ async function get<T>(key: string): Promise<T | null> {
 async function setNx(key: string, value: string, ttl: number): Promise<boolean> {
   const cfg = redisConfig();
   if (!cfg) return false;
-  try {
-    const result = await redisCommand<{ result: string }>(cfg.url, cfg.token, [
-      "SET",
-      key,
-      value,
-      "NX",
-      "EX",
-      String(ttl),
-    ]);
-    return result?.result === "OK";
-  } catch {
-    return false;
-  }
+  const result = await pipeline<{ result: string }>(cfg.url, cfg.token, [
+    ["SET", key, value, "NX", "EX", String(ttl)],
+  ]);
+  return result?.[0]?.result === "OK";
 }
 
-async function del(key: string): Promise<void> {
+async function setCache(key: string, value: unknown, ttl: number): Promise<void> {
   const cfg = redisConfig();
   if (!cfg) return;
-  try {
-    await redisCommand(cfg.url, cfg.token, ["DEL", key]);
-  } catch {
-    // Cache infrastructure must never break a visibility measurement.
-  }
+  await pipeline(cfg.url, cfg.token, [["SET", key, JSON.stringify(value), "EX", String(ttl)]]);
+}
+
+async function releaseLock(key: string, owner: string): Promise<void> {
+  const cfg = redisConfig();
+  if (!cfg) return;
+
+  // Compare-and-delete prevents an expired lock from being deleted after a
+  // different worker has already acquired the same lock.
+  await pipeline(cfg.url, cfg.token, [[
+    "EVAL",
+    "if redis.call('get', KEYS[1]) == ARGV[1] then return redis.call('del', KEYS[1]) else return 0 end",
+    "1",
+    key,
+    owner,
+  ]]);
 }
 
 async function sleep(ms: number) {
@@ -140,17 +147,11 @@ export async function withProviderCache<T>(
 
       const value = await loader();
       if (value != null) {
-        await redisCommand(cfg.url, cfg.token, [
-          "SET",
-          key,
-          JSON.stringify(value),
-          "EX",
-          String(ttlSeconds()),
-        ]).catch(() => null);
+        await setCache(key, value, ttlSeconds());
       }
       return { value, cacheHit: false };
     } finally {
-      await del(lockKey);
+      await releaseLock(lockKey, owner);
     }
   }
 
