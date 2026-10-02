@@ -145,6 +145,9 @@ export const authOptions: NextAuthOptions = {
         session.user.onboardingCompleted = impersonationExpired
           ? true
           : token.onboardingCompleted;
+        session.user.impersonationExpiresAt = impersonationExpired
+          ? null
+          : token.impersonationExpiresAt;
       }
       return session;
     },
