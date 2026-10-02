@@ -13,6 +13,6 @@ export const prisma =
         : ["error"],
   });
 
-if (process.env.NODE_ENV !== "production") {
-  globalForPrisma.prisma = prisma;
-}
+// Reuse one Prisma client per warm process in every environment. This avoids
+// creating a fresh connection pool on each request/module reload in production.
+globalForPrisma.prisma = prisma;
