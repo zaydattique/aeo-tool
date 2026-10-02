@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { requireAgency } from "@/lib/session";
 import { getUsageSummary } from "@/lib/usage";
 import { prisma } from "@/lib/prisma";
+import { rateLimit } from "@/lib/rate-limit";
+import { billingUsageLimit, billingUsageWindowMs } from "@/lib/expensive-rate-limits";
 
 export async function GET() {
   const auth = await requireAgency();
