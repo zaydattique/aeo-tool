@@ -96,16 +96,6 @@ export async function POST(
 
   const { id } = await params;
 
-  if (process.env.ANTHROPIC_API_KEY) {
-    const aiBudget = await consumeProviderBudget("ai", auth.agencyId);
-    if (!aiBudget.ok) {
-      return NextResponse.json(
-        { error: "AI provider budget exhausted. Try again later." },
-        { status: 429, headers: { "Retry-After": String(aiBudget.retryAfterSec) } }
-      );
-    }
-  }
-
   const existing = await prisma.action.findFirst({
     where: { id, agencyId: auth.agencyId, deletedAt: null },
     include: {
@@ -117,6 +107,16 @@ export async function POST(
 
   if (!existing) {
     return NextResponse.json({ error: "Action not found" }, { status: 404 });
+  }
+
+  if (process.env.ANTHROPIC_API_KEY) {
+    const aiBudget = await consumeProviderBudget("ai", auth.agencyId);
+    if (!aiBudget.ok) {
+      return NextResponse.json(
+        { error: "AI provider budget exhausted. Try again later." },
+        { status: 429, headers: { "Retry-After": String(aiBudget.retryAfterSec) } }
+      );
+    }
   }
 
   const brand = existing.client.brandName || existing.client.name;
