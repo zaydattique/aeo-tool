@@ -3,6 +3,7 @@ import { crawlWebsite } from "./crawl";
 import { analyzeForAeo } from "./ai-analysis";
 import { mapIssuesToActionDrafts } from "./action-mapper";
 import { validateWebsiteUrl } from "./url";
+import { consumeProviderBudget } from "./provider-budget";
 import type { ActionPriority, ActionCategory, ActionEffort } from "@prisma/client";
 
 /**
@@ -87,6 +88,14 @@ export async function runScan(scanId: string) {
     });
 
     await updateStage(scanId, "CRAWL", 15);
+
+    const crawlBudget = await consumeProviderBudget("crawl", scan.agencyId);
+    if (!crawlBudget.ok) {
+      throw new Error(
+        `Crawl provider budget exhausted; retry after ${crawlBudget.retryAfterSec}s`
+      );
+    }
+
     const crawl = await crawlWebsite(urlCheck.url);
 
     await updateStage(scanId, "EXTRACT", 40, {
@@ -104,6 +113,14 @@ export async function runScan(scanId: string) {
     });
 
     await updateStage(scanId, "AI_ANALYSIS", 55);
+
+    const aiBudget = await consumeProviderBudget("ai", scan.agencyId);
+    if (!aiBudget.ok) {
+      throw new Error(
+        `AI provider budget exhausted; retry after ${aiBudget.retryAfterSec}s`
+      );
+    }
+
     const analysis = await analyzeForAeo(
       crawl,
       scan.client.brandName || scan.client.name
