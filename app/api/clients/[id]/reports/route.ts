@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { requireAgency, canManageClients } from "@/lib/session";
@@ -95,7 +96,7 @@ export async function POST(
         websiteUrl: client.websiteUrl,
         visibilityScore: client.currentVisibilityScore,
         generatedAt: new Date().toISOString(),
-        analysis,
+        analysis: analysis ? (analysis as Prisma.InputJsonValue) : null,
         actions: actions.map((a) => ({
           priority: a.priority,
           category: a.category,
