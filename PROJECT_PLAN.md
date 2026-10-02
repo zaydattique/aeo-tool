@@ -29,6 +29,23 @@ AGENTS.md → **this file** → HISTORY → docs/FILEMAP.md → docs/DEPLOY.md
 
 ---
 
+### PHASE 0-C — Visibility provider concurrency hardening
+
+**Status:** Done (code shipped on the P0-C branch; merge is gated on CI)  
+**Goal:** Bound live answer-engine provider fan-out across prompts, tenants, and horizontally scaled workers without regressing P0-A usage accounting or P0-B caching/single-flight.
+
+| Deliverable | Result |
+|-------------|--------|
+| Distributed provider guard | Redis sorted-set leases atomically enforce global, per-provider, and per-agency limits |
+| Provider timeouts | 20s default HTTP timeout; lease is automatically kept above the timeout |
+| Cache interaction | Cache hits bypass the provider semaphore; only fresh external calls consume provider capacity |
+| Failure isolation | Provider guard failures fall back to the existing heuristic engine result instead of failing the whole prompt |
+| Tests | Provider, global, and agency concurrency tests added |
+| CI | Dedicated P0-C workflow runs visibility tests and TypeScript compilation |
+| Documentation | README, FILEMAP, env example, and HISTORY updated |
+
+**Exit criteria:** CI green; merge the P0-C branch into main only with the exact verified head SHA. Production live visibility should use the existing Upstash Redis configuration with VISIBILITY_CONCURRENCY_REQUIRE_REDIS=1.
+
 ## PHASE 0–13 — Done
 
 | Block | What |

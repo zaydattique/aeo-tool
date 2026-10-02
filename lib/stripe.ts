@@ -9,7 +9,7 @@ export function getStripe(): Stripe {
   if (!stripe) {
     stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
       // Use account default API version
-      apiVersion: "2024-11-20.acacia",
+      apiVersion: "2025-02-24.acacia",
     });
   }
   return stripe;

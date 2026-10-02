@@ -48,7 +48,7 @@ Scans prefer **Inngest** durable functions when `INNGEST_EVENT_KEY` is set; othe
 | Jobs | Inngest (optional) | Durable `scan/run`, hourly re-scan cron, Monday digest |
 | Email | Resend (optional) | Scan-complete + weekly digest; console fallback without key |
 | Billing | Stripe Checkout + webhook | Optional until keys set; plan limits gate expensive ops |
-| Visibility | Multi-engine heuristics + optional Perplexity live | Stored on snapshots for trend reporting |
+| Visibility | Multi-engine heuristics + optional live providers | Redis cache/single-flight + distributed provider concurrency; stored snapshots for trend reporting |
 
 ### Frontend surface map
 
@@ -107,7 +107,7 @@ Full checklist: **[docs/DEPLOY.md](./docs/DEPLOY.md)**.
 
 1. Postgres + set env (`DATABASE_URL`, `NEXTAUTH_SECRET`, **HTTPS** `NEXTAUTH_URL`, `NEXT_PUBLIC_APP_URL`)
 2. `prisma db push` + `db:seed` (plans + optional SUPER_ADMIN)
-3. Prefer **Railway/Render** over pure Vercel for long scans until Inngest is primary
+3. Prefer **Railway/Render** over pure Vercel for long scans until Inngest is primary; configure Upstash Redis for distributed visibility cache, single-flight, rate limiting, and provider concurrency
 4. Stripe webhook → `/api/billing/webhook` if billing
 5. Inngest sync → `/api/inngest` if durable jobs desired
 6. Smoke test: health, signup, scan, report, `/admin`
@@ -121,7 +121,7 @@ See [`.env.example`](./.env.example).
 
 **Required:** `DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`  
 **Strongly recommended for launch:** `NEXT_PUBLIC_APP_URL` (exact public HTTPS origin used in metadata/sitemap/OG)  
-**Optional:** Anthropic, Firecrawl, Stripe, Resend, Inngest, Perplexity, seed super-admin vars.
+**Optional:** Anthropic, Firecrawl, Stripe, Resend, Inngest, Perplexity, seed super-admin vars, and Upstash Redis. For production live visibility, Upstash Redis should be configured so provider concurrency is enforced across all instances.
 
 ---
 

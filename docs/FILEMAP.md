@@ -1,14 +1,14 @@
 # AEO Command — FILEMAP
 
-> Last updated: **2026-09-30**
+> Last updated: **2026-10-02**
 
 ## Lib (product core)
 
-`action-mapper.ts` · **`action-draft-templates.ts`** · `ai-analysis.ts` · `visibility-check.ts` · `sov.ts` · `default-prompts.ts` · `report-pdf.ts` · `scan-worker.ts` · `crawl.ts` · **`safe-fetch.ts`** · `url.ts` · `rate-limit.ts` · `auth.ts` · `inngest/*`
+`action-mapper.ts` · **`action-draft-templates.ts`** · `ai-analysis.ts` · `visibility-check.ts` · **`visibility-concurrency.ts`** · `visibility-cache.ts` · `visibility-config.ts` · `sov.ts` · `default-prompts.ts` · `report-pdf.ts` · `scan-worker.ts` · `crawl.ts` · **`safe-fetch.ts`** · `url.ts` · `rate-limit.ts` · `auth.ts` · `inngest/*`
 
 ## Lib tests
 
-`lib/__tests__/url-and-safe-fetch.test.ts` · `vitest.config.ts`
+`lib/__tests__/url-and-safe-fetch.test.ts` · **`lib/__tests__/visibility-hardening.test.ts`** · `vitest.config.ts`
 
 ## API
 
@@ -20,4 +20,4 @@
 
 ## Config
 
-`next.config.ts` (security headers) · `package.json` (`npm test` → vitest)
+`next.config.ts` (security headers) · `package.json` (`npm test` → vitest) · `.github/workflows/p0c-provider-concurrency.yml`

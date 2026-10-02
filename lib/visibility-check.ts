@@ -12,6 +12,8 @@
  */
 
 import { withProviderCache } from "./visibility-cache";
+import { withVisibilityProviderConcurrency } from "./visibility-concurrency";
+import { visibilityProviderTimeoutMs } from "./visibility-config";
 
 export type EngineResult = {
   engine: string;
@@ -44,6 +46,31 @@ export type LiveEngineCapability = {
 
 const USER_PROMPT_SUFFIX =
   "\n\n(Answer briefly in under 120 words. Name relevant brands if they apply.)";
+
+async function guardedProviderCache<T>(
+  input: {
+    agencyId: string;
+    clientId: string;
+    engine: string;
+    model: string;
+    promptText: string;
+    brandName: string;
+    competitorName?: string | null;
+    kind?: string;
+  },
+  loader: () => Promise<T | null>
+) {
+  try {
+    return await withProviderCache(input, loader);
+  } catch (err) {
+    console.warn(
+      "[visibility] provider concurrency/cache failure",
+      input.engine,
+      err instanceof Error ? err.message : "unknown"
+    );
+    return { value: null as T | null, cacheHit: false };
+  }
+}
 
 function hashScore(seed: string, base: number, spread: number) {
   let h = 0;
@@ -184,6 +211,7 @@ async function checkPerplexityLiveUncached(
         max_tokens: 400,
         temperature: 0.2,
       }),
+      signal: AbortSignal.timeout(visibilityProviderTimeoutMs()),
     });
 
     if (!res.ok) {
@@ -218,9 +246,13 @@ async function checkPerplexityLive(
   kind?: string
 ): Promise<EngineResult | null> {
   const model = "sonar";
-  const cached = await withProviderCache(
+  const cached = await guardedProviderCache(
     { agencyId, clientId, engine: "perplexity", model, promptText, brandName, competitorName, kind },
-    () => checkPerplexityLiveUncached(promptText, brandName, competitorName)
+    () =>
+      withVisibilityProviderConcurrency(
+        { agencyId, engine: "perplexity" },
+        () => checkPerplexityLiveUncached(promptText, brandName, competitorName)
+      )
   );
   if (!cached.value) return null;
   return { ...cached.value, cacheHit: cached.cacheHit, cachedAt: cached.cachedAt };
@@ -252,6 +284,7 @@ async function checkOpenAiLiveUncached(
         max_tokens: 300,
         temperature: 0.2,
       }),
+      signal: AbortSignal.timeout(visibilityProviderTimeoutMs()),
     });
 
     if (!res.ok) {
@@ -279,9 +312,13 @@ async function checkOpenAiLive(
   kind?: string
 ): Promise<EngineResult | null> {
   const model = process.env.OPENAI_VISIBILITY_MODEL || "gpt-4o-mini";
-  const cached = await withProviderCache(
+  const cached = await guardedProviderCache(
     { agencyId, clientId, engine: "chatgpt", model, promptText, brandName, competitorName, kind },
-    () => checkOpenAiLiveUncached(promptText, brandName, competitorName)
+    () =>
+      withVisibilityProviderConcurrency(
+        { agencyId, engine: "chatgpt" },
+        () => checkOpenAiLiveUncached(promptText, brandName, competitorName)
+      )
   );
   if (!cached.value) return null;
   return { ...cached.value, cacheHit: cached.cacheHit, cachedAt: cached.cachedAt };
@@ -315,6 +352,7 @@ async function checkGeminiLiveUncached(
             temperature: 0.2,
           },
         }),
+        signal: AbortSignal.timeout(visibilityProviderTimeoutMs()),
       }
     );
 
@@ -346,9 +384,13 @@ async function checkGeminiLive(
   kind?: string
 ): Promise<EngineResult | null> {
   const model = process.env.GEMINI_VISIBILITY_MODEL || "gemini-2.0-flash";
-  const cached = await withProviderCache(
+  const cached = await guardedProviderCache(
     { agencyId, clientId, engine: "gemini", model, promptText, brandName, competitorName, kind },
-    () => checkGeminiLiveUncached(promptText, brandName, competitorName)
+    () =>
+      withVisibilityProviderConcurrency(
+        { agencyId, engine: "gemini" },
+        () => checkGeminiLiveUncached(promptText, brandName, competitorName)
+      )
   );
   if (!cached.value) return null;
   return { ...cached.value, cacheHit: cached.cacheHit, cachedAt: cached.cachedAt };
@@ -380,6 +422,7 @@ async function checkClaudeLiveUncached(
           },
         ],
       }),
+      signal: AbortSignal.timeout(visibilityProviderTimeoutMs()),
     });
 
     if (!res.ok) {
@@ -409,9 +452,13 @@ async function checkClaudeLive(
   kind?: string
 ): Promise<EngineResult | null> {
   const model = process.env.ANTHROPIC_VISIBILITY_MODEL || "claude-3-5-haiku-latest";
-  const cached = await withProviderCache(
+  const cached = await guardedProviderCache(
     { agencyId, clientId, engine: "claude", model, promptText, brandName, competitorName, kind },
-    () => checkClaudeLiveUncached(promptText, brandName, competitorName)
+    () =>
+      withVisibilityProviderConcurrency(
+        { agencyId, engine: "claude" },
+        () => checkClaudeLiveUncached(promptText, brandName, competitorName)
+      )
   );
   if (!cached.value) return null;
   return { ...cached.value, cacheHit: cached.cacheHit, cachedAt: cached.cachedAt };

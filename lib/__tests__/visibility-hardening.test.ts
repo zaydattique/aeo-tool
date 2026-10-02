@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
   visibilitySnapshotRateLimit,
   visibilitySnapshotRateWindowMs,
@@ -19,6 +19,10 @@ import {
 } from "../visibility-job";
 import { cappedConsume, computeJobSettlement } from "../visibility-usage";
 import { getLiveEngineCapabilities } from "../visibility-check";
+import {
+  resetVisibilityConcurrencyForTests,
+  withVisibilityProviderConcurrency,
+} from "../visibility-concurrency";
 
 class MemoryTestBackend implements RateLimitBackend {
   private buckets = new Map<string, { count: number; resetAt: number }>();
@@ -327,5 +331,98 @@ describe("visibility usage meter binding", () => {
     expect(s.appliedConsume).toBe(20);
     expect(s.appliedRelease).toBe(40);
     expect(s.meterReservedDelta).toBe(-60);
+  });
+});
+
+
+describe("distributed provider concurrency guard", () => {
+  const previous = new Map<string, string | undefined>();
+
+  beforeEach(() => {
+    for (const [key, value] of Object.entries({
+      VISIBILITY_GLOBAL_PROVIDER_CONCURRENCY: "2",
+      VISIBILITY_PROVIDER_CONCURRENCY: "1",
+      VISIBILITY_AGENCY_PROVIDER_CONCURRENCY: "2",
+      VISIBILITY_CONCURRENCY_WAIT_MS: "1000",
+      VISIBILITY_CONCURRENCY_POLL_MS: "5",
+      VISIBILITY_CONCURRENCY_REQUIRE_REDIS: "false",
+    })) {
+      previous.set(key, process.env[key]);
+      process.env[key] = value;
+    }
+    resetVisibilityConcurrencyForTests();
+  });
+
+  afterEach(() => {
+    for (const [key, value] of previous) {
+      if (value == null) delete process.env[key];
+      else process.env[key] = value;
+    }
+    previous.clear();
+    resetVisibilityConcurrencyForTests();
+  });
+
+  it("caps one provider across concurrent prompts", async () => {
+    let active = 0;
+    let maxActive = 0;
+
+    const run = async (i: number) =>
+      withVisibilityProviderConcurrency(
+        { agencyId: `agency-${i}`, engine: "chatgpt" },
+        async () => {
+          active += 1;
+          maxActive = Math.max(maxActive, active);
+          await new Promise((resolve) => setTimeout(resolve, 20));
+          active -= 1;
+        }
+      );
+
+    await Promise.all([run(1), run(2), run(3)]);
+    expect(maxActive).toBe(1);
+  });
+
+  it("enforces the global cap across different providers", async () => {
+    let active = 0;
+    let maxActive = 0;
+
+    const run = async (engine: string, agencyId: string) =>
+      withVisibilityProviderConcurrency(
+        { agencyId, engine },
+        async () => {
+          active += 1;
+          maxActive = Math.max(maxActive, active);
+          await new Promise((resolve) => setTimeout(resolve, 30));
+          active -= 1;
+        }
+      );
+
+    await Promise.all([
+      run("chatgpt", "agency-a"),
+      run("gemini", "agency-b"),
+      run("claude", "agency-c"),
+      run("perplexity", "agency-d"),
+    ]);
+
+    expect(maxActive).toBeLessThanOrEqual(2);
+  });
+
+  it("caps one agency across different providers", async () => {
+    process.env.VISIBILITY_AGENCY_PROVIDER_CONCURRENCY = "1";
+    let active = 0;
+    let maxActive = 0;
+
+    const run = async (engine: string) =>
+      withVisibilityProviderConcurrency(
+        { agencyId: "same-agency", engine },
+        async () => {
+          active += 1;
+          maxActive = Math.max(maxActive, active);
+          await new Promise((resolve) => setTimeout(resolve, 20));
+          active -= 1;
+        }
+      );
+
+    await Promise.all([run("chatgpt"), run("gemini"), run("claude")]);
+    expect(maxActive).toBe(1);
   });
 });
