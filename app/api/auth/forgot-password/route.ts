@@ -3,6 +3,7 @@ import { z } from "zod";
 import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
+import { getClientIp } from "@/lib/request-security";
 
 const schema = z.object({
   email: z.string().email().max(255),
@@ -10,10 +11,7 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const ip =
-      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      req.headers.get("x-real-ip") ||
-      "unknown";
+    const ip = getClientIp(req);
     const rl = await rateLimit(`forgot-password:${ip}`, 5, 60 * 60 * 1000);
     if (!rl.ok) {
       return NextResponse.json(
@@ -30,6 +28,14 @@ export async function POST(req: NextRequest) {
     }
 
     const email = parsed.data.email.toLowerCase().trim();
+
+    const emailRl = await rateLimit(`forgot-password-email:${email}`, 3, 60 * 60 * 1000);
+    if (!emailRl.ok) {
+      return NextResponse.json(
+        { error: "Too many requests. Try again later." },
+        { status: 429, headers: { "Retry-After": String(emailRl.retryAfterSec) } }
+      );
+    }
 
     const user = await prisma.user.findFirst({
       where: { email, deletedAt: null },
