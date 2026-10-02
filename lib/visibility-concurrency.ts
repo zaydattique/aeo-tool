@@ -43,8 +43,10 @@ async function redisPipeline(
   commands: unknown[][]
 ): Promise<RedisCommandResult[] | null> {
   try {
+    const timeoutMs = Math.min(5000, Math.max(250, Number.parseInt(process.env.VISIBILITY_CONCURRENCY_REDIS_TIMEOUT_MS || "1500", 10) || 1500));
     const res = await fetch(`${cfg.url}/pipeline`, {
       method: "POST",
+      signal: AbortSignal.timeout(timeoutMs),
       headers: {
         Authorization: `Bearer ${cfg.token}`,
         "Content-Type": "application/json",
