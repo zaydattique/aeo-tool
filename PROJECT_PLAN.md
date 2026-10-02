@@ -280,3 +280,17 @@ Phase **14B Security** is complete on `main`.
 - [x] Prisma pool sizing guidance documented.
 - [x] Prisma schema validation + TypeScript CI.
 - [ ] Future: cursor pagination for arbitrarily large histories and deeper query-plan/load testing against production-sized datasets.
+
+
+### P0-K — Tenant isolation audit
+- [x] Agency-scope dependent report, prompt, and competitor-prompt reads.
+- [x] Tenant-isolation regression tests.
+- [x] Dedicated CI gate.
+- [x] Merged to `main` in PR #13.
+
+### P0-L — Cursor pagination + repeatable DB load testing
+- [x] Cursor pagination for clients, actions, and visibility snapshots.
+- [x] Stable tie-break ordering using timestamp + ID (and action priority).
+- [x] Supporting composite indexes for cursor order.
+- [x] Repeatable concurrent DB query load-test script with p50/p95/p99 output.
+- [x] Dedicated pagination/TypeScript/Prisma CI gate.
