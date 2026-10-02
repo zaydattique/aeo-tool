@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
-import { getClientIp } from "@/lib/request-security";
+import { getClientIp, readJsonBody } from "@/lib/request-security";
 
 const schema = z.object({
   token: z.string().min(1),
@@ -12,8 +12,17 @@ const schema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const ip = getClientIp(req);
+  const rl = await rateLimit(`invite-accept:${ip}`, 10, 60 * 60 * 1000);
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Too many invite attempts. Try again later." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } }
+    );
+  }
+
   try {
-    const body = await req.json();
+    const body = await readJsonBody<unknown>(req);
     const parsed = schema.safeParse(body);
 
     if (!parsed.success) {
@@ -93,6 +102,9 @@ export async function POST(req: NextRequest) {
       message: "Invite accepted. You can now log in.",
     });
   } catch (err) {
+    if (err instanceof Error && err.message === "REQUEST_BODY_TOO_LARGE") {
+      return NextResponse.json({ error: "Request body too large" }, { status: 413 });
+    }
     console.error("Accept invite error:", err);
     return NextResponse.json(
       { error: "Internal server error" },
