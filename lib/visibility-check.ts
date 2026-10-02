@@ -432,10 +432,10 @@ export async function checkPromptVisibility(opts: {
   });
 
   const liveResults = await Promise.all([
-    checkPerplexityLive(promptText, brandName, competitorName),
-    checkOpenAiLive(promptText, brandName, competitorName),
-    checkGeminiLive(promptText, brandName, competitorName),
-    checkClaudeLive(promptText, brandName, competitorName),
+    checkPerplexityLive(promptText, brandName, competitorName, kind),
+    checkOpenAiLive(promptText, brandName, competitorName, kind),
+    checkGeminiLive(promptText, brandName, competitorName, kind),
+    checkClaudeLive(promptText, brandName, competitorName, kind),
   ]);
 
   let liveEngineCount = 0;
