@@ -277,12 +277,28 @@ export async function enqueueScan(scanId: string) {
     );
   }
 
+  const allowFallback =
+    process.env.NODE_ENV !== "production" ||
+    process.env.ALLOW_IN_PROCESS_SCAN_FALLBACK === "1";
+
+  if (!allowFallback) {
+    await prisma.scan.update({
+      where: { id: scanId },
+      data: {
+        status: "FAILED",
+        stage: "FAILED",
+        errorMessage: "Durable scan queue unavailable",
+        completedAt: new Date(),
+      },
+    }).catch(() => {});
+    return;
+  }
+
   setImmediate(() => {
     runScan(scanId).catch((err) => {
       console.error(`[scan-worker] Unhandled error for ${scanId}:`, err);
     });
-  });
-}
+  });}
 
 export const enqueueSimulatedScan = (scanId: string) => {
   void enqueueScan(scanId);
