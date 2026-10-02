@@ -1,0 +1,22 @@
+name: P0-H public auth abuse hardening
+
+on:
+  push:
+    branches:
+      - phase0h-public-auth-abuse
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --legacy-peer-deps --no-audit --no-fund
+      - run: npx prisma generate
+      - run: npx tsc --noEmit
