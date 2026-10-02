@@ -88,7 +88,16 @@ export async function runScan(scanId: string) {
     });
 
     if (!scan || !scan.client) {
-      console.error(`[scan-worker] Scan ${scanId} not found`);
+      console.error(`[scan-worker] Scan ${scanId} missing after claim`);
+      await prisma.scan.update({
+        where: { id: scanId },
+        data: {
+          status: "FAILED",
+          stage: "FAILED",
+          errorMessage: "Scan or client record disappeared after worker claim",
+          completedAt: new Date(),
+        },
+      }).catch(() => {});
       return;
     }
 
