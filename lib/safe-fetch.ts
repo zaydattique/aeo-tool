@@ -249,7 +249,7 @@ export async function safeFetch(
             "text/html,application/xhtml+xml,text/plain,application/xml;q=0.9,*/*;q=0.1",
           ...opts.headers,
         },
-        body: opts.body,
+        body: opts.body as unknown as BodyInit | undefined,
         redirect: "manual",
         signal: controller.signal,
       });
