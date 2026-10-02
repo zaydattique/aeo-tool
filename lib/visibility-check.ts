@@ -214,7 +214,7 @@ async function checkPerplexityLive(
   competitorName?: string | null,
   kind?: string
 ): Promise<EngineResult | null> {
-  const model = sonar;
+  const model = "sonar";
   const cached = await withProviderCache(
     { engine: "perplexity", model, promptText, brandName, competitorName, kind },
     () => checkPerplexityLiveUncached(promptText, brandName, competitorName)
