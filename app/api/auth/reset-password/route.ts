@@ -3,6 +3,8 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
+import { getClientIp } from "@/lib/request-security";
+import { createHash } from "crypto";
 
 const schema = z.object({
   token: z.string().min(1),
@@ -11,10 +13,7 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const ip =
-      req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      req.headers.get("x-real-ip") ||
-      "unknown";
+    const ip = getClientIp(req);
     const rl = await rateLimit(`reset-password:${ip}`, 10, 60 * 60 * 1000);
     if (!rl.ok) {
       return NextResponse.json(
@@ -34,6 +33,15 @@ export async function POST(req: NextRequest) {
     }
 
     const { token, password } = parsed.data;
+
+    const tokenKey = createHash("sha256").update(token).digest("hex").slice(0, 32);
+    const tokenRl = await rateLimit(`reset-password-token:${tokenKey}`, 10, 60 * 60 * 1000);
+    if (!tokenRl.ok) {
+      return NextResponse.json(
+        { error: "Too many requests. Try again later." },
+        { status: 429, headers: { "Retry-After": String(tokenRl.retryAfterSec) } }
+      );
+    }
 
     const user = await prisma.user.findFirst({
       where: {
