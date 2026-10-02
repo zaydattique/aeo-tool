@@ -86,26 +86,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: urlResult.error }, { status: 400 });
     }
 
-    // Plan limit check
-    const agency = await prisma.agency.findUnique({
-      where: { id: auth.agencyId },
-      include: { plan: true },
-    });
-
-    if (agency?.plan) {
-      const count = await prisma.client.count({
-        where: { agencyId: auth.agencyId, deletedAt: null },
-      });
-      if (count >= agency.plan.maxClients) {
-        return NextResponse.json(
-          {
-            error: `Plan limit reached (${agency.plan.maxClients} clients). Upgrade to add more.`,
-          },
-          { status: 403 }
-        );
-      }
-    }
-
     const brandName =
       parsed.data.brandName?.trim() ||
       suggestBrandName(urlResult.url);
