@@ -3,7 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAgency, canManageClients } from "@/lib/session";
 import { enrichActionFields } from "@/lib/action-mapper";
 import { rateLimit } from "@/lib/rate-limit";
-import { actionRedraftRateLimit, actionRedraftRateWindowMs } from "@/lib/visibility-config";
+import { actionRedraftRateLimit, actionRedraftRateWindowMs, visibilityProviderTimeoutMs } from "@/lib/visibility-config";
 
 async function aiRedraft(opts: {
   title: string;
@@ -19,6 +19,7 @@ async function aiRedraft(opts: {
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
+      signal: AbortSignal.timeout(visibilityProviderTimeoutMs()),
       headers: {
         "Content-Type": "application/json",
         "x-api-key": key,
