@@ -3,6 +3,8 @@ import { Prisma } from "@prisma/client";
 import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { requireAgency, canManageClients } from "@/lib/session";
+import { rateLimit } from "@/lib/rate-limit";
+import { reportGenerationRateLimit, reportGenerationRateWindowMs } from "@/lib/visibility-config";
 
 export async function GET(
   _req: NextRequest,
@@ -35,6 +37,18 @@ export async function POST(
 
   if (!canManageClients(auth.session.user.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const rl = await rateLimit(
+    `report-generate:${auth.agencyId}`,
+    reportGenerationRateLimit(),
+    reportGenerationRateWindowMs()
+  );
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Too many reports generated. Wait a few minutes." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } }
+    );
   }
 
   const { id: clientId } = await params;
