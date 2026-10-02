@@ -72,7 +72,7 @@ export async function POST(
   }
 
   const latestScan = await prisma.scan.findFirst({
-    where: { clientId, status: "COMPLETED" },
+    where: { clientId, agencyId: auth.agencyId, status: "COMPLETED" },
     orderBy: { completedAt: "desc" },
   });
 
@@ -83,7 +83,7 @@ export async function POST(
   });
 
   const prompts = await prisma.trackedPrompt.findMany({
-    where: { clientId, deletedAt: null },
+    where: { clientId, agencyId: auth.agencyId, deletedAt: null },
     include: {
       snapshots: {
         orderBy: { recordedAt: "desc" },
