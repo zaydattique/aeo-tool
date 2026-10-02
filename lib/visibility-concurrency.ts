@@ -95,10 +95,14 @@ return removed
 
 type LocalState = { global: number; provider: number; agency: number };
 
-const localState = new Map<string, LocalState>();
+const localState = new Map<string, number>();
 
-function localKey(engine: string, agencyId: string): string {
-  return `${engine}:agency:${agencyId}`;
+function localKeys(engine: string, agencyId: string) {
+  return {
+    global: "global",
+    provider: `provider:${engine}`,
+    agency: `agency:${agencyId}`,
+  };
 }
 
 async function sleep(ms: number) {
@@ -106,7 +110,7 @@ async function sleep(ms: number) {
 }
 
 async function acquireLocal(
-  key: string,
+  keys: { global: string; provider: string; agency: string },
   globalLimit: number,
   providerLimit: number,
   agencyLimit: number,
@@ -115,28 +119,22 @@ async function acquireLocal(
   const started = Date.now();
 
   while (true) {
-    const state = localState.get(key) ?? { global: 0, provider: 0, agency: 0 };
-    if (
-      state.global < globalLimit &&
-      state.provider < providerLimit &&
-      state.agency < agencyLimit
-    ) {
-      state.global += 1;
-      state.provider += 1;
-      state.agency += 1;
-      localState.set(key, state);
+    const global = localState.get(keys.global) ?? 0;
+    const provider = localState.get(keys.provider) ?? 0;
+    const agency = localState.get(keys.agency) ?? 0;
+    if (global < globalLimit && provider < providerLimit && agency < agencyLimit) {
+      localState.set(keys.global, global + 1);
+      localState.set(keys.provider, provider + 1);
+      localState.set(keys.agency, agency + 1);
 
       let released = false;
       return () => {
         if (released) return;
         released = true;
-        const current = localState.get(key);
-        if (!current) return;
-        current.global = Math.max(0, current.global - 1);
-        current.provider = Math.max(0, current.provider - 1);
-        current.agency = Math.max(0, current.agency - 1);
-        if (current.global === 0 && current.provider === 0 && current.agency === 0) {
-          localState.delete(key);
+        for (const key of Object.values(keys)) {
+          const current = localState.get(key) ?? 0;
+          if (current <= 1) localState.delete(key);
+          else localState.set(key, current - 1);
         }
       };
     }
@@ -147,7 +145,6 @@ async function acquireLocal(
     await sleep(visibilityConcurrencyPollMs());
   }
 }
-
 async function acquireRedis(
   cfg: RedisConfig,
   engine: string,
@@ -220,7 +217,7 @@ export async function withVisibilityProviderConcurrency<T>(
     }
 
     const release = await acquireLocal(
-      localKey(opts.engine, opts.agencyId),
+      localKeys(opts.engine, opts.agencyId),
       globalLimit,
       providerLimit,
       agencyLimit,
