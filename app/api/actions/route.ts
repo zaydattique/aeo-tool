@@ -60,6 +60,7 @@ export async function GET(req: NextRequest) {
     orderBy: [
       { priority: "asc" }, // HIGH first if we map carefully — Prisma enums order by definition
       { createdAt: "desc" },
+      { id: "desc" },
     ],
     include: {
       assignedTo: {
