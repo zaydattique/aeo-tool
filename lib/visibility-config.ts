@@ -79,3 +79,24 @@ export function visibilityCacheTtlSeconds(): number {
 export function visibilityCacheLockSeconds(): number {
   return intEnv("VISIBILITY_CACHE_LOCK_SECONDS", 45);
 }
+
+
+export function reportGenerationRateLimit(): number {
+  return intEnv("REPORT_GENERATION_RATE_LIMIT", 10);
+}
+
+export function reportGenerationRateWindowMs(): number {
+  return intEnv("REPORT_GENERATION_RATE_WINDOW_MS", 10 * 60 * 1000);
+}
+
+export function actionRedraftRateLimit(): number {
+  return intEnv("ACTION_REDAFT_RATE_LIMIT", 10);
+}
+
+export function actionRedraftRateWindowMs(): number {
+  return intEnv("ACTION_REDAFT_RATE_WINDOW_MS", 10 * 60 * 1000);
+}
+
+export function rateLimitRedisTimeoutMs(): number {
+  return intEnv("RATE_LIMIT_REDIS_TIMEOUT_MS", 1500);
+}

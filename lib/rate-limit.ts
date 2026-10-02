@@ -6,11 +6,29 @@
  * `rateLimit` is async so Redis works; existing callers must await.
  */
 
-type RateLimitResult = {
+export type RateLimitResult = {
   ok: boolean;
   remaining: number;
   retryAfterSec: number;
 };
+
+function requireDistributedRateLimit(): boolean {
+  const raw = process.env.RATE_LIMIT_REQUIRE_REDIS;
+  if (raw == null || raw === "") return process.env.NODE_ENV === "production";
+  return raw === "1" || raw.toLowerCase() === "true";
+}
+
+function redisConfigured(): boolean {
+  return Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
+}
+
+function failClosedResult(): RateLimitResult {
+  return { ok: false, remaining: 0, retryAfterSec: 5 };
+}
+
+function normalizeKey(key: string): string {
+  return key.slice(0, 256).replace(/[^a-zA-Z0-9:_-]/g, "_");
+}
 
 export interface RateLimitBackend {
   hit(key: string, limit: number, windowMs: number): Promise<RateLimitResult>;
@@ -66,10 +84,11 @@ class UpstashBackend implements RateLimitBackend {
     limit: number,
     windowMs: number
   ): Promise<RateLimitResult> {
-    const redisKey = `rl:${key}`;
+    const redisKey = `rl:${normalizeKey(key)}`;
     const windowSec = Math.max(1, Math.ceil(windowMs / 1000));
     const res = await fetch(`${this.baseUrl}/pipeline`, {
       method: "POST",
+      signal: AbortSignal.timeout(Number(process.env.RATE_LIMIT_REDIS_TIMEOUT_MS || 1500)),
       headers: {
         Authorization: `Bearer ${this.token}`,
         "Content-Type": "application/json",
@@ -82,7 +101,7 @@ class UpstashBackend implements RateLimitBackend {
     });
     if (!res.ok) {
       console.error("[rate-limit] Upstash error", res.status);
-      return { ok: true, remaining: limit, retryAfterSec: 0 };
+      return failClosedResult();
     }
     const data = (await res.json()) as { result: unknown }[];
     const count = Number(data[0]?.result ?? 0);
@@ -126,5 +145,21 @@ export async function rateLimit(
   limit: number,
   windowMs: number
 ): Promise<RateLimitResult> {
-  return getBackend().hit(key, limit, windowMs);
+  if (!redisConfigured() && requireDistributedRateLimit()) {
+    console.error("[rate-limit] Redis is required in this environment");
+    return failClosedResult();
+  }
+
+  try {
+    return await getBackend().hit(key, limit, windowMs);
+  } catch (err) {
+    console.error("[rate-limit] backend failure", err instanceof Error ? err.message : "unknown");
+    return requireDistributedRateLimit()
+      ? failClosedResult()
+      : { ok: true, remaining: limit, retryAfterSec: 0 };
+  }
+}
+
+export function resetRateLimitBackendForTests(): void {
+  backend = null;
 }

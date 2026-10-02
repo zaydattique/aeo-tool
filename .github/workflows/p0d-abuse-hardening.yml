@@ -1,9 +1,9 @@
-name: P0-B visibility hardening
+name: P0-D abuse hardening
 
 on:
   push:
     branches:
-      - phase0b-redis-visibility-cache
+      - phase0d-abuse-hardening
   pull_request:
     branches:
       - main
@@ -12,14 +12,13 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # P0-D verification: rate-limit + visibility hardening
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-
       - run: npm install --legacy-peer-deps --no-audit --no-fund
       - run: npx prisma generate
-      - run: npx vitest run lib/__tests__/visibility-hardening.test.ts
+      - run: npx vitest run lib/__tests__/rate-limit.test.ts lib/__tests__/visibility-hardening.test.ts
       - run: npx tsc --noEmit

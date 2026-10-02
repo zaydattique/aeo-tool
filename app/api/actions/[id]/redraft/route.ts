@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAgency, canManageClients } from "@/lib/session";
 import { enrichActionFields } from "@/lib/action-mapper";
+import { rateLimit } from "@/lib/rate-limit";
+import { actionRedraftRateLimit, actionRedraftRateWindowMs, visibilityProviderTimeoutMs } from "@/lib/visibility-config";
 
 async function aiRedraft(opts: {
   title: string;
@@ -17,6 +19,7 @@ async function aiRedraft(opts: {
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
+      signal: AbortSignal.timeout(visibilityProviderTimeoutMs()),
       headers: {
         "Content-Type": "application/json",
         "x-api-key": key,
@@ -71,6 +74,18 @@ export async function POST(
 
   if (!canManageClients(auth.session.user.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const rl = await rateLimit(
+    `action-redraft:${auth.agencyId}`,
+    actionRedraftRateLimit(),
+    actionRedraftRateWindowMs()
+  );
+  if (!rl.ok) {
+    return NextResponse.json(
+      { error: "Too many AI redrafts. Wait a few minutes." },
+      { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } }
+    );
   }
 
   const { id } = await params;

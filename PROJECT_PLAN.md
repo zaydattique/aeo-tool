@@ -46,6 +46,22 @@ AGENTS.md → **this file** → HISTORY → docs/FILEMAP.md → docs/DEPLOY.md
 
 **Exit criteria:** CI green; merge the P0-C branch into main only with the exact verified head SHA. Production live visibility should use the existing Upstash Redis configuration with VISIBILITY_CONCURRENCY_REQUIRE_REDIS=1.
 
+### PHASE 0-D — Abuse and rate-limit hardening
+
+**Status:** Done (code shipped on the P0-D branch; merge gated on CI)
+**Goal:** Make distributed rate limiting fail closed in production and bound additional expensive API workload classes.
+
+| Deliverable | Result |
+|-------------|--------|
+| Rate-limit outage behavior | Production fails closed when Redis is missing/unavailable/times out |
+| Redis limiter timeout | 1.5s default request timeout |
+| Expensive endpoint limits | AI action redraft + report generation capped per agency |
+| Provider request bound | Anthropic action redraft uses the shared provider timeout |
+| Tests | Fail-closed, backend-outage, and local fallback tests added |
+| CI | Dedicated P0-D workflow added |
+
+**Exit criteria:** CI green; production has Upstash Redis and RATE_LIMIT_REQUIRE_REDIS=1.
+
 ## PHASE 0–13 — Done
 
 | Block | What |
