@@ -3,6 +3,12 @@ import { createHash, randomUUID } from "crypto";
 export type CachedProviderResult<T> = {
   value: T;
   cacheHit: boolean;
+  cachedAt?: string;
+};
+
+type CacheEnvelope<T> = {
+  value: T;
+  cachedAt: string;
 };
 
 const CACHE_VERSION = "v1";
@@ -64,14 +70,18 @@ async function pipeline<T>(baseUrl: string, token: string, commands: unknown[][]
   }
 }
 
-async function get<T>(key: string): Promise<T | null> {
+async function get<T>(key: string): Promise<CacheEnvelope<T> | null> {
   const cfg = redisConfig();
   if (!cfg) return null;
   const result = await pipeline<{ result: string | null }>(cfg.url, cfg.token, [["GET", key]]);
   const raw = result?.[0]?.result;
   if (!raw) return null;
   try {
-    return JSON.parse(raw) as T;
+    const parsed = JSON.parse(raw) as CacheEnvelope<T>;
+    if (!parsed || typeof parsed !== "object" || !parsed.cachedAt || !("value" in parsed)) {
+      return null;
+    }
+    return parsed;
   } catch {
     return null;
   }
@@ -90,7 +100,8 @@ async function setNx(key: string, value: string, ttl: number): Promise<"acquired
 async function setCache(key: string, value: unknown, ttl: number): Promise<void> {
   const cfg = redisConfig();
   if (!cfg) return;
-  await pipeline(cfg.url, cfg.token, [["SET", key, JSON.stringify(value), "EX", String(ttl)]]);
+  const envelope: CacheEnvelope<unknown> = { value, cachedAt: new Date().toISOString() };
+  await pipeline(cfg.url, cfg.token, [["SET", key, JSON.stringify(envelope), "EX", String(ttl)]]);
 }
 
 async function releaseLock(key: string, owner: string): Promise<void> {
@@ -136,7 +147,7 @@ export async function withProviderCache<T>(
 
   const key = cacheKey(input);
   const cached = await get<T>(key);
-  if (cached != null) return { value: cached, cacheHit: true };
+  if (cached != null) return { value: cached.value, cacheHit: true, cachedAt: cached.cachedAt };
 
   const lockKey = `${key}:lock`;
   const owner = randomUUID();
@@ -151,7 +162,7 @@ export async function withProviderCache<T>(
   if (lock === "acquired") {
     try {
       const secondCheck = await get<T>(key);
-      if (secondCheck != null) return { value: secondCheck, cacheHit: true };
+      if (secondCheck != null) return { value: secondCheck.value, cacheHit: true, cachedAt: secondCheck.cachedAt };
 
       const value = await loader();
       if (value != null) {
@@ -168,7 +179,7 @@ export async function withProviderCache<T>(
   for (let i = 0; i < WAIT_ATTEMPTS; i++) {
     await sleep(WAIT_MS);
     const result = await get<T>(key);
-    if (result != null) return { value: result, cacheHit: true };
+    if (result != null) return { value: result.value, cacheHit: true, cachedAt: result.cachedAt };
   }
 
   return { value: await loader(), cacheHit: false };
