@@ -110,7 +110,7 @@ export async function POST(
 
     if (parsed.data.seedDefaults) {
       const existing = await prisma.trackedPrompt.count({
-        where: { clientId, deletedAt: null },
+        where: { clientId, agencyId: auth.agencyId, deletedAt: null },
       });
       if (existing === 0) {
         const defaults = getDefaultPromptSeeds(
@@ -128,7 +128,7 @@ export async function POST(
           })),
         });
         const prompts = await prisma.trackedPrompt.findMany({
-          where: { clientId, deletedAt: null },
+          where: { clientId, agencyId: auth.agencyId, deletedAt: null },
           orderBy: { createdAt: "asc" },
         });
         return NextResponse.json({ prompts }, { status: 201 });
