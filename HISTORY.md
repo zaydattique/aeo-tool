@@ -223,3 +223,31 @@ The repository also had pre-existing TypeScript gate errors in lib/email.ts, app
 **Gotchas**
 
 Production horizontal scaling depends on Redis being configured; without it, the local fallback is process-local by design. The existing Inngest global/job concurrency remains in place and is complementary rather than a replacement for provider-call concurrency. The cache remains a cost optimization and single-flight layer; the provider concurrency guard is the capacity-control layer. Do not set the provider lease below the provider timeout; the implementation protects against this by enforcing a minimum lease internally.
+
+---
+
+### 2026-10-02 — Phase 0-D: Abuse and rate-limit hardening
+
+**Goal**
+
+Close the rate-limit fail-open path and reduce expensive authenticated endpoint amplification before the 100k-user scalability review. P0-C bounded live provider concurrency; P0-D adds a fail-closed distributed rate-limit contract and limits additional AI/report workload classes.
+
+**Changes**
+
+- Production rate limiting now requires Upstash Redis by default. If Redis is missing, unavailable, times out, or returns a non-2xx response, the limiter returns a bounded 429-style result instead of allowing the request through.
+- Redis rate-limit requests have a 1.5 second default timeout so a Redis outage cannot turn into indefinitely hanging API requests.
+- Rate-limit keys are normalized and capped at 256 characters before being sent to Redis.
+- Added agency-scoped limits for AI action redrafts and report generation: 10 requests per 10 minutes by default for each endpoint class.
+- Added a 20 second timeout to the Anthropic redraft request, reusing the provider timeout configuration.
+- Existing scan and visibility snapshot limits remain in place; visibility jobs retain P0-A/P0-B/P0-C usage, idempotency, cache/single-flight, and distributed provider-concurrency protections.
+- Added dedicated tests for production fail-closed behavior, backend outage behavior, and local development fallback.
+- Added a dedicated P0-D GitHub Actions workflow running rate-limit tests, visibility hardening tests, Prisma generation, and TypeScript compilation.
+- Documented the new controls in .env.example.
+
+**Important behavior**
+
+Development/test environments may still use the in-process rate limiter when Redis is not configured. Production should set RATE_LIMIT_REQUIRE_REDIS=1 explicitly and provide the existing Upstash credentials. This phase does not claim that rate limiting alone provides DDoS immunity; upstream edge/WAF protection and provider/network quotas remain separate layers.
+
+**Deferred**
+
+The next scalability layer should audit queue admission and scan creation as a transaction-level invariant, public auth endpoint abuse controls, crawl fan-out/resource limits, and edge/WAF configuration. These are intentionally not treated as solved by this phase.
