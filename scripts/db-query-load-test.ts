@@ -31,6 +31,30 @@ async function sample() {
       take: 501,
       select: { id: true, recordedAt: true, score: true },
     }),
+    prisma.scan.count({
+      where: { status: { in: ["QUEUED", "RUNNING"] } },
+    }),
+    prisma.scan.count({
+      where: { agencyId, status: { in: ["QUEUED", "RUNNING"] } },
+    }),
+    prisma.scan.count({
+      where: {
+        agencyId,
+        createdAt: { gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) },
+        status: { not: "FAILED" },
+      },
+    }),
+    prisma.scan.findFirst({
+      where: { clientId, agencyId, status: { in: ["QUEUED", "RUNNING"] } },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, status: true, createdAt: true },
+    }),
+    prisma.scan.findMany({
+      where: { status: "RUNNING", startedAt: { lt: new Date(Date.now() - 15 * 60 * 1000) } },
+      orderBy: { startedAt: "asc" },
+      take: 100,
+      select: { id: true, clientId: true, startedAt: true },
+    }),
   ]);
   return performance.now() - started;
 }
