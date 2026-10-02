@@ -30,6 +30,7 @@ export async function GET() {
         createdAt: true,
       },
       orderBy: { createdAt: "asc" },
+      take: 100,
     }),
     prisma.teamInvite.findMany({
       where: {
@@ -38,6 +39,7 @@ export async function GET() {
         expiresAt: { gt: new Date() },
       },
       orderBy: { createdAt: "desc" },
+      take: 100,
     }),
   ]);
 
