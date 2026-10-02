@@ -64,7 +64,7 @@ export async function POST(
   }
 
   try {
-    const parsed = bodySchema.safeParse(await req.json());
+    const parsed = bodySchema.safeParse(await readJsonBody<unknown>(req));
     if (!parsed.success) {
       return NextResponse.json({ error: "Invalid input" }, { status: 400 });
     }
@@ -119,6 +119,7 @@ export async function POST(
           : null,
     });
   } catch (err) {
+    if (err instanceof Error && err.message === "REQUEST_BODY_TOO_LARGE") return NextResponse.json({ error: "Request body too large" }, { status: 413 });
     console.error("Portal toggle error:", err);
     return NextResponse.json(
       { error: "Internal server error" },

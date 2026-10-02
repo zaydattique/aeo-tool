@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
-import { getClientIp } from "@/lib/request-security";
+import { getClientIp, readJsonBody } from "@/lib/request-security";
 import { createHash } from "crypto";
 
 const schema = z.object({
@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = await req.json();
+    const body = await readJsonBody<unknown>(req);
     const parsed = schema.safeParse(body);
 
     if (!parsed.success) {
@@ -60,8 +60,12 @@ export async function POST(req: NextRequest) {
 
     const passwordHash = await bcrypt.hash(password, 12);
 
-    await prisma.user.update({
-      where: { id: user.id },
+    const updated = await prisma.user.updateMany({
+      where: {
+        id: user.id,
+        passwordResetToken: token,
+        passwordResetExpires: { gt: new Date() },
+      },
       data: {
         passwordHash,
         passwordResetToken: null,
@@ -69,11 +73,16 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    if (updated.count !== 1) {
+      return NextResponse.json({ error: "Invalid or expired reset token" }, { status: 400 });
+    }
+
     return NextResponse.json({
       success: true,
       message: "Password updated. You can now log in.",
     });
   } catch (err) {
+    if (err instanceof Error && err.message === "REQUEST_BODY_TOO_LARGE") return NextResponse.json({ error: "Request body too large" }, { status: 413 });
     console.error("Reset password error:", err);
     return NextResponse.json(
       { error: "Internal server error" },

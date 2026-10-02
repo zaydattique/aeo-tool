@@ -20,6 +20,20 @@ export async function requireAgency() {
 
   const { session } = result;
 
+  if (
+    session.user.role === "SUPER_ADMIN" &&
+    session.user.agencyId &&
+    session.user.impersonationExpiresAt != null &&
+    session.user.impersonationExpiresAt <= Date.now()
+  ) {
+    return {
+      error: "Impersonation session expired" as const,
+      status: 403 as const,
+      session,
+      agencyId: null,
+    };
+  }
+
   if (session.user.role === "SUPER_ADMIN" && !session.user.agencyId) {
     return {
       error: "Super admin must impersonate an agency" as const,

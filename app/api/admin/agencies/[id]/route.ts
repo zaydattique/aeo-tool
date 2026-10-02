@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/session";
+import { readJsonBody } from "@/lib/request-security";
 
 const schema = z.object({
   status: z.enum(["ACTIVE", "SUSPENDED", "TRIAL", "CANCELLED"]),
@@ -20,7 +21,7 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const body = await req.json();
+  const body = await readJsonBody<unknown>(req);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid status" }, { status: 400 });

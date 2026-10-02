@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { readJsonBody } from "@/lib/request-security";
 
 const schema = z.object({
   agencyName: z.string().min(1).max(120).optional(),
@@ -25,7 +26,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const body = await req.json();
+    const body = await readJsonBody<unknown>(req);
     const parsed = schema.safeParse(body);
 
     if (!parsed.success) {
@@ -77,6 +78,7 @@ export async function POST(req: NextRequest) {
       },
     });
   } catch (err) {
+    if (err instanceof Error && err.message === "REQUEST_BODY_TOO_LARGE") return NextResponse.json({ error: "Request body too large" }, { status: 413 });
     console.error("Onboarding error:", err);
     return NextResponse.json(
       { error: "Internal server error" },

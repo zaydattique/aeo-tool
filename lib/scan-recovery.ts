@@ -26,6 +26,7 @@ export async function recoverStaleScans(now = new Date()): Promise<number> {
       startedAt: { lt: cutoff },
     },
     select: { id: true, clientId: true },
+    orderBy: [{ startedAt: "asc" }, { id: "asc" }],
     take: 100,
   });
 

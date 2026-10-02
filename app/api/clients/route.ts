@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAgency, canManageClients } from "@/lib/session";
 import { validateWebsiteUrl, suggestBrandName } from "@/lib/url";
+import { readJsonBody } from "@/lib/request-security";
 
 const createSchema = z.object({
   websiteUrl: z.string().min(1).max(2048),
@@ -70,7 +72,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = await req.json();
+    const body = await readJsonBody<unknown>(req);
     const parsed = createSchema.safeParse(body);
 
     if (!parsed.success) {
@@ -85,43 +87,37 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: urlResult.error }, { status: 400 });
     }
 
-    // Plan limit check
-    const agency = await prisma.agency.findUnique({
-      where: { id: auth.agencyId },
-      include: { plan: true },
-    });
-
-    if (agency?.plan) {
-      const count = await prisma.client.count({
-        where: { agencyId: auth.agencyId, deletedAt: null },
-      });
-      if (count >= agency.plan.maxClients) {
-        return NextResponse.json(
-          {
-            error: `Plan limit reached (${agency.plan.maxClients} clients). Upgrade to add more.`,
-          },
-          { status: 403 }
-        );
-      }
-    }
-
     const brandName =
       parsed.data.brandName?.trim() ||
       suggestBrandName(urlResult.url);
     const name =
       parsed.data.name?.trim() || brandName || urlResult.url;
 
-    const client = await prisma.client.create({
-      data: {
-        agencyId: auth.agencyId,
-        websiteUrl: urlResult.url,
-        name,
-        brandName: brandName || null,
-        location: parsed.data.location?.trim() || null,
-        keywords: parsed.data.keywords || [],
-        status: "ACTIVE",
-      },
-    });
+    const client = await prisma.$transaction(async (tx) => {
+      const currentAgency = await tx.agency.findUnique({
+        where: { id: auth.agencyId },
+        include: { plan: true },
+      });
+      if (currentAgency?.plan) {
+        const count = await tx.client.count({
+          where: { agencyId: auth.agencyId, deletedAt: null },
+        });
+        if (count >= currentAgency.plan.maxClients) {
+          throw new Error("CLIENT_LIMIT_REACHED");
+        }
+      }
+      return tx.client.create({
+        data: {
+          agencyId: auth.agencyId,
+          websiteUrl: urlResult.url,
+          name,
+          brandName: brandName || null,
+          location: parsed.data.location?.trim() || null,
+          keywords: parsed.data.keywords || [],
+          status: "ACTIVE",
+        },
+      });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
     await prisma.activityLog.create({
       data: {
@@ -136,6 +132,13 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ client }, { status: 201 });
   } catch (err) {
+    if (err instanceof Error && err.message === "REQUEST_BODY_TOO_LARGE") return NextResponse.json({ error: "Request body too large" }, { status: 413 });
+    if (err instanceof Error && err.message === "CLIENT_LIMIT_REACHED") {
+      return NextResponse.json({ error: "Plan client limit reached. Upgrade your plan." }, { status: 403 });
+    }
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2034") {
+      return NextResponse.json({ error: "Concurrent client creation detected. Please retry." }, { status: 409 });
+    }
     console.error("Create client error:", err);
     return NextResponse.json(
       { error: "Internal server error" },

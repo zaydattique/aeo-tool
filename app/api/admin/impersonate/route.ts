@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/session";
+import { readJsonBody } from "@/lib/request-security";
 
 const schema = z.object({
   agencyId: z.string().min(1),
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const body = await req.json();
+  const body = await readJsonBody<unknown>(req);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json({ error: "Invalid input" }, { status: 400 });
@@ -45,6 +46,7 @@ export async function POST(req: NextRequest) {
     });
   }
 
+  const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
   const agency = await prisma.agency.findFirst({
     where: { id: parsed.data.agencyId, deletedAt: null },
     select: { id: true, name: true, status: true, onboardingCompleted: true },
@@ -62,7 +64,7 @@ export async function POST(req: NextRequest) {
       resourceType: "agency",
       resourceId: agency.id,
       metadata: {
-        expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        expiresAt: expiresAt.toISOString(),
       },
     },
   });
@@ -71,6 +73,6 @@ export async function POST(req: NextRequest) {
     agencyId: agency.id,
     agencyName: agency.name,
     onboardingCompleted: agency.onboardingCompleted,
-    expiresAt: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+    expiresAt: expiresAt.toISOString(),
   });
 }

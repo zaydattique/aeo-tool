@@ -3,7 +3,7 @@ import { z } from "zod";
 import { randomBytes } from "crypto";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
-import { getClientIp } from "@/lib/request-security";
+import { getClientIp, readJsonBody } from "@/lib/request-security";
 
 const schema = z.object({
   email: z.string().email().max(255),
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body = await req.json();
+    const body = await readJsonBody<unknown>(req);
     const parsed = schema.safeParse(body);
 
     if (!parsed.success) {
@@ -70,6 +70,7 @@ export async function POST(req: NextRequest) {
       ...(process.env.NODE_ENV === "development" ? { devResetUrl: resetUrl } : {}),
     });
   } catch (err) {
+    if (err instanceof Error && err.message === "REQUEST_BODY_TOO_LARGE") return NextResponse.json({ error: "Request body too large" }, { status: 413 });
     console.error("Forgot password error:", err);
     return NextResponse.json(
       { error: "Internal server error" },
