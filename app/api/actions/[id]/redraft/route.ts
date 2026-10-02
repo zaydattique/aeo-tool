@@ -54,11 +54,16 @@ Requirements:
     });
 
     if (!res.ok) return null;
-    const json = await res.json();
+    const raw = await res.text();
+    if (raw.length > 1_000_000) return null;
+
+    const json = JSON.parse(raw) as {
+      content?: Array<{ text?: string }>;
+    };
     const text = Array.isArray(json.content)
-      ? json.content.map((c: { text?: string }) => c.text || "").join("")
+      ? json.content.map((c) => c.text || "").join("")
       : "";
-    return text.trim() || null;
+    return text.slice(0, 8000).trim() || null;
   } catch {
     return null;
   }
