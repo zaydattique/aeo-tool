@@ -94,8 +94,6 @@ removed = removed + redis.call('zrem', KEYS[3], token)
 return removed
 `;
 
-type LocalState = { global: number; provider: number; agency: number };
-
 const localState = new Map<string, number>();
 
 function localKeys(engine: string, agencyId: string) {
