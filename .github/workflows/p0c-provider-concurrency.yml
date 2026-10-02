@@ -19,7 +19,7 @@ jobs:
         with:
           node-version: 20
 
-      - run: npm install
+      - run: npm install --legacy-peer-deps --no-audit --no-fund
       - run: npx prisma generate
       - run: npx vitest run lib/__tests__/visibility-hardening.test.ts
       - run: npx tsc --noEmit
