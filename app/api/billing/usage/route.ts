@@ -9,6 +9,11 @@ export async function GET() {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
+  const rl = await rateLimit(`billing-usage:${auth.agencyId}`, billingUsageLimit(), billingUsageWindowMs());
+  if (!rl.ok) {
+    return NextResponse.json({ error: "Too many usage requests. Try again later." }, { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } });
+  }
+
   const summary = await getUsageSummary(auth.agencyId);
 
   const plans = await prisma.plan.findMany({
