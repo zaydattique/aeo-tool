@@ -1,9 +1,9 @@
-name: P0-C provider concurrency hardening
+name: P0-F crawl resource hardening
 
 on:
   push:
     branches:
-      - phase0c-provider-concurrency
+      - phase0f-crawl-resource-hardening
   pull_request:
     branches:
       - main
@@ -14,12 +14,10 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-
       - run: npm install --legacy-peer-deps --no-audit --no-fund
       - run: npx prisma generate
-      - run: npx vitest run lib/__tests__/visibility-hardening.test.ts
+      - run: npx vitest run lib/__tests__/url-and-safe-fetch.test.ts
       - run: npx tsc --noEmit

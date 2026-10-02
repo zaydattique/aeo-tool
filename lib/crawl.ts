@@ -193,12 +193,17 @@ async function crawlWithFirecrawl(url: string): Promise<CrawlResult> {
   if (!v.ok) throw new Error(v.error);
   const apiKey = process.env.FIRECRAWL_API_KEY!;
 
-  const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 35_000);
+  let res: Response;
+  try {
+    res = await fetch("https://api.firecrawl.dev/v1/scrape", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
     },
+    signal: controller.signal,
     body: JSON.stringify({
       url: v.url,
       formats: ["markdown", "html"],
@@ -206,13 +211,24 @@ async function crawlWithFirecrawl(url: string): Promise<CrawlResult> {
       timeout: 30000,
     }),
   });
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error(`Firecrawl error ${res.status}: ${text.slice(0, 200)}`);
   }
 
-  const json = await res.json();
+  const contentLength = Number(res.headers.get("content-length") || 0);
+  if (contentLength > 10 * 1024 * 1024) {
+    throw new Error("Firecrawl response exceeded 10MB");
+  }
+  const jsonText = await res.text();
+  if (Buffer.byteLength(jsonText, "utf8") > 10 * 1024 * 1024) {
+    throw new Error("Firecrawl response exceeded 10MB");
+  }
+  const json = JSON.parse(jsonText);
   const data = json.data || json;
 
   const html: string = data.html || "";
@@ -244,6 +260,9 @@ async function crawlBasic(url: string): Promise<CrawlResult> {
   }
 
   const html = await res.text();
+  if (Buffer.byteLength(html, "utf8") > 5 * 1024 * 1024) {
+    throw new Error("Basic crawl response exceeded 5MB");
+  }
   const signals = extractSignals(html, url);
 
   const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);

@@ -11,6 +11,23 @@ const CONNECT_TIMEOUT_MS = 10_000;
 const TOTAL_TIMEOUT_MS = 25_000;
 const MAX_BODY_BYTES = 5 * 1024 * 1024; // 5MB
 
+function envInt(name: string, fallback: number, min: number, max: number): number {
+  const value = Number.parseInt(process.env[name] || "", 10);
+  return Number.isFinite(value) ? Math.min(max, Math.max(min, value)) : fallback;
+}
+
+function maxRedirects(): number {
+  return envInt("CRAWL_MAX_REDIRECTS", MAX_REDIRECTS, 0, 10);
+}
+
+function totalTimeoutMs(): number {
+  return envInt("CRAWL_TIMEOUT_MS", TOTAL_TIMEOUT_MS, 1_000, 60_000);
+}
+
+function maxBodyBytes(): number {
+  return envInt("CRAWL_MAX_RESPONSE_BYTES", MAX_BODY_BYTES, 64 * 1024, 10 * 1024 * 1024);
+}
+
 const ALLOWED_CONTENT_TYPES = [
   "text/html",
   "application/xhtml+xml",
@@ -220,7 +237,7 @@ export async function safeFetch(
   url: string,
   opts: SafeFetchOptions = {}
 ): Promise<SafeFetchResult> {
-  const totalTimeout = opts.timeoutMs ?? TOTAL_TIMEOUT_MS;
+  const totalTimeout = opts.timeoutMs ?? totalTimeoutMs();
   const deadline = Date.now() + totalTimeout;
   let current = validateUrlShape(url);
   let redirects = 0;
@@ -236,7 +253,7 @@ export async function safeFetch(
     const controller = new AbortController();
     const timer = setTimeout(
       () => controller.abort(),
-      Math.min(CONNECT_TIMEOUT_MS, remaining)
+      Math.min(envInt("CRAWL_CONNECT_TIMEOUT_MS", CONNECT_TIMEOUT_MS, 500, 20_000), remaining)
     );
 
     let res: Response;
@@ -267,7 +284,7 @@ export async function safeFetch(
       const loc = res.headers.get("location");
       if (!loc) throw new Error("Redirect without Location header");
       redirects += 1;
-      if (redirects > MAX_REDIRECTS) throw new Error("Too many redirects");
+      if (redirects > maxRedirects()) throw new Error("Too many redirects");
       current = validateUrlShape(new URL(loc, current).toString());
       try {
         await res.arrayBuffer();
@@ -298,7 +315,7 @@ export async function safeFetch(
 
     if (Date.now() > deadline) throw new Error("Request timed out");
 
-    const buffer = await readBodyCapped(res, MAX_BODY_BYTES);
+    const buffer = await readBodyCapped(res, maxBodyBytes());
     if (Date.now() > deadline) throw new Error("Request timed out");
 
     const textOnce = new TextDecoder("utf-8", { fatal: false }).decode(buffer);

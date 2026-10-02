@@ -21,3 +21,6 @@
 ## Config
 
 `next.config.ts` (security headers) · `package.json` (`npm test` → vitest) · `.github/workflows/p0c-provider-concurrency.yml`
+
+- prisma/migrations/20261002000000_scan_active_admission_guard/migration.sql — database invariant preventing duplicate active scans.
+- .github/workflows/p0e-queue-admission.yml — P0-E verification workflow.
