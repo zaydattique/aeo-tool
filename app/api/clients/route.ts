@@ -12,15 +12,19 @@ const createSchema = z.object({
   keywords: z.array(z.string().max(100)).max(50).optional(),
 });
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const { error, status, agencyId } = await requireAgency();
   if (error || !agencyId) {
     return NextResponse.json({ error }, { status });
   }
 
+  const rawLimit = Number.parseInt(req.nextUrl.searchParams.get("limit") || "50", 10);
+  const limit = Number.isFinite(rawLimit) ? Math.min(100, Math.max(1, rawLimit)) : 50;
+
   const clients = await prisma.client.findMany({
     where: { agencyId, deletedAt: null },
     orderBy: { createdAt: "desc" },
+    take: limit,
     select: {
       id: true,
       name: true,
