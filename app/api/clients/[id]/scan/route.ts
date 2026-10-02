@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma";
 import { requireAgency, canManageClients } from "@/lib/session";
 import { enqueueSimulatedScan } from "@/lib/scan-worker";
 import { rateLimit } from "@/lib/rate-limit";
+import { admitScan } from "@/lib/scan-admission";
+import { scanAgencyBacklogLimit, scanGlobalBacklogLimit, scanAdmissionLockTimeoutMs } from "@/lib/visibility-config";
 
 export async function POST(
   _req: NextRequest,
@@ -41,12 +43,26 @@ export async function POST(
     include: { plan: true },
   });
 
-  const scanAdmission = await prisma.$transaction(async (tx) => {
-    // Serialize scan admission per agency so concurrent requests cannot overshoot
-    // the monthly plan quota or both pass the active-scan check.
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${auth.agencyId}))`;
+  const scanAdmission = await prisma.$transaction((tx) =>
+    admitScan(
+      tx,
+      {
+        agencyId: auth.agencyId!,
+        clientId,
+        websiteUrl: client.websiteUrl,
+        actorId: auth.session!.user.id,
+        maxScansPerMonth: agency?.plan?.maxScansPerMonth ?? null,
+      },
+      {
+        globalBacklogLimit: scanGlobalBacklogLimit(),
+        agencyBacklogLimit: scanAgencyBacklogLimit(),
+        lockTimeoutMs: scanAdmissionLockTimeoutMs(),
+      }
+    )
+  );
 
-    const activeScan = await tx.scan.findFirst({
+  if (scanAdmission.reason === "ACTIVE_SCAN") {
+    const activeScan = await prisma.scan.findFirst({
       where: {
         clientId,
         agencyId: auth.agencyId,
@@ -54,67 +70,16 @@ export async function POST(
       },
       orderBy: { createdAt: "asc" },
     });
-
-    if (activeScan) return { activeScan, scan: null, quotaExceeded: false };
-
-    if (agency?.plan) {
-      const periodStart = new Date();
-      periodStart.setDate(1);
-      periodStart.setHours(0, 0, 0, 0);
-
-      const scansThisMonth = await tx.scan.count({
-        where: {
-          agencyId: auth.agencyId,
-          createdAt: { gte: periodStart },
-          status: { not: "FAILED" },
-        },
-      });
-
-      if (scansThisMonth >= agency.plan.maxScansPerMonth) {
-        return { activeScan: null, scan: null, quotaExceeded: true };
-      }
-    }
-
-    const scan = await tx.scan.create({
-      data: {
-        agencyId: auth.agencyId!,
-        clientId,
-        status: "QUEUED",
-        stage: "QUEUED",
-        progress: 0,
-      },
-    });
-
-    await tx.client.update({
-      where: { id: clientId },
-      data: { status: "SCANNING" },
-    });
-
-    await tx.activityLog.create({
-      data: {
-        agencyId: auth.agencyId!,
-        actorId: auth.session!.user.id,
-        action: "scan.started",
-        resourceType: "scan",
-        resourceId: scan.id,
-        metadata: { clientId, websiteUrl: client.websiteUrl },
-      },
-    });
-
-    return { activeScan: null, scan, quotaExceeded: false };
-  });
-
-  if (scanAdmission.activeScan) {
     return NextResponse.json(
       {
         error: "A scan is already in progress for this client",
-        scanId: scanAdmission.activeScan.id,
+        scanId: activeScan?.id,
       },
       { status: 409 }
     );
   }
 
-  if (scanAdmission.quotaExceeded) {
+  if (scanAdmission.reason === "MONTHLY_QUOTA") {
     return NextResponse.json(
       {
         error: `Monthly scan limit reached (${agency?.plan?.maxScansPerMonth}). Upgrade your plan.`,
@@ -123,8 +88,17 @@ export async function POST(
     );
   }
 
-  const scan = scanAdmission.scan!;
+  if (scanAdmission.reason === "GLOBAL_BACKLOG" || scanAdmission.reason === "AGENCY_BACKLOG") {
+    return NextResponse.json(
+      {
+        error: "Scan queue is currently full. Please retry shortly.",
+        retryable: true,
+      },
+      { status: 429, headers: { "Retry-After": "30" } }
+    );
+  }
 
+  const scan = scanAdmission.scan!;
 
   enqueueSimulatedScan(scan.id);
 
