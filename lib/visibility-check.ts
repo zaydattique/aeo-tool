@@ -11,6 +11,8 @@
  * Competitor-aware scoring for kind=competitor prompts.
  */
 
+import { withProviderCache } from "./visibility-cache";
+
 export type EngineResult = {
   engine: string;
   score: number;
@@ -19,6 +21,8 @@ export type EngineResult = {
   snippet?: string;
   citations?: string[];
   live: boolean;
+  cacheHit?: boolean;
+  cachedAt?: string;
 };
 
 export type PromptCheckResult = {
@@ -29,6 +33,7 @@ export type PromptCheckResult = {
   brandMentioned: boolean;
   competitorMentioned: boolean;
   liveEngineCount: number;
+  freshLiveEngineCount: number;
 };
 
 export type LiveEngineCapability = {
@@ -153,7 +158,7 @@ export function getLiveEngineCapabilities(): LiveEngineCapability[] {
   ];
 }
 
-async function checkPerplexityLive(
+async function checkPerplexityLiveUncached(
   promptText: string,
   brandName: string,
   competitorName?: string | null
@@ -203,7 +208,25 @@ async function checkPerplexityLive(
   }
 }
 
-async function checkOpenAiLive(
+
+async function checkPerplexityLive(
+  agencyId: string,
+  clientId: string,
+  promptText: string,
+  brandName: string,
+  competitorName?: string | null,
+  kind?: string
+): Promise<EngineResult | null> {
+  const model = "sonar";
+  const cached = await withProviderCache(
+    { agencyId, clientId, engine: "perplexity", model, promptText, brandName, competitorName, kind },
+    () => checkPerplexityLiveUncached(promptText, brandName, competitorName)
+  );
+  if (!cached.value) return null;
+  return { ...cached.value, cacheHit: cached.cacheHit, cachedAt: cached.cachedAt };
+}
+
+async function checkOpenAiLiveUncached(
   promptText: string,
   brandName: string,
   competitorName?: string | null
@@ -246,7 +269,25 @@ async function checkOpenAiLive(
   }
 }
 
-async function checkGeminiLive(
+
+async function checkOpenAiLive(
+  agencyId: string,
+  clientId: string,
+  promptText: string,
+  brandName: string,
+  competitorName?: string | null,
+  kind?: string
+): Promise<EngineResult | null> {
+  const model = process.env.OPENAI_VISIBILITY_MODEL || "gpt-4o-mini";
+  const cached = await withProviderCache(
+    { agencyId, clientId, engine: "chatgpt", model, promptText, brandName, competitorName, kind },
+    () => checkOpenAiLiveUncached(promptText, brandName, competitorName)
+  );
+  if (!cached.value) return null;
+  return { ...cached.value, cacheHit: cached.cacheHit, cachedAt: cached.cachedAt };
+}
+
+async function checkGeminiLiveUncached(
   promptText: string,
   brandName: string,
   competitorName?: string | null
@@ -295,7 +336,25 @@ async function checkGeminiLive(
   }
 }
 
-async function checkClaudeLive(
+
+async function checkGeminiLive(
+  agencyId: string,
+  clientId: string,
+  promptText: string,
+  brandName: string,
+  competitorName?: string | null,
+  kind?: string
+): Promise<EngineResult | null> {
+  const model = process.env.GEMINI_VISIBILITY_MODEL || "gemini-2.0-flash";
+  const cached = await withProviderCache(
+    { agencyId, clientId, engine: "gemini", model, promptText, brandName, competitorName, kind },
+    () => checkGeminiLiveUncached(promptText, brandName, competitorName)
+  );
+  if (!cached.value) return null;
+  return { ...cached.value, cacheHit: cached.cacheHit, cachedAt: cached.cachedAt };
+}
+
+async function checkClaudeLiveUncached(
   promptText: string,
   brandName: string,
   competitorName?: string | null
@@ -340,7 +399,27 @@ async function checkClaudeLive(
   }
 }
 
+
+async function checkClaudeLive(
+  agencyId: string,
+  clientId: string,
+  promptText: string,
+  brandName: string,
+  competitorName?: string | null,
+  kind?: string
+): Promise<EngineResult | null> {
+  const model = process.env.ANTHROPIC_VISIBILITY_MODEL || "claude-3-5-haiku-latest";
+  const cached = await withProviderCache(
+    { agencyId, clientId, engine: "claude", model, promptText, brandName, competitorName, kind },
+    () => checkClaudeLiveUncached(promptText, brandName, competitorName)
+  );
+  if (!cached.value) return null;
+  return { ...cached.value, cacheHit: cached.cacheHit, cachedAt: cached.cachedAt };
+}
+
 export async function checkPromptVisibility(opts: {
+  agencyId: string;
+  clientId: string;
   promptText: string;
   brandName: string;
   baseScore: number;
@@ -348,6 +427,8 @@ export async function checkPromptVisibility(opts: {
   competitorName?: string | null;
 }): Promise<PromptCheckResult> {
   const {
+    agencyId,
+    clientId,
     promptText,
     brandName,
     baseScore,
@@ -364,16 +445,18 @@ export async function checkPromptVisibility(opts: {
   });
 
   const liveResults = await Promise.all([
-    checkPerplexityLive(promptText, brandName, competitorName),
-    checkOpenAiLive(promptText, brandName, competitorName),
-    checkGeminiLive(promptText, brandName, competitorName),
-    checkClaudeLive(promptText, brandName, competitorName),
+    checkPerplexityLive(agencyId, clientId, promptText, brandName, competitorName, kind),
+    checkOpenAiLive(agencyId, clientId, promptText, brandName, competitorName, kind),
+    checkGeminiLive(agencyId, clientId, promptText, brandName, competitorName, kind),
+    checkClaudeLive(agencyId, clientId, promptText, brandName, competitorName, kind),
   ]);
 
   let liveEngineCount = 0;
+  let freshLiveEngineCount = 0;
   for (const live of liveResults) {
     if (!live) continue;
     liveEngineCount += 1;
+    if (!live.cacheHit) freshLiveEngineCount += 1;
     const idx = engines.findIndex((e) => e.engine === live.engine);
     if (idx >= 0) engines[idx] = live;
     else engines.push(live);
@@ -402,5 +485,6 @@ export async function checkPromptVisibility(opts: {
     brandMentioned,
     competitorMentioned,
     liveEngineCount,
+    freshLiveEngineCount,
   };
 }

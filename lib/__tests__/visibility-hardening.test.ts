@@ -14,6 +14,7 @@ import {
 } from "../rate-limit";
 import {
   countExpectedOps,
+  countFreshVisibilityOps,
   idempotencyKeyMatchesClient,
 } from "../visibility-job";
 import { cappedConsume, computeJobSettlement } from "../visibility-usage";
@@ -99,6 +100,26 @@ describe("countExpectedOps", () => {
     } else {
       expect(ops).toBe(10 * live);
     }
+  });
+});
+
+
+describe("fresh provider-call accounting", () => {
+  it("charges one soft op for heuristic-only runs", () => {
+    expect(countFreshVisibilityOps(0, 0)).toBe(1);
+  });
+
+  it("charges every fresh live provider call", () => {
+    expect(countFreshVisibilityOps(4, 4)).toBe(4);
+    expect(countFreshVisibilityOps(2, 1)).toBe(1);
+  });
+
+  it("cached live results consume zero new provider ops", () => {
+    expect(countFreshVisibilityOps(4, 0)).toBe(0);
+  });
+
+  it("never exceeds the number of live engines", () => {
+    expect(countFreshVisibilityOps(2, 99)).toBe(2);
   });
 });
 
