@@ -14,6 +14,8 @@ export async function GET(req: NextRequest) {
   const statusFilter = sp.get("status") || undefined;
   const priorityFilter = sp.get("priority") || undefined;
   const categoryFilter = sp.get("category") || undefined;
+  const rawLimit = Number.parseInt(sp.get("limit") || "100", 10);
+  const limit = Number.isFinite(rawLimit) ? Math.min(200, Math.max(1, rawLimit)) : 100;
 
   const where: {
     agencyId: string;
@@ -45,6 +47,7 @@ export async function GET(req: NextRequest) {
 
   const actions = await prisma.action.findMany({
     where,
+    take: limit + 1,
     orderBy: [
       { priority: "asc" }, // HIGH first if we map carefully — Prisma enums order by definition
       { createdAt: "desc" },
@@ -62,6 +65,9 @@ export async function GET(req: NextRequest) {
     },
   });
 
+  const hasMore = actions.length > limit;
+  if (hasMore) actions.splice(limit);
+
   // Sort HIGH → MEDIUM → LOW manually (Prisma enum order is definition order)
   const priorityOrder = { HIGH: 0, MEDIUM: 1, LOW: 2 };
   actions.sort(
@@ -69,5 +75,5 @@ export async function GET(req: NextRequest) {
       (priorityOrder[a.priority] ?? 9) - (priorityOrder[b.priority] ?? 9)
   );
 
-  return NextResponse.json({ actions });
+  return NextResponse.json({ actions, hasMore });
 }

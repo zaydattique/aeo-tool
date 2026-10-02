@@ -118,10 +118,14 @@ export async function GET(
     return NextResponse.json({ error: "Client not found" }, { status: 404 });
   }
 
+  const rawLimit = Number.parseInt(_req.nextUrl.searchParams.get("limit") || "200", 10);
+  const limit = Number.isFinite(rawLimit) ? Math.min(500, Math.max(1, rawLimit)) : 200;
+
   const [snapshots, activeJob] = await Promise.all([
     prisma.visibilitySnapshot.findMany({
       where: { clientId, agencyId },
       orderBy: { recordedAt: "asc" },
+      take: limit + 1,
       include: {
         prompt: {
           select: { id: true, promptText: true, kind: true, targetName: true },
@@ -138,11 +142,14 @@ export async function GET(
     }),
   ]);
 
+  const hasMore = snapshots.length > limit;
+
   return NextResponse.json({
-    snapshots: snapshots.map((s) => ({
+    snapshots: (hasMore ? snapshots.slice(0, limit) : snapshots).map((s) => ({
       ...s,
       score: Number(s.score),
     })),
+    hasMore,
     activeJob: activeJob
       ? {
           id: activeJob.id,
