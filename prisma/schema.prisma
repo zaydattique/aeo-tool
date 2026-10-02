@@ -221,6 +221,7 @@ model Client {
 
   @@index([agencyId])
   @@index([agencyId, deletedAt])
+  @@index([agencyId, createdAt])
   @@index([status])
   @@index([lastScannedAt])
   @@index([rescanEnabled, nextRescanAt])
@@ -282,6 +283,7 @@ model Action {
   @@index([agencyId])
   @@index([clientId])
   @@index([agencyId, status])
+  @@index([agencyId, status, createdAt])
   @@index([agencyId, priority])
   @@index([assignedToId])
   @@index([scanId])
@@ -371,6 +373,7 @@ model VisibilityJob {
   @@index([agencyId])
   @@index([clientId])
   @@index([agencyId, status])
+  @@index([agencyId, status, createdAt])
   @@index([status, createdAt])
   @@index([clientId, status])
 }
@@ -392,6 +395,7 @@ model Report {
   generatedBy     User?    @relation("ReportGenerator", fields: [generatedById], references: [id])
 
   @@index([agencyId])
+  @@index([agencyId, deletedAt, createdAt])
   @@index([clientId])
   @@index([liveLinkToken])
   @@index([deletedAt])
