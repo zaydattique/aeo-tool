@@ -249,7 +249,7 @@ export async function withVisibilityProviderConcurrency<T>(
       }
 
       const release = await acquireLocal(
-        localKey(opts.engine, opts.agencyId),
+        localKeys(opts.engine, opts.agencyId),
         globalLimit,
         providerLimit,
         agencyLimit,
