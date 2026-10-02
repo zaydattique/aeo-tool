@@ -145,7 +145,7 @@ export const weeklyRescanCron = inngest.createFunction(
 
     for (const client of due) {
       await step.run(`rescan-${client.id}`, async () => {
-        await prisma.$transaction(async (tx) => {
+        const scan = await prisma.$transaction(async (tx) => {
           await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${client.id}))`;
 
           const active = await tx.scan.findFirst({
@@ -154,7 +154,7 @@ export const weeklyRescanCron = inngest.createFunction(
               status: { in: ["QUEUED", "RUNNING"] },
             },
           });
-          if (active) return;
+          if (active) return null;
 
           if (client.agency.plan) {
             const periodStart = new Date();
@@ -176,11 +176,11 @@ export const weeklyRescanCron = inngest.createFunction(
                   ),
                 },
               });
-              return;
+              return null;
             }
           }
 
-          const scan = await tx.scan.create({
+          const newScan = await tx.scan.create({
             data: {
               agencyId: client.agencyId,
               clientId: client.id,
@@ -200,11 +200,30 @@ export const weeklyRescanCron = inngest.createFunction(
             },
           });
 
-          // Event delivery happens after the transaction below; the unique
-          // active-scan index protects admission if another worker races us.
+          return newScan;
+        });
+
+        if (!scan) return;
+
+        try {
           await inngest.send({ name: "scan/run", data: { scanId: scan.id } });
           enqueued += 1;
-        });
+        } catch (err) {
+          await prisma.scan.update({
+            where: { id: scan.id },
+            data: {
+              status: "FAILED",
+              stage: "FAILED",
+              errorMessage: "Unable to enqueue scheduled scan",
+              completedAt: new Date(),
+            },
+          }).catch(() => {});
+          await prisma.client.update({
+            where: { id: client.id },
+            data: { status: "ERROR" },
+          }).catch(() => {});
+          throw err;
+        }
       });
     }
     return { due: due.length, enqueued };
