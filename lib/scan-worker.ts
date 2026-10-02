@@ -298,7 +298,8 @@ export async function enqueueScan(scanId: string) {
     runScan(scanId).catch((err) => {
       console.error(`[scan-worker] Unhandled error for ${scanId}:`, err);
     });
-  });}
+  });
+}
 
 export const enqueueSimulatedScan = (scanId: string) => {
   void enqueueScan(scanId);
