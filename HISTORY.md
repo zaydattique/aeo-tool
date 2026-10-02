@@ -278,3 +278,11 @@ These controls reduce application/provider resource amplification from slow, red
 P0-H adds defense-in-depth controls to public account and recovery endpoints. Signup now has a per-email bucket in addition to its existing per-IP bucket. Password recovery has a per-email bucket in addition to its existing per-IP bucket, reducing reset-email flooding against one account. Reset-password requests add a hashed-token bucket, and invite acceptance receives a per-IP bucket.
 
 Client IP extraction is centralized with an explicit trust-boundary comment: forwarding headers are only trustworthy when the public edge/proxy strips and rewrites client-supplied values. This phase does not claim edge/WAF bot protection or DDoS immunity.
+
+
+## P0-I — Provider/network cost isolation
+- Added distributed hourly global + agency provider budgets for scan crawl and paid AI calls.
+- Added bounded AI provider timeout/response size and normalized AI issue output limits.
+- Added Firecrawl response, stored-link, and metadata caps to limit response amplification.
+- Preserved P0-B/C visibility caching/concurrency and P0-G scan admission/execution controls.
+- Production budget/rate controls fail closed when Redis is required but unavailable.
