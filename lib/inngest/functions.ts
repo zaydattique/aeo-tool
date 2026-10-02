@@ -145,63 +145,68 @@ export const weeklyRescanCron = inngest.createFunction(
 
     for (const client of due) {
       await step.run(`rescan-${client.id}`, async () => {
-        const active = await prisma.scan.findFirst({
-          where: {
-            clientId: client.id,
-            status: { in: ["QUEUED", "RUNNING"] },
-          },
-        });
-        if (active) return;
+        await prisma.$transaction(async (tx) => {
+          await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${client.id}))`;
 
-        if (client.agency.plan) {
-          const periodStart = new Date();
-          periodStart.setDate(1);
-          periodStart.setHours(0, 0, 0, 0);
-          const used = await prisma.scan.count({
+          const active = await tx.scan.findFirst({
             where: {
-              agencyId: client.agencyId,
-              createdAt: { gte: periodStart },
-              status: { not: "FAILED" },
+              clientId: client.id,
+              status: { in: ["QUEUED", "RUNNING"] },
             },
           });
-          if (used >= client.agency.plan.maxScansPerMonth) {
-            await prisma.client.update({
-              where: { id: client.id },
-              data: {
-                nextRescanAt: new Date(
-                  Date.now() + client.rescanIntervalDays * 86400000
-                ),
+          if (active) return;
+
+          if (client.agency.plan) {
+            const periodStart = new Date();
+            periodStart.setDate(1);
+            periodStart.setHours(0, 0, 0, 0);
+            const used = await tx.scan.count({
+              where: {
+                agencyId: client.agencyId,
+                createdAt: { gte: periodStart },
+                status: { not: "FAILED" },
               },
             });
-            return;
+            if (used >= client.agency.plan.maxScansPerMonth) {
+              await tx.client.update({
+                where: { id: client.id },
+                data: {
+                  nextRescanAt: new Date(
+                    Date.now() + client.rescanIntervalDays * 86400000
+                  ),
+                },
+              });
+              return;
+            }
           }
-        }
 
-        const scan = await prisma.scan.create({
-          data: {
-            agencyId: client.agencyId,
-            clientId: client.id,
-            status: "QUEUED",
-            stage: "QUEUED",
-            progress: 0,
-          },
+          const scan = await tx.scan.create({
+            data: {
+              agencyId: client.agencyId,
+              clientId: client.id,
+              status: "QUEUED",
+              stage: "QUEUED",
+              progress: 0,
+            },
+          });
+
+          await tx.client.update({
+            where: { id: client.id },
+            data: {
+              status: "SCANNING",
+              nextRescanAt: new Date(
+                Date.now() + client.rescanIntervalDays * 86400000
+              ),
+            },
+          });
+
+          // Event delivery happens after the transaction below; the unique
+          // active-scan index protects admission if another worker races us.
+          await inngest.send({ name: "scan/run", data: { scanId: scan.id } });
+          enqueued += 1;
         });
-
-        await prisma.client.update({
-          where: { id: client.id },
-          data: {
-            status: "SCANNING",
-            nextRescanAt: new Date(
-              Date.now() + client.rescanIntervalDays * 86400000
-            ),
-          },
-        });
-
-        await inngest.send({ name: "scan/run", data: { scanId: scan.id } });
-        enqueued += 1;
       });
     }
-
     return { due: due.length, enqueued };
   }
 );
