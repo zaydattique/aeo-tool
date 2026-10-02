@@ -1,0 +1,23 @@
+name: P0-O database pool hardening
+
+on:
+  push:
+    branches: [main, phase0o-db-pool-hardening]
+  pull_request:
+    branches: [main]
+
+jobs:
+  db-pool:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --legacy-peer-deps --no-audit --no-fund
+      - run: npx prisma generate
+      - run: npx prisma validate
+      - run: npx vitest run lib/__tests__/db-pool-hardening.test.ts
+      - run: npx tsc --noEmit
