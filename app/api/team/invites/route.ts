@@ -48,6 +48,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
 
+  const rl = await rateLimit(`team-invite:${auth.agencyId}`, teamInviteLimit(), teamInviteWindowMs());
+  if (!rl.ok) {
+    return NextResponse.json({ error: "Too many team invitations. Try again later." }, { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } });
+  }
+
   // Only owners can invite
   if (
     auth.session.user.role !== "AGENCY_OWNER" &&
