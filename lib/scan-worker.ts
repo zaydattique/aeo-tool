@@ -114,11 +114,13 @@ export async function runScan(scanId: string) {
 
     await updateStage(scanId, "AI_ANALYSIS", 55);
 
-    const aiBudget = await consumeProviderBudget("ai", scan.agencyId);
-    if (!aiBudget.ok) {
-      throw new Error(
-        `AI provider budget exhausted; retry after ${aiBudget.retryAfterSec}s`
-      );
+    if (process.env.ANTHROPIC_API_KEY) {
+      const aiBudget = await consumeProviderBudget("ai", scan.agencyId);
+      if (!aiBudget.ok) {
+        throw new Error(
+          `AI provider budget exhausted; retry after ${aiBudget.retryAfterSec}s`
+        );
+      }
     }
 
     const analysis = await analyzeForAeo(
