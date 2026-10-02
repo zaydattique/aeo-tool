@@ -286,3 +286,10 @@ Client IP extraction is centralized with an explicit trust-boundary comment: for
 - Added Firecrawl response, stored-link, and metadata caps to limit response amplification.
 - Preserved P0-B/C visibility caching/concurrency and P0-G scan admission/execution controls.
 - Production budget/rate controls fail closed when Redis is required but unavailable.
+
+
+## P0-J — Database/query hardening
+- Added tenant-scoped composite indexes for high-frequency list/status queries.
+- Added bounded list responses for clients, actions, and visibility snapshots with explicit `hasMore` metadata.
+- Documented bounded Prisma connection-pool guidance for production Postgres.
+- Preserved the prior P0-A through P0-I controls.
