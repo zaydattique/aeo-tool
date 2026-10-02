@@ -173,7 +173,7 @@ export async function POST(
       return NextResponse.json({ prompts }, { status: 201 });
     }
 
-    return NextResponse.json({ prompt: result.prompt }, { status: 201 });1 });
+    return NextResponse.json({ prompt: result.prompt }, { status: 201 });
   } catch (err) {
     if (err instanceof Error && err.message === "REQUEST_BODY_TOO_LARGE") return NextResponse.json({ error: "Request body too large" }, { status: 413 });
     if (err instanceof Error && err.message === "PROMPT_LIMIT_REACHED") return NextResponse.json({ error: "Prompt limit reached. Upgrade your plan." }, { status: 403 });
