@@ -187,21 +187,62 @@ export function VisibilityReports({ clientId }: { clientId: string }) {
     setError("");
     setLastCheckInfo("");
     try {
+      const idempotencyKey =
+        typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `vis-${Date.now()}`;
       const res = await fetch(`/api/clients/${clientId}/snapshots`, {
         method: "POST",
+        headers: { "Idempotency-Key": idempotencyKey },
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || "Failed to record");
-      } else {
-        const live = data.maxLiveEngines ?? 0;
-        setLastCheckInfo(
-          live > 0
-            ? `Check saved · up to ${live} live engine(s) responded`
-            : "Check saved · heuristic only (no live API keys)"
-        );
-        await load();
+        setError(data.error || "Failed to start visibility check");
+        return;
       }
+      const jobId = data.jobId || data.job?.id;
+      if (!jobId) {
+        setError("No job id returned");
+        return;
+      }
+      setLastCheckInfo(
+        data.deduplicated
+          ? "Visibility job already running — waiting…"
+          : "Visibility job queued — checking…"
+      );
+
+      const terminal = new Set(["COMPLETED", "PARTIAL", "FAILED"]);
+      let attempts = 0;
+      while (attempts < 90) {
+        attempts += 1;
+        await new Promise((r) => setTimeout(r, 2000));
+        const jRes = await fetch(
+          `/api/clients/${clientId}/snapshots/jobs/${jobId}`
+        );
+        if (!jRes.ok) break;
+        const jData = await jRes.json();
+        const job = jData.job;
+        if (!job) break;
+        setLastCheckInfo(
+          `Visibility ${String(job.status).toLowerCase()} · ${job.progress ?? 0}% · ${job.successCount ?? 0}/${job.promptCount ?? "?"} prompts`
+        );
+        if (terminal.has(job.status)) {
+          if (job.status === "FAILED") {
+            setError(job.errorMessage || "Visibility job failed");
+          } else {
+            const live = job.liveEngineCount ?? 0;
+            setLastCheckInfo(
+              job.status === "PARTIAL"
+                ? `Partial save · ${job.successCount} ok, ${job.failureCount} failed · live engines ${live}`
+                : live > 0
+                  ? `Check saved · up to ${live} live engine(s) responded`
+                  : "Check saved · heuristic only (no live API keys)"
+            );
+          }
+          break;
+        }
+      }
+      await load();
     } finally {
       setBusy(false);
     }
@@ -239,7 +280,6 @@ export function VisibilityReports({ clientId }: { clientId: string }) {
 
   return (
     <div className="space-y-8">
-      {/* Live engines status */}
       <div className="rounded-lg border bg-white p-4">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground mb-2">
           Live engines
@@ -275,7 +315,6 @@ export function VisibilityReports({ clientId }: { clientId: string }) {
         )}
       </div>
 
-      {/* Competitors + SOV */}
       <div className="rounded-lg border bg-white p-5 space-y-4">
         <div>
           <h2 className="font-medium text-lg">Competitors & share-of-answer</h2>
@@ -378,7 +417,6 @@ export function VisibilityReports({ clientId }: { clientId: string }) {
         )}
       </div>
 
-      {/* Visibility tracking */}
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
@@ -489,7 +527,6 @@ export function VisibilityReports({ clientId }: { clientId: string }) {
         </form>
       </div>
 
-      {/* Reports */}
       <div className="space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
@@ -594,25 +631,15 @@ function ScoreChart({ points }: { points: { date: string; avg: number }[] }) {
     const y = h - (p.avg / max) * h;
     return `${x},${y}`;
   });
-
   return (
     <div>
-      <svg
-        viewBox={`0 0 ${w} ${h}`}
-        className="w-full h-24"
-        preserveAspectRatio="none"
-      >
+      <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-12">
         <polyline
           fill="none"
-          stroke="#3b82f6"
-          strokeWidth="1.5"
+          stroke="#2563eb"
+          strokeWidth="2"
           points={coords.join(" ")}
         />
-        {points.map((p, i) => {
-          const x = points.length === 1 ? w / 2 : (i / (points.length - 1)) * w;
-          const y = h - (p.avg / max) * h;
-          return <circle key={i} cx={x} cy={y} r="1.5" fill="#3b82f6" />;
-        })}
       </svg>
       <div className="flex justify-between text-xs text-muted-foreground mt-1">
         <span>{points[0]?.date}</span>

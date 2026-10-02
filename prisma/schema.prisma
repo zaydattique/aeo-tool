@@ -47,6 +47,14 @@ enum ScanStage {
   FAILED
 }
 
+enum VisibilityJobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  PARTIAL
+  FAILED
+}
+
 enum ActionPriority {
   HIGH
   MEDIUM
@@ -143,6 +151,7 @@ model Agency {
   activityLogs         ActivityLog[]
   subscriptions        Subscription[]
   usageMeters          UsageMeter[]
+  visibilityJobs       VisibilityJob[]
 
   @@index([status])
   @@index([deletedAt])
@@ -189,7 +198,6 @@ model Client {
   brandName              String?
   location               String?
   keywords               String[]
-  // Phase 13.3 — competitor names for SOV prompts
   competitors            String[]
   currentVisibilityScore Int?
   lastScannedAt          DateTime?
@@ -208,6 +216,7 @@ model Client {
   actions                Action[]
   trackedPrompts         TrackedPrompt[]
   visibilitySnapshots    VisibilitySnapshot[]
+  visibilityJobs         VisibilityJob[]
   reports                Report[]
 
   @@index([agencyId])
@@ -284,7 +293,6 @@ model TrackedPrompt {
   clientId       String
   promptText     String
   isCustom       Boolean  @default(false)
-  // brand | category | competitor
   kind           String   @default("brand")
   targetName     String?
   createdAt      DateTime @default(now())
@@ -307,6 +315,7 @@ model VisibilitySnapshot {
   agencyId    String
   clientId    String
   promptId    String
+  jobId       String?
   score       Decimal  @db.Decimal(5, 2)
   sources     Json?
   recordedAt  DateTime @default(now())
@@ -314,11 +323,55 @@ model VisibilitySnapshot {
   agency      Agency   @relation(fields: [agencyId], references: [id])
   client      Client   @relation(fields: [clientId], references: [id])
   prompt      TrackedPrompt @relation(fields: [promptId], references: [id])
+  job         VisibilityJob? @relation(fields: [jobId], references: [id])
 
+  @@unique([jobId, promptId])
   @@index([agencyId])
   @@index([clientId])
   @@index([promptId])
+  @@index([jobId])
   @@index([agencyId, clientId, recordedAt])
+}
+
+model VisibilityJob {
+  id               String              @id @default(cuid())
+  agencyId         String
+  clientId         String
+  status           VisibilityJobStatus @default(QUEUED)
+  progress         Int                 @default(0)
+  promptCount      Int                 @default(0)
+  opsReserved      Int                 @default(0)
+  opsConsumed      Int                 @default(0)
+  usageMeterId     String?
+  /// Once true, meter settle for this job must not run again (retry-safe)
+  usageSettled     Boolean             @default(false)
+  liveEngineCount  Int                 @default(0)
+  successCount     Int                 @default(0)
+  failureCount     Int                 @default(0)
+  /// When set, concurrent/duplicate POSTs with same key return this job (same client only)
+  idempotencyKey   String?
+  /// Non-null only while QUEUED/RUNNING — enables unique active job per client
+  activeClientKey  String?
+  errorMessage     String?
+  resultSummary    Json?
+  actorId          String?
+  startedAt        DateTime?
+  completedAt      DateTime?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  agency           Agency              @relation(fields: [agencyId], references: [id])
+  client           Client              @relation(fields: [clientId], references: [id])
+  usageMeter        UsageMeter?         @relation(fields: [usageMeterId], references: [id])
+  snapshots        VisibilitySnapshot[]
+
+  @@unique([agencyId, idempotencyKey])
+  @@unique([activeClientKey])
+  @@index([agencyId])
+  @@index([clientId])
+  @@index([agencyId, status])
+  @@index([status, createdAt])
+  @@index([clientId, status])
 }
 
 model Report {
@@ -404,18 +457,21 @@ model Subscription {
 }
 
 model UsageMeter {
-  id                String   @id @default(cuid())
-  agencyId          String
-  periodStart       DateTime
-  periodEnd         DateTime
-  clientsCount      Int      @default(0)
-  scansUsed         Int      @default(0)
-  promptsUsed       Int      @default(0)
-  reportsGenerated  Int      @default(0)
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                     String   @id @default(cuid())
+  agencyId               String
+  periodStart            DateTime
+  periodEnd              DateTime
+  clientsCount           Int      @default(0)
+  scansUsed              Int      @default(0)
+  promptsUsed            Int      @default(0)
+  reportsGenerated       Int      @default(0)
+  visibilityOpsUsed      Int      @default(0)
+  visibilityOpsReserved  Int      @default(0)
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 
-  agency            Agency   @relation(fields: [agencyId], references: [id])
+  agency            Agency           @relation(fields: [agencyId], references: [id])
+  visibilityJobs    VisibilityJob[]
 
   @@unique([agencyId, periodStart])
   @@index([agencyId])
