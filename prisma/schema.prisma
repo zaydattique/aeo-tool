@@ -221,7 +221,7 @@ model Client {
 
   @@index([agencyId])
   @@index([agencyId, deletedAt])
-  @@index([agencyId, createdAt])
+  @@index([agencyId, createdAt, id])
   @@index([status])
   @@index([lastScannedAt])
   @@index([rescanEnabled, nextRescanAt])
@@ -284,7 +284,7 @@ model Action {
   @@index([clientId])
   @@index([agencyId, status])
   @@index([agencyId, status, createdAt])
-  @@index([agencyId, priority])
+  @@index([agencyId, priority, createdAt, id])
   @@index([assignedToId])
   @@index([scanId])
   @@index([deletedAt])
@@ -333,7 +333,7 @@ model VisibilitySnapshot {
   @@index([clientId])
   @@index([promptId])
   @@index([jobId])
-  @@index([agencyId, clientId, recordedAt])
+  @@index([agencyId, clientId, recordedAt, id])
 }
 
 model VisibilityJob {
