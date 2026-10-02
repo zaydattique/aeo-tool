@@ -50,6 +50,28 @@ function normalizeEffort(v: string): ActionEffort {
 }
 
 export async function runScan(scanId: string) {
+  // Atomic claim prevents duplicate Inngest events and fallback invocations
+  // from executing the expensive pipeline concurrently.
+  const claim = await prisma.scan.updateMany({
+    where: { id: scanId, status: "QUEUED" },
+    data: {
+      status: "RUNNING",
+      stage: "CRAWL",
+      progress: 5,
+      startedAt: new Date(),
+      errorMessage: null,
+    },
+  });
+
+  if (claim.count !== 1) {
+    const existing = await prisma.scan.findUnique({
+      where: { id: scanId },
+      select: { status: true },
+    });
+    console.log("[scan-worker] Scan " + scanId + " duplicate/no-op; status=" + (existing?.status ?? "MISSING"));
+    return;
+  }
+
   try {
     const scan = await prisma.scan.findUnique({
       where: { id: scanId },
@@ -75,17 +97,6 @@ export async function runScan(scanId: string) {
     if (!urlCheck.ok) {
       throw new Error(`Unsafe website URL: ${urlCheck.error}`);
     }
-
-    await prisma.scan.update({
-      where: { id: scanId },
-      data: {
-        status: "RUNNING",
-        stage: "CRAWL",
-        progress: 5,
-        startedAt: new Date(),
-        errorMessage: null,
-      },
-    });
 
     await updateStage(scanId, "CRAWL", 15);
 
