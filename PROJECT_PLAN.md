@@ -304,3 +304,10 @@ Phase **14B Security** is complete on `main`.
 - [x] Apply the existing AI provider budget to on-demand action redrafts.
 - [x] Cap AI redraft response buffering and stored output size.
 - [x] Dedicated regression tests and CI gate.
+
+
+### P0-Q — Scale/load hardening
+- [x] Added indexes for stale-scan recovery and monthly scan-admission query shapes.
+- [x] Extended the repeatable DB load harness to exercise scan backlog, quota, active-scan, and stale-recovery query paths.
+- [x] Kept the load test bounded and environment-driven; no production credentials or production-sized run claimed.
+- [ ] Production/staging benchmark still requires a populated database and approved credentials.

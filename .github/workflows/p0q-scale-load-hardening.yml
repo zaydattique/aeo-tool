@@ -1,0 +1,22 @@
+name: P0-Q scale load hardening
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, phase0q-scale-load-hardening]
+
+jobs:
+  scale-hardening:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install --legacy-peer-deps --no-audit --no-fund
+      - run: npx prisma generate
+      - run: npx prisma validate
+      - run: npx tsc --noEmit
