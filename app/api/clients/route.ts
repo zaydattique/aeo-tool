@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAgency, canManageClients } from "@/lib/session";
 import { validateWebsiteUrl, suggestBrandName } from "@/lib/url";
+import { readJsonBody } from "@/lib/request-security";
 
 const createSchema = z.object({
   websiteUrl: z.string().min(1).max(2048),
@@ -71,7 +72,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = await req.json();
+    const body = await readJsonBody<unknown>(req);
     const parsed = createSchema.safeParse(body);
 
     if (!parsed.success) {
@@ -131,6 +132,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ client }, { status: 201 });
   } catch (err) {
+    if (err instanceof Error && err.message === "REQUEST_BODY_TOO_LARGE") return NextResponse.json({ error: "Request body too large" }, { status: 413 });
     if (err instanceof Error && err.message === "CLIENT_LIMIT_REACHED") {
       return NextResponse.json({ error: "Plan client limit reached. Upgrade your plan." }, { status: 403 });
     }
