@@ -250,6 +250,7 @@ model Scan {
   @@index([clientId])
   @@index([agencyId, status])
   @@index([status, createdAt])
+  @@index([clientId, status, createdAt])
 }
 
 model Action {
