@@ -294,3 +294,4 @@ Phase **14B Security** is complete on `main`.
 - [x] Supporting composite indexes for cursor order.
 - [x] Repeatable concurrent DB query load-test script with p50/p95/p99 output.
 - [x] Dedicated pagination/TypeScript/Prisma CI gate.
+- [x] CI workflow retained on the phase branch for push/PR verification.
