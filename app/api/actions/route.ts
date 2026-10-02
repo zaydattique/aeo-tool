@@ -15,6 +15,9 @@ export async function GET(req: NextRequest) {
   const priorityFilter = sp.get("priority") || undefined;
   const categoryFilter = sp.get("category") || undefined;
   const rawLimit = Number.parseInt(sp.get("limit") || "100", 10);
+  const cursor = sp.get("cursor");
+  let cursorData: { priority: ActionPriority; createdAt: string; id: string } | null = null;
+  if (cursor) { try { cursorData = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8")); } catch { return NextResponse.json({ error: "Invalid cursor" }, { status: 400 }); } }
   const limit = Number.isFinite(rawLimit) ? Math.min(200, Math.max(1, rawLimit)) : 100;
 
   const where: {
@@ -43,6 +46,12 @@ export async function GET(req: NextRequest) {
     )
   ) {
     where.category = categoryFilter as ActionCategory;
+  }
+
+  if (cursorData) {
+    const before = { OR: [{ createdAt: { lt: new Date(cursorData.createdAt) } }, { createdAt: new Date(cursorData.createdAt), id: { lt: cursorData.id } }] };
+    const laterPriorities = cursorData.priority === "HIGH" ? ["MEDIUM", "LOW"] : cursorData.priority === "MEDIUM" ? ["LOW"] : [];
+    (where as any).AND = [{ OR: [{ priority: cursorData.priority, ...before }, ...(laterPriorities.length ? [{ priority: { in: laterPriorities } }] : [])] }];
   }
 
   const actions = await prisma.action.findMany({
@@ -75,5 +84,8 @@ export async function GET(req: NextRequest) {
       (priorityOrder[a.priority] ?? 9) - (priorityOrder[b.priority] ?? 9)
   );
 
-  return NextResponse.json({ actions, hasMore });
+  const last = actions[actions.length - 1];
+  const nextCursor = hasMore && last ? Buffer.from(JSON.stringify({ priority: last.priority, createdAt: last.createdAt.toISOString(), id: last.id })).toString("base64url") : null;
+
+  return NextResponse.json({ actions, hasMore, nextCursor });
 }
