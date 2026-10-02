@@ -22,6 +22,7 @@ export type EngineResult = {
   citations?: string[];
   live: boolean;
   cacheHit?: boolean;
+  cachedAt?: string;
 };
 
 export type PromptCheckResult = {
@@ -220,7 +221,7 @@ async function checkPerplexityLive(
     () => checkPerplexityLiveUncached(promptText, brandName, competitorName)
   );
   if (!cached.value) return null;
-  return { ...cached.value, cacheHit: cached.cacheHit };
+  return { ...cached.value, cacheHit: cached.cacheHit, cachedAt: cached.cachedAt };
 }
 
 async function checkOpenAiLiveUncached(
