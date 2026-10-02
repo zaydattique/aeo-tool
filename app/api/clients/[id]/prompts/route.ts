@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireAgency, canManageClients } from "@/lib/session";
 import { getDefaultPromptSeeds } from "@/lib/default-prompts";
 import { computeSov } from "@/lib/sov";
+import { readJsonBody } from "@/lib/request-security";
 
 const createSchema = z.object({
   promptText: z.string().min(3).max(500),
@@ -103,70 +105,79 @@ export async function POST(
   }
 
   try {
-    const body = await req.json();
+    const body = await readJsonBody<unknown>(req);
     const parsed = createSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ error: "Invalid input" }, { status: 400 });
     }
 
-    if (parsed.data.seedDefaults) {
-      const existing = await prisma.trackedPrompt.count({
-        where: { clientId, agencyId: auth.agencyId, deletedAt: null },
+    const result = await prisma.$transaction(async (tx) => {
+      const agency = await tx.agency.findUnique({
+        where: { id: auth.agencyId },
+        include: { plan: true },
       });
-      if (existing === 0) {
-        const defaults = getDefaultPromptSeeds(
-          client.brandName || client.name,
-          client.location
-        );
-        await prisma.trackedPrompt.createMany({
-          data: defaults.map((s) => ({
-            agencyId: auth.agencyId!,
-            clientId,
-            promptText: s.promptText,
-            isCustom: false,
-            kind: s.kind,
-            targetName: s.targetName || null,
-          })),
+      const maxPrompts = agency?.plan?.maxTrackedPrompts ?? Number.MAX_SAFE_INTEGER;
+      const existingCount = await tx.trackedPrompt.count({
+        where: { agencyId: auth.agencyId!, deletedAt: null },
+      });
+
+      if (parsed.data.seedDefaults) {
+        const clientPromptCount = await tx.trackedPrompt.count({
+          where: { clientId, agencyId: auth.agencyId!, deletedAt: null },
         });
-        const prompts = await prisma.trackedPrompt.findMany({
-          where: { clientId, agencyId: auth.agencyId, deletedAt: null },
-          orderBy: { createdAt: "asc" },
-        });
-        return NextResponse.json({ prompts }, { status: 201 });
+        if (clientPromptCount === 0) {
+          const defaults = getDefaultPromptSeeds(client.brandName || client.name, client.location);
+          const selected = defaults.slice(0, Math.max(0, maxPrompts - existingCount));
+          if (selected.length < defaults.length && existingCount + defaults.length > maxPrompts) {
+            throw new Error("PROMPT_LIMIT_REACHED");
+          }
+          if (selected.length > 0) {
+            await tx.trackedPrompt.createMany({
+              data: selected.map((s) => ({
+                agencyId: auth.agencyId!,
+                clientId,
+                promptText: s.promptText,
+                isCustom: false,
+                kind: s.kind,
+                targetName: s.targetName || null,
+              })),
+            });
+          }
+          return { seeded: true };
+        }
       }
+
+      if (existingCount >= maxPrompts) {
+        throw new Error("PROMPT_LIMIT_REACHED");
+      }
+
+      const prompt = await tx.trackedPrompt.create({
+        data: {
+          agencyId: auth.agencyId!,
+          clientId,
+          promptText: parsed.data.promptText.trim(),
+          isCustom: true,
+          kind: parsed.data.kind || "brand",
+          targetName: parsed.data.targetName?.trim() || null,
+        },
+      });
+      return { seeded: false, prompt };
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
+
+    if (result.seeded) {
+      const prompts = await prisma.trackedPrompt.findMany({
+        where: { clientId, agencyId: auth.agencyId!, deletedAt: null },
+        orderBy: { createdAt: "asc" },
+        take: 200,
+      });
+      return NextResponse.json({ prompts }, { status: 201 });
     }
 
-    const agency = await prisma.agency.findUnique({
-      where: { id: auth.agencyId },
-      include: { plan: true },
-    });
-    if (agency?.plan) {
-      const count = await prisma.trackedPrompt.count({
-        where: { agencyId: auth.agencyId, deletedAt: null },
-      });
-      if (count >= agency.plan.maxTrackedPrompts) {
-        return NextResponse.json(
-          {
-            error: `Prompt limit reached (${agency.plan.maxTrackedPrompts}). Upgrade your plan.`,
-          },
-          { status: 403 }
-        );
-      }
-    }
-
-    const prompt = await prisma.trackedPrompt.create({
-      data: {
-        agencyId: auth.agencyId,
-        clientId,
-        promptText: parsed.data.promptText.trim(),
-        isCustom: true,
-        kind: parsed.data.kind || "brand",
-        targetName: parsed.data.targetName?.trim() || null,
-      },
-    });
-
-    return NextResponse.json({ prompt }, { status: 201 });
+    return NextResponse.json({ prompt: result.prompt }, { status: 201 });1 });
   } catch (err) {
+    if (err instanceof Error && err.message === "REQUEST_BODY_TOO_LARGE") return NextResponse.json({ error: "Request body too large" }, { status: 413 });
+    if (err instanceof Error && err.message === "PROMPT_LIMIT_REACHED") return NextResponse.json({ error: "Prompt limit reached. Upgrade your plan." }, { status: 403 });
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2034") return NextResponse.json({ error: "Concurrent prompt creation detected. Please retry." }, { status: 409 });
     console.error("Create prompt error:", err);
     return NextResponse.json(
       { error: "Internal server error" },
