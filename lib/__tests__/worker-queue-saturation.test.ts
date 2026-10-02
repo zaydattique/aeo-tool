@@ -14,9 +14,9 @@ describe("P0-S worker queue saturation hardening", () => {
 
   it("serializes scheduled worker cron executions", () => {
     const s = read("lib/inngest/functions.ts");
-    expect(s).toContain('key: '"stale-scan-recovery"'');
-    expect(s).toContain('key: '"weekly-rescan-cron"'');
-    expect(s).toContain('key: '"weekly-digest-cron"'');
+    expect(s).toContain('key: \'"stale-scan-recovery"\'');
+    expect(s).toContain('key: \'"weekly-rescan-cron"\'');
+    expect(s).toContain('key: \'"weekly-digest-cron"\'');
     expect(s).toContain("limit: 1");
   });
 
