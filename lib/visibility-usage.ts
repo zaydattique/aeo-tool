@@ -212,7 +212,6 @@ export async function settleVisibilityJobUsage(opts: {
   requestedConsume: number;
 }): Promise<JobSettlementResult> {
   const { jobId, agencyId, requestedConsume } = opts;
-  const { start } = currentPeriod();
 
   return prisma.$transaction(async (tx) => {
     const job = await tx.visibilityJob.findUnique({ where: { id: jobId } });
@@ -236,6 +235,12 @@ export async function settleVisibilityJobUsage(opts: {
         appliedRelease: 0,
         finalOpsConsumed: job.opsConsumed,
       };
+    }
+
+    if (!job.usageMeterId) {
+      throw new Error(
+        `VisibilityJob ${jobId} has no usage meter binding; refusing settlement`
+      );
     }
 
     const plan = computeJobSettlement({
@@ -277,15 +282,22 @@ export async function settleVisibilityJobUsage(opts: {
 
     const meterDelta = plan.appliedConsume + plan.appliedRelease;
     if (meterDelta > 0 || plan.appliedConsume > 0) {
-      await tx.$executeRaw`
+      const meterUpdated = await tx.$executeRaw`
         UPDATE "UsageMeter"
         SET
-          "visibilityOpsReserved" = GREATEST(0, "visibilityOpsReserved" - ${meterDelta}),
+          "visibilityOpsReserved" = "visibilityOpsReserved" - ${meterDelta},
           "visibilityOpsUsed" = "visibilityOpsUsed" + ${plan.appliedConsume},
           "updatedAt" = NOW()
-        WHERE "agencyId" = ${agencyId}
-          AND "periodStart" = ${start}
+        WHERE "id" = ${job.usageMeterId}
+          AND "agencyId" = ${agencyId}
+          AND "visibilityOpsReserved" >= ${meterDelta}
       `;
+
+      if (Number(meterUpdated) !== 1) {
+        throw new Error(
+          `Visibility usage meter integrity check failed for job ${jobId}: meter reservation is below settlement delta`
+        );
+      }
     }
 
     console.info(
