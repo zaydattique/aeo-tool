@@ -34,10 +34,11 @@ export async function GET(
   const prompts = await prisma.trackedPrompt.findMany({
     where: { clientId, agencyId, deletedAt: null },
     orderBy: { createdAt: "asc" },
+    take: 200,
     include: {
       snapshots: {
         orderBy: { recordedAt: "desc" },
-        take: 30,
+        take: 10,
       },
     },
   });
