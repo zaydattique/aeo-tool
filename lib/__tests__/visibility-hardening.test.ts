@@ -296,13 +296,6 @@ describe("computeJobSettlement — retry-safe usage accounting (Cases A–E)", (
 
 
 describe("visibility usage meter binding", () => {
-  it("requires settlement to stay bound to the reservation meter", () => {
-    // The runtime settlement path uses VisibilityJob.usageMeterId rather than
-    // recomputing the current calendar period, so jobs crossing month boundaries
-    // settle against the meter that actually received their reservation.
-    expect(true).toBe(true);
-  });
-
   it("settlement math releases exactly the job-owned reservation", () => {
     const s = computeJobSettlement({
       opsReserved: 100,
