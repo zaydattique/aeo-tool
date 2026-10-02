@@ -246,3 +246,21 @@ Each item below should be split into new 20‑min sessions **only when opened**:
 **→ Phase 14 · Session 14.S1** (owner: DNS + subdomain)  
 When 14.S6 is green, agents may open **15.S1** without waiting for 14.S7–S8.  
 Phase **14B Security** is complete on `main`.
+
+
+### PHASE 0-H — Public authentication abuse hardening
+
+**Status:** In verification
+
+**Goal:** Reduce credential-stuffing, recovery-email flooding, invite abuse, and password-reset token brute-force amplification on public authentication endpoints.
+
+| Deliverable | Result |
+|-------------|--------|
+| Signup abuse | Existing per-IP limit + new per-email limit |
+| Password recovery | Existing per-IP limit + new per-email limit |
+| Password reset | Existing per-IP limit + hashed-token limit |
+| Invite acceptance | New per-IP limit |
+| Client IP handling | Centralized best-effort extraction with proxy trust-boundary documentation |
+| CI | Dedicated P0-H TypeScript/Prisma verification |
+
+**Deferred:** MFA, adaptive CAPTCHA/bot management, edge/WAF enforcement, and trusted proxy configuration remain separate controls.
