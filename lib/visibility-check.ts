@@ -217,7 +217,7 @@ async function checkPerplexityLive(
 ): Promise<EngineResult | null> {
   const model = "sonar";
   const cached = await withProviderCache(
-    { engine: "perplexity", model, promptText, brandName, competitorName, kind },
+    { agencyId, clientId, engine: "perplexity", model, promptText, brandName, competitorName, kind },
     () => checkPerplexityLiveUncached(promptText, brandName, competitorName)
   );
   if (!cached.value) return null;
@@ -276,7 +276,7 @@ async function checkOpenAiLive(
 ): Promise<EngineResult | null> {
   const model = process.env.OPENAI_VISIBILITY_MODEL || "gpt-4o-mini";
   const cached = await withProviderCache(
-    { engine: "chatgpt", model, promptText, brandName, competitorName, kind },
+    { agencyId, clientId, engine: "chatgpt", model, promptText, brandName, competitorName, kind },
     () => checkOpenAiLiveUncached(promptText, brandName, competitorName)
   );
   if (!cached.value) return null;
@@ -341,7 +341,7 @@ async function checkGeminiLive(
 ): Promise<EngineResult | null> {
   const model = process.env.GEMINI_VISIBILITY_MODEL || "gemini-2.0-flash";
   const cached = await withProviderCache(
-    { engine: "gemini", model, promptText, brandName, competitorName, kind },
+    { agencyId, clientId, engine: "gemini", model, promptText, brandName, competitorName, kind },
     () => checkGeminiLiveUncached(promptText, brandName, competitorName)
   );
   if (!cached.value) return null;
@@ -402,7 +402,7 @@ async function checkClaudeLive(
 ): Promise<EngineResult | null> {
   const model = process.env.ANTHROPIC_VISIBILITY_MODEL || "claude-3-5-haiku-latest";
   const cached = await withProviderCache(
-    { engine: "claude", model, promptText, brandName, competitorName, kind },
+    { agencyId, clientId, engine: "claude", model, promptText, brandName, competitorName, kind },
     () => checkClaudeLiveUncached(promptText, brandName, competitorName)
   );
   if (!cached.value) return null;
@@ -410,6 +410,8 @@ async function checkClaudeLive(
 }
 
 export async function checkPromptVisibility(opts: {
+  agencyId: string;
+  clientId: string;
   promptText: string;
   brandName: string;
   baseScore: number;
@@ -417,6 +419,8 @@ export async function checkPromptVisibility(opts: {
   competitorName?: string | null;
 }): Promise<PromptCheckResult> {
   const {
+    agencyId,
+    clientId,
     promptText,
     brandName,
     baseScore,
