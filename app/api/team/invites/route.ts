@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAgency, canManageClients } from "@/lib/session";
 import { getUsageSummary } from "@/lib/usage";
+import { readJsonBody } from "@/lib/request-security";
 import { rateLimit } from "@/lib/rate-limit";
 import { teamInviteLimit, teamInviteWindowMs } from "@/lib/expensive-rate-limits";
 
@@ -66,7 +67,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = await req.json();
+    const body = await readJsonBody<unknown>(req);
     const parsed = createSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ error: "Invalid input" }, { status: 400 });
@@ -151,6 +152,7 @@ export async function POST(req: NextRequest) {
       ...(process.env.NODE_ENV === "development" ? { devInviteUrl: inviteUrl } : {}),
     });
   } catch (err) {
+    if (err instanceof Error && err.message === "REQUEST_BODY_TOO_LARGE") return NextResponse.json({ error: "Request body too large" }, { status: 413 });
     console.error("Invite error:", err);
     return NextResponse.json(
       { error: "Internal server error" },
