@@ -295,3 +295,12 @@ Phase **14B Security** is complete on `main`.
 - [x] Repeatable concurrent DB query load-test script with p50/p95/p99 output.
 - [x] Dedicated pagination/TypeScript/Prisma CI gate.
 - [x] CI workflow retained on the phase branch for push/PR verification.
+
+
+### P0-M — Expensive endpoint and provider-cost hardening
+- [x] Layered rate limits for Stripe billing operations and team invitations.
+- [x] Layered public PDF throttles by source IP, token, and global budget.
+- [x] Reuse trusted request-IP normalization for public abuse controls.
+- [x] Apply the existing AI provider budget to on-demand action redrafts.
+- [x] Cap AI redraft response buffering and stored output size.
+- [x] Dedicated regression tests and CI gate.
