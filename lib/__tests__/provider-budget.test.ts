@@ -49,6 +49,8 @@ describe("provider budget", () => {
   });
 
   it("uses an atomic pair backend when available", async () => {
+    vi.stubEnv("PROVIDER_AGENCY_AI_BUDGET", "4");
+    vi.stubEnv("PROVIDER_GLOBAL_AI_BUDGET", "9");
     let called = false;
     setRateLimitBackend({
       async hit() { throw new Error("sequential fallback should not run"); },
