@@ -251,6 +251,8 @@ model Scan {
   @@index([clientId])
   @@index([agencyId, status])
   @@index([status, createdAt])
+  @@index([status, startedAt])
+  @@index([agencyId, createdAt, status])
   @@index([clientId, status, createdAt])
 }
 
