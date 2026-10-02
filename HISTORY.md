@@ -168,3 +168,58 @@ Perplexity, OpenAI, Gemini, Claude when keyed; status UI.
 ---
 
 Deploy reference: **docs/DEPLOY.md**.
+
+
+---
+
+### 2026-10-02 — Phase 0-C: Distributed visibility provider concurrency hardening
+
+**Goal**
+
+The P0-C session closes the remaining concurrency amplification path in live visibility checks. P0-A made visibility jobs tenant-scoped and usage-safe, and P0-B added Redis provider-result caching plus distributed single-flight. The remaining risk was that one visibility job can fan out to multiple prompts and four live providers per prompt, so the existing Inngest job limits did not directly cap the number of simultaneous provider HTTP requests. The success criteria were: enforce a deployment-wide provider-call ceiling, cap each provider independently, prevent one agency from monopolizing provider capacity, make the controls safe across horizontally scaled instances, and ensure provider calls cannot hold a concurrency lease forever.
+
+**What we did**
+
+Added a Redis-backed distributed provider concurrency guard in lib/visibility-concurrency.ts. Each live provider call now obtains one atomic lease covering three dimensions at once: a global deployment limit, an engine/provider limit, and an agency limit. Redis sorted sets hold expiring leases so a crashed worker does not permanently consume capacity; the release path removes only the caller's unique token. When Redis is not configured, local development and tests use an in-process guard. Production defaults to requiring Redis for live provider concurrency, so a horizontally scaled production deployment does not silently fall back to per-instance limits.
+
+Integrated the guard into all four live visibility engines in lib/visibility-check.ts: Perplexity, OpenAI, Gemini, and Claude. The provider cache remains outside the guard loader, so cache hits do not consume a live provider slot. A cache miss enters the concurrency guard immediately before the external provider request. Provider guard/cache failures are isolated to that engine and fall back to the existing heuristic result rather than failing the entire prompt.
+
+Added hard provider request timeouts using AbortSignal.timeout. The default is 20 seconds, while the default distributed lease is 30 seconds and the implementation enforces a lease of at least one second longer than the provider timeout. This bounds slot retention even when a provider stalls.
+
+Added configurable P0-C limits: 12 simultaneous live provider calls globally, 4 per provider, 4 per agency, a 20-second provider-slot wait, 250ms polling, a 30-second lease, and a 20-second provider HTTP timeout. These are documented in .env.example. VISIBILITY_CONCURRENCY_REQUIRE_REDIS defaults to true in production and can be explicitly configured.
+
+Added tests covering the provider cap, deployment-wide cap across different engines, and agency cap across different engines. Added a dedicated GitHub Actions workflow that runs the visibility hardening tests and TypeScript compilation on the P0-C branch and pull requests to main.
+
+Updated the README architecture notes, environment guidance, and file map so the distributed visibility controls are documented as part of the production architecture.
+
+**Key files**
+
+- lib/visibility-concurrency.ts — atomic Redis/local provider concurrency leases and release logic.
+- lib/visibility-config.ts — P0-C concurrency and provider timeout configuration.
+- lib/visibility-check.ts — applies the guard only around fresh external provider calls and adds request timeouts.
+- lib/__tests__/visibility-hardening.test.ts — verifies provider, global, and agency concurrency limits.
+- .github/workflows/p0c-provider-concurrency.yml — automated P0-C verification.
+- .env.example — documents production concurrency, Redis, lease, wait, and timeout controls.
+- README.md — records Redis-backed visibility concurrency in the architecture/deployment guidance.
+- docs/FILEMAP.md — indexes the new concurrency and test paths.
+- PROJECT_PLAN.md — records the completed P0-C hardening session.
+- HISTORY.md — this full session record.
+
+**Outcome / acceptance**
+
+The branch must pass:
+
+npm ci
+npx prisma generate
+npx vitest run lib/__tests__/visibility-hardening.test.ts
+npx tsc --noEmit
+
+The concurrency tests should show that one provider never exceeds its configured provider cap, the combined live calls never exceed the global cap, and a single agency cannot exceed its agency cap even when it uses different providers. On production, set UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN, and leave VISIBILITY_CONCURRENCY_REQUIRE_REDIS=1 enabled. A provider request that exceeds the 20-second timeout should release its lease in the finally path; a crashed worker should be recovered by the sorted-set lease expiry.
+
+**What is still missing / deferred**
+
+Provider-specific adaptive backoff and vendor-specific quota discovery are intentionally deferred. P0-C limits simultaneous work but does not attempt to predict each provider's billing or rate-limit policy. A future phase can add response-aware backoff for HTTP 429/5xx without changing the concurrency contract. Per-engine result status remains the existing visibility model; this ship does not redesign scoring or snapshot semantics.
+
+**Gotchas**
+
+Production horizontal scaling depends on Redis being configured; without it, the local fallback is process-local by design. The existing Inngest global/job concurrency remains in place and is complementary rather than a replacement for provider-call concurrency. The cache remains a cost optimization and single-flight layer; the provider concurrency guard is the capacity-control layer. Do not set the provider lease below the provider timeout; the implementation protects against this by enforcing a minimum lease internally.
