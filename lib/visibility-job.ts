@@ -528,6 +528,8 @@ export async function runVisibilityJob(jobId: string): Promise<void> {
       );
 
       const check = await checkPromptVisibility({
+        agencyId: job.agencyId,
+        clientId: job.clientId,
         promptText: prompt.promptText,
         brandName: brand,
         baseScore: base,
