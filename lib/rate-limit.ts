@@ -88,7 +88,7 @@ class UpstashBackend implements RateLimitBackend {
     const windowSec = Math.max(1, Math.ceil(windowMs / 1000));
     const res = await fetch(`${this.baseUrl}/pipeline`, {
       method: "POST",
-      signal: AbortSignal.timeout(Number(process.env.RATE_LIMIT_REDIS_TIMEOUT_MS || 1500)),
+      signal: AbortSignal.timeout(Math.min(5000, Math.max(250, Number.parseInt(process.env.RATE_LIMIT_REDIS_TIMEOUT_MS || "1500", 10) || 1500)),
       headers: {
         Authorization: `Bearer ${this.token}`,
         "Content-Type": "application/json",
