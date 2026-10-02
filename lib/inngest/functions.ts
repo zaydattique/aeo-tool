@@ -11,6 +11,7 @@ import {
   scanAdmissionLockTimeoutMs,
 } from "@/lib/visibility-config";
 import { admitScan } from "@/lib/scan-admission";
+import { recoverStaleScans } from "@/lib/scan-recovery";
 import { prisma } from "@/lib/prisma";
 import {
   sendEmail,
@@ -123,6 +124,15 @@ export const runVisibilitySnapshotJob = inngest.createFunction(
       await runVisibilityJob(jobId);
     });
     return { jobId, ok: true };
+  }
+);
+
+/** Every 5 minutes: reclaim scans abandoned by crashed workers. */
+export const staleScanRecoveryCron = inngest.createFunction(
+  { id: "stale-scan-recovery", retries: 1 },
+  { cron: "*/5 * * * *" },
+  async ({ step }) => {
+    return step.run("recover-stale-scans", () => recoverStaleScans());
   }
 );
 
@@ -288,5 +298,6 @@ export const inngestFunctions = [
   runScanJob,
   runVisibilitySnapshotJob,
   weeklyRescanCron,
+  staleScanRecoveryCron,
   weeklyDigestCron,
 ];
