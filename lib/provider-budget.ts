@@ -1,4 +1,4 @@
-import { rateLimit } from "./rate-limit";
+import { rateLimitPair } from "./rate-limit";
 
 export type ProviderBudgetKind = "crawl" | "ai";
 
@@ -46,22 +46,23 @@ export async function consumeProviderBudget(
 
   // Check the tenant bucket first so a single agency cannot consume global
   // budget merely by attempting requests after its own allowance is exhausted.
-  const agency = await rateLimit(
-    `provider-budget:${kind}:agency:${agencyId}`,
-    agencyLimit,
+  const pair = await rateLimitPair(
+    {
+      key: `provider-budget:${kind}:agency:${agencyId}`,
+      limit: agencyLimit,
+    },
+    {
+      key: `provider-budget:${kind}:global`,
+      limit: globalLimit,
+    },
     windowMs
   );
-  if (!agency.ok) {
-    return { ok: false, retryAfterSec: agency.retryAfterSec };
-  }
 
-  const global = await rateLimit(
-    `provider-budget:${kind}:global`,
-    globalLimit,
-    windowMs
-  );
-  if (!global.ok) {
-    return { ok: false, retryAfterSec: global.retryAfterSec };
+  if (!pair.first.ok) {
+    return { ok: false, retryAfterSec: pair.first.retryAfterSec };
+  }
+  if (!pair.second.ok) {
+    return { ok: false, retryAfterSec: pair.second.retryAfterSec };
   }
 
   return { ok: true, retryAfterSec: 0 };
