@@ -8,7 +8,7 @@ import type { ActionPriority, ActionCategory, ActionEffort } from "@prisma/clien
 
 /**
  * Scan pipeline: CRAWL → EXTRACT → AI_ANALYSIS → ACTION_GENERATION → COMPLETED
- * Enqueue via Inngest when configured; else in-process setImmediate fallback.
+ * Enqueue through the durable Inngest queue. Production never bypasses the queue.
  */
 
 async function updateStage(
@@ -258,32 +258,28 @@ export async function enqueueScan(scanId: string) {
   try {
     const scan = await prisma.scan.findUnique({
       where: { id: scanId },
-      select: { agencyId: true },
+      select: { agencyId: true, status: true },
     });
     if (!scan) throw new Error(`Scan ${scanId} not found for enqueue`);
+    if (scan.status !== "QUEUED") return;
 
-    const { isInngestConfigured, inngest } = await import(
-      "@/lib/inngest/client"
-    );
-    if (isInngestConfigured()) {
-      await inngest.send({ name: "scan/run", data: { scanId, agencyId: scan.agencyId } });
-      console.log(`[scan-worker] Enqueued scan ${scanId} via Inngest`);
-      return;
+    const { isInngestConfigured, inngest } = await import("@/lib/inngest/client");
+    if (!isInngestConfigured()) {
+      throw new Error("Durable scan queue is not configured");
     }
+
+    await inngest.send({
+      name: "scan/run",
+      data: { scanId, agencyId: scan.agencyId },
+    });
+    console.log(`[scan-worker] Enqueued scan ${scanId} via Inngest`);
   } catch (err) {
-    console.warn(
-      "[scan-worker] Inngest unavailable, using in-process:",
+    console.error(
+      "[scan-worker] Durable enqueue failed:",
       err instanceof Error ? err.message : err
     );
-  }
-
-  const allowFallback =
-    process.env.NODE_ENV !== "production" ||
-    process.env.ALLOW_IN_PROCESS_SCAN_FALLBACK === "1";
-
-  if (!allowFallback) {
     await prisma.scan.update({
-      where: { id: scanId },
+      where: { id: scanId, status: "QUEUED" },
       data: {
         status: "FAILED",
         stage: "FAILED",
@@ -291,14 +287,7 @@ export async function enqueueScan(scanId: string) {
         completedAt: new Date(),
       },
     }).catch(() => {});
-    return;
   }
-
-  setImmediate(() => {
-    runScan(scanId).catch((err) => {
-      console.error(`[scan-worker] Unhandled error for ${scanId}:`, err);
-    });
-  });
 }
 
 export const enqueueSimulatedScan = (scanId: string) => {
