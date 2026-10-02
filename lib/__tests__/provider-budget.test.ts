@@ -48,6 +48,25 @@ describe("provider budget", () => {
     expect(calls[0]).toContain("provider-budget:ai:agency:agency-1");
   });
 
+  it("uses an atomic pair backend when available", async () => {
+    let called = false;
+    setRateLimitBackend({
+      async hit() { throw new Error("sequential fallback should not run"); },
+      async hitPair(first, second) {
+        called = true;
+        expect(first.limit).toBe(4);
+        expect(second.limit).toBe(9);
+        return {
+          first: { ok: true, remaining: 3, retryAfterSec: 0 },
+          second: { ok: true, remaining: 8, retryAfterSec: 0 },
+        };
+      },
+    });
+    const result = await consumeProviderBudget("ai", "agency-atomic");
+    expect(called).toBe(true);
+    expect(result).toEqual({ ok: true, retryAfterSec: 0 });
+  });
+
   it("requires both agency and global buckets to pass", async () => {
     const calls: string[] = [];
     const backend: RateLimitBackend = {
