@@ -98,6 +98,7 @@ export const authOptions: NextAuthOptions = {
         token.agencyId = user.agencyId;
         token.agencyName = user.agencyName;
         token.onboardingCompleted = user.onboardingCompleted;
+        token.impersonationExpiresAt = null;
       }
 
       if (trigger === "update" && session) {
@@ -107,8 +108,25 @@ export const authOptions: NextAuthOptions = {
         if (session.agencyName !== undefined) {
           token.agencyName = session.agencyName;
         }
-        if (session.agencyId !== undefined) {
-          token.agencyId = session.agencyId;
+        // Only SUPER_ADMIN may change tenant context. Validate the target on
+        // the server and time-box the resulting impersonation in the JWT.
+        if (token.role === "SUPER_ADMIN" && session.agencyId !== undefined) {
+          if (session.agencyId === null) {
+            token.agencyId = null;
+            token.agencyName = null;
+            token.impersonationExpiresAt = null;
+          } else {
+            const agency = await prisma.agency.findFirst({
+              where: { id: session.agencyId, deletedAt: null },
+              select: { id: true, name: true, onboardingCompleted: true },
+            });
+            if (agency) {
+              token.agencyId = agency.id;
+              token.agencyName = agency.name;
+              token.onboardingCompleted = agency.onboardingCompleted;
+              token.impersonationExpiresAt = Date.now() + 60 * 60 * 1000;
+            }
+          }
         }
       }
 
@@ -116,11 +134,17 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, token }) {
       if (session.user) {
+        const impersonationExpired =
+          token.role === "SUPER_ADMIN" &&
+          token.impersonationExpiresAt != null &&
+          token.impersonationExpiresAt <= Date.now();
         session.user.id = token.id;
         session.user.role = token.role;
-        session.user.agencyId = token.agencyId;
-        session.user.agencyName = token.agencyName;
-        session.user.onboardingCompleted = token.onboardingCompleted;
+        session.user.agencyId = impersonationExpired ? null : token.agencyId;
+        session.user.agencyName = impersonationExpired ? null : token.agencyName;
+        session.user.onboardingCompleted = impersonationExpired
+          ? true
+          : token.onboardingCompleted;
       }
       return session;
     },
