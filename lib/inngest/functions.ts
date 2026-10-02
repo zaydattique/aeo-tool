@@ -60,6 +60,8 @@ export const runScanJob = inngest.createFunction(
                   deletedAt: null,
                 },
                 select: { email: true, role: true },
+                take: 50,
+                orderBy: { createdAt: "asc" },
               },
             },
           },
@@ -160,6 +162,7 @@ export const weeklyRescanCron = inngest.createFunction(
           rescanIntervalDays: true,
           agency: { select: { plan: true } },
         },
+        orderBy: [{ nextRescanAt: "asc" }, { id: "asc" }],
         take: 50,
       });
     });
