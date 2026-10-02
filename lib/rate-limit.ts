@@ -47,27 +47,6 @@ class MemoryBackend implements RateLimitBackend {
     }, 60_000).unref?.();
   }
 
-  async hitPair(first: { key: string; limit: number }, second: { key: string; limit: number }, windowMs: number): Promise<{ first: RateLimitResult; second: RateLimitResult }> {
-    const rawTimeout = Number.parseInt(process.env.RATE_LIMIT_REDIS_TIMEOUT_MS || "1500", 10);
-    const timeoutMs = Number.isFinite(rawTimeout) ? Math.min(5000, Math.max(250, rawTimeout)) : 1500;
-    const res = await fetch(`${this.baseUrl}/pipeline`, {
-      method: "POST",
-      signal: AbortSignal.timeout(timeoutMs),
-      headers: { Authorization: `Bearer ${this.token}`, "Content-Type": "application/json" },
-      body: JSON.stringify([["EVAL", ATOMIC_PAIR_SCRIPT, "2", `rl:${normalizeKey(first.key)}`, `rl:${normalizeKey(second.key)}`, String(first.limit), String(second.limit), String(Math.max(1, Math.ceil(windowMs / 1000)))]])
-    });
-    if (!res.ok) throw new Error(`Upstash HTTP ${res.status}`);
-    const data = (await res.json()) as { result: unknown }[];
-    const out = Array.isArray(data[0]?.result) ? data[0].result.map(Number) : [];
-    if (out[0] !== 1) {
-      const denied = { ok: false, remaining: 0, retryAfterSec: Math.max(1, Number(out[1] || 1)) };
-      return { first: denied, second: denied };
-    }
-    return {
-      first: { ok: true, remaining: Math.max(0, Number(out[1] || 0)), retryAfterSec: 0 },
-      second: { ok: true, remaining: Math.max(0, Number(out[2] || 0)), retryAfterSec: 0 },
-    };
-  }
 
   async hit(
     key: string,
@@ -123,6 +102,27 @@ class UpstashBackend implements RateLimitBackend {
     private token: string
   ) {}
 
+  async hitPair(first: { key: string; limit: number }, second: { key: string; limit: number }, windowMs: number): Promise<{ first: RateLimitResult; second: RateLimitResult }> {
+    const rawTimeout = Number.parseInt(process.env.RATE_LIMIT_REDIS_TIMEOUT_MS || "1500", 10);
+    const timeoutMs = Number.isFinite(rawTimeout) ? Math.min(5000, Math.max(250, rawTimeout)) : 1500;
+    const res = await fetch(`${this.baseUrl}/pipeline`, {
+      method: "POST",
+      signal: AbortSignal.timeout(timeoutMs),
+      headers: { Authorization: `Bearer ${this.token}`, "Content-Type": "application/json" },
+      body: JSON.stringify([["EVAL", ATOMIC_PAIR_SCRIPT, "2", `rl:${normalizeKey(first.key)}`, `rl:${normalizeKey(second.key)}`, String(first.limit), String(second.limit), String(Math.max(1, Math.ceil(windowMs / 1000)))]])
+    });
+    if (!res.ok) throw new Error(`Upstash HTTP ${res.status}`);
+    const data = (await res.json()) as { result: unknown }[];
+    const out = Array.isArray(data[0]?.result) ? data[0].result.map(Number) : [];
+    if (out[0] !== 1) {
+      const denied = { ok: false, remaining: 0, retryAfterSec: Math.max(1, Number(out[1] || 1)) };
+      return { first: denied, second: denied };
+    }
+    return {
+      first: { ok: true, remaining: Math.max(0, Number(out[1] || 0)), retryAfterSec: 0 },
+      second: { ok: true, remaining: Math.max(0, Number(out[2] || 0)), retryAfterSec: 0 },
+    };
+  }
   async hit(
     key: string,
     limit: number,
