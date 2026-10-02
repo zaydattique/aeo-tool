@@ -18,6 +18,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Only owners can manage billing" }, { status: 403 });
   }
 
+  const rl = await rateLimit(`billing-checkout:${auth.agencyId}`, billingCheckoutLimit(), billingCheckoutWindowMs());
+  if (!rl.ok) {
+    return NextResponse.json({ error: "Too many billing checkout attempts. Try again later." }, { status: 429, headers: { "Retry-After": String(rl.retryAfterSec) } });
+  }
+
   if (!isStripeConfigured()) {
     return NextResponse.json(
       { error: "Stripe is not configured. Set STRIPE_SECRET_KEY." },
