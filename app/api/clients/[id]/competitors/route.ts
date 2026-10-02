@@ -86,6 +86,7 @@ export async function PUT(
       const existing = await prisma.trackedPrompt.findMany({
         where: {
           clientId,
+          agencyId: auth.agencyId,
           deletedAt: null,
           kind: "competitor",
         },
