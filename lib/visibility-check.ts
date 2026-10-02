@@ -11,6 +11,8 @@
  * Competitor-aware scoring for kind=competitor prompts.
  */
 
+import { withProviderCache } from "./visibility-cache";
+
 export type EngineResult = {
   engine: string;
   score: number;
@@ -19,6 +21,7 @@ export type EngineResult = {
   snippet?: string;
   citations?: string[];
   live: boolean;
+  cacheHit?: boolean;
 };
 
 export type PromptCheckResult = {
@@ -29,6 +32,7 @@ export type PromptCheckResult = {
   brandMentioned: boolean;
   competitorMentioned: boolean;
   liveEngineCount: number;
+  freshLiveEngineCount: number;
 };
 
 export type LiveEngineCapability = {
@@ -153,7 +157,7 @@ export function getLiveEngineCapabilities(): LiveEngineCapability[] {
   ];
 }
 
-async function checkPerplexityLive(
+async function checkPerplexityLiveUncached(
   promptText: string,
   brandName: string,
   competitorName?: string | null
@@ -203,7 +207,23 @@ async function checkPerplexityLive(
   }
 }
 
-async function checkOpenAiLive(
+
+async function checkPerplexityLive(
+  promptText: string,
+  brandName: string,
+  competitorName?: string | null,
+  kind?: string
+): Promise<EngineResult | null> {
+  const model = sonar;
+  const cached = await withProviderCache(
+    { engine: "perplexity", model, promptText, brandName, competitorName, kind },
+    () => checkPerplexityLiveUncached(promptText, brandName, competitorName)
+  );
+  if (!cached.value) return null;
+  return { ...cached.value, cacheHit: cached.cacheHit };
+}
+
+async function checkOpenAiLiveUncached(
   promptText: string,
   brandName: string,
   competitorName?: string | null
@@ -246,7 +266,23 @@ async function checkOpenAiLive(
   }
 }
 
-async function checkGeminiLive(
+
+async function checkOpenAiLive(
+  promptText: string,
+  brandName: string,
+  competitorName?: string | null,
+  kind?: string
+): Promise<EngineResult | null> {
+  const model = process.env.OPENAI_VISIBILITY_MODEL || "gpt-4o-mini";
+  const cached = await withProviderCache(
+    { engine: "chatgpt", model, promptText, brandName, competitorName, kind },
+    () => checkOpenAiLiveUncached(promptText, brandName, competitorName)
+  );
+  if (!cached.value) return null;
+  return { ...cached.value, cacheHit: cached.cacheHit };
+}
+
+async function checkGeminiLiveUncached(
   promptText: string,
   brandName: string,
   competitorName?: string | null
@@ -295,7 +331,23 @@ async function checkGeminiLive(
   }
 }
 
-async function checkClaudeLive(
+
+async function checkGeminiLive(
+  promptText: string,
+  brandName: string,
+  competitorName?: string | null,
+  kind?: string
+): Promise<EngineResult | null> {
+  const model = process.env.GEMINI_VISIBILITY_MODEL || "gemini-2.0-flash";
+  const cached = await withProviderCache(
+    { engine: "gemini", model, promptText, brandName, competitorName, kind },
+    () => checkGeminiLiveUncached(promptText, brandName, competitorName)
+  );
+  if (!cached.value) return null;
+  return { ...cached.value, cacheHit: cached.cacheHit };
+}
+
+async function checkClaudeLiveUncached(
   promptText: string,
   brandName: string,
   competitorName?: string | null
@@ -340,6 +392,22 @@ async function checkClaudeLive(
   }
 }
 
+
+async function checkClaudeLive(
+  promptText: string,
+  brandName: string,
+  competitorName?: string | null,
+  kind?: string
+): Promise<EngineResult | null> {
+  const model = process.env.ANTHROPIC_VISIBILITY_MODEL || "claude-3-5-haiku-latest";
+  const cached = await withProviderCache(
+    { engine: "claude", model, promptText, brandName, competitorName, kind },
+    () => checkClaudeLiveUncached(promptText, brandName, competitorName)
+  );
+  if (!cached.value) return null;
+  return { ...cached.value, cacheHit: cached.cacheHit };
+}
+
 export async function checkPromptVisibility(opts: {
   promptText: string;
   brandName: string;
@@ -371,9 +439,11 @@ export async function checkPromptVisibility(opts: {
   ]);
 
   let liveEngineCount = 0;
+  let freshLiveEngineCount = 0;
   for (const live of liveResults) {
     if (!live) continue;
     liveEngineCount += 1;
+    if (!live.cacheHit) freshLiveEngineCount += 1;
     const idx = engines.findIndex((e) => e.engine === live.engine);
     if (idx >= 0) engines[idx] = live;
     else engines.push(live);
@@ -402,5 +472,6 @@ export async function checkPromptVisibility(opts: {
     brandMentioned,
     competitorMentioned,
     liveEngineCount,
+    freshLiveEngineCount,
   };
 }
