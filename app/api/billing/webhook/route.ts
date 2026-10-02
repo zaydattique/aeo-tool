@@ -36,13 +36,11 @@ export async function POST(req: NextRequest) {
     await prisma.stripeEvent.create({
       data: { eventId: event.id, eventType: event.type },
     }).catch(async (err) => {
-      if (!(err instanceof Stripe.errors.StripeError)) {
-        const duplicate = await prisma.stripeEvent.findUnique({
-          where: { eventId: event.id },
-          select: { processedAt: true },
-        });
-        if (duplicate?.processedAt) return;
-      }
+      const duplicate = await prisma.stripeEvent.findUnique({
+        where: { eventId: event.id },
+        select: { processedAt: true },
+      });
+      if (duplicate?.processedAt) return;
       throw err;
     });
   }
