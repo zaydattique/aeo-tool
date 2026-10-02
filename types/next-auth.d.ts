@@ -10,6 +10,7 @@ declare module "next-auth" {
       agencyId: string | null;
       agencyName: string | null;
       onboardingCompleted: boolean;
+      impersonationExpiresAt?: number | null;
     } & DefaultSession["user"];
   }
 
