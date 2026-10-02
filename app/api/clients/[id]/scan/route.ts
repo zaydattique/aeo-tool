@@ -36,54 +36,46 @@ export async function POST(
     return NextResponse.json({ error: "Client not found" }, { status: 404 });
   }
 
-  const activeScan = await prisma.scan.findFirst({
-    where: {
-      clientId,
-      agencyId: auth.agencyId,
-      status: { in: ["QUEUED", "RUNNING"] },
-    },
-  });
-
-  if (activeScan) {
-    return NextResponse.json(
-      {
-        error: "A scan is already in progress for this client",
-        scanId: activeScan.id,
-      },
-      { status: 409 }
-    );
-  }
-
   const agency = await prisma.agency.findUnique({
     where: { id: auth.agencyId },
     include: { plan: true },
   });
 
-  if (agency?.plan) {
-    const periodStart = new Date();
-    periodStart.setDate(1);
-    periodStart.setHours(0, 0, 0, 0);
+  const scanAdmission = await prisma.$transaction(async (tx) => {
+    // Serialize scan admission per agency so concurrent requests cannot overshoot
+    // the monthly plan quota or both pass the active-scan check.
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${auth.agencyId}))`;
 
-    const scansThisMonth = await prisma.scan.count({
+    const activeScan = await tx.scan.findFirst({
       where: {
+        clientId,
         agencyId: auth.agencyId,
-        createdAt: { gte: periodStart },
-        status: { not: "FAILED" },
+        status: { in: ["QUEUED", "RUNNING"] },
       },
+      orderBy: { createdAt: "asc" },
     });
 
-    if (scansThisMonth >= agency.plan.maxScansPerMonth) {
-      return NextResponse.json(
-        {
-          error: `Monthly scan limit reached (${agency.plan.maxScansPerMonth}). Upgrade your plan.`,
-        },
-        { status: 403 }
-      );
-    }
-  }
+    if (activeScan) return { activeScan, scan: null, quotaExceeded: false };
 
-  const scan = await prisma.$transaction(async (tx) => {
-    const newScan = await tx.scan.create({
+    if (agency?.plan) {
+      const periodStart = new Date();
+      periodStart.setDate(1);
+      periodStart.setHours(0, 0, 0, 0);
+
+      const scansThisMonth = await tx.scan.count({
+        where: {
+          agencyId: auth.agencyId,
+          createdAt: { gte: periodStart },
+          status: { not: "FAILED" },
+        },
+      });
+
+      if (scansThisMonth >= agency.plan.maxScansPerMonth) {
+        return { activeScan: null, scan: null, quotaExceeded: true };
+      }
+    }
+
+    const scan = await tx.scan.create({
       data: {
         agencyId: auth.agencyId!,
         clientId,
@@ -104,13 +96,35 @@ export async function POST(
         actorId: auth.session!.user.id,
         action: "scan.started",
         resourceType: "scan",
-        resourceId: newScan.id,
+        resourceId: scan.id,
         metadata: { clientId, websiteUrl: client.websiteUrl },
       },
     });
 
-    return newScan;
+    return { activeScan: null, scan, quotaExceeded: false };
   });
+
+  if (scanAdmission.activeScan) {
+    return NextResponse.json(
+      {
+        error: "A scan is already in progress for this client",
+        scanId: scanAdmission.activeScan.id,
+      },
+      { status: 409 }
+    );
+  }
+
+  if (scanAdmission.quotaExceeded) {
+    return NextResponse.json(
+      {
+        error: `Monthly scan limit reached (${agency?.plan?.maxScansPerMonth}). Upgrade your plan.`,
+      },
+      { status: 403 }
+    );
+  }
+
+  const scan = scanAdmission.scan!;
+
 
   enqueueSimulatedScan(scan.id);
 

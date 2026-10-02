@@ -62,6 +62,25 @@ AGENTS.md → **this file** → HISTORY → docs/FILEMAP.md → docs/DEPLOY.md
 
 **Exit criteria:** CI green; production has Upstash Redis and RATE_LIMIT_REQUIRE_REDIS=1.
 
+### PHASE 0-E — Queue admission and scan race hardening
+
+**Status:** In verification (branch prepared; merge gated on CI)
+
+**Goal:** Make scan admission safe under concurrent requests and horizontally scaled workers, prevent monthly quota oversubscription, and make scheduled rescan admission obey the same concurrency invariant.
+
+| Deliverable | Result |
+|-------------|--------|
+| Active scan database invariant | Partial unique index permits only one QUEUED/RUNNING scan per client |
+| Manual scan admission | Agency advisory transaction lock serializes active-scan + monthly quota checks with creation |
+| Scheduled rescans | Same client-level advisory lock serializes admission; Inngest event is published only after DB commit |
+| Query performance | Active-scan lookup has a client/status/createdAt index |
+| Queue publish failure | Newly admitted scheduled scans are marked FAILED if event publication fails |
+| CI | Dedicated P0-E workflow runs Prisma generation and TypeScript compilation |
+
+**Exit criteria:** CI green and migration verified against production-like PostgreSQL data before merge.
+
+**Deferred:** Broader public-auth abuse controls, crawl byte/page/time budgets, global job backlog quotas, and edge/WAF configuration remain separate hardening work.
+
 ## PHASE 0–13 — Done
 
 | Block | What |

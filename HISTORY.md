@@ -251,3 +251,13 @@ Development/test environments may still use the in-process rate limiter when Red
 **Deferred**
 
 The next scalability layer should audit queue admission and scan creation as a transaction-level invariant, public auth endpoint abuse controls, crawl fan-out/resource limits, and edge/WAF configuration. These are intentionally not treated as solved by this phase.
+
+---
+
+### 2026-10-02 — Phase 0-E: Queue admission and scan race hardening
+
+P0-E closes a concurrency gap that remained after P0-D: two app instances could independently pass the active-scan check before either created its scan, and scheduled rescans had the same check/create race. Manual admission now serializes active-scan and monthly-plan checks with creation under a PostgreSQL advisory transaction lock. A partial unique database index independently enforces the one-active-scan-per-client invariant. The active-scan query also has a supporting composite index.
+
+Scheduled rescans use the same client advisory lock and perform admission inside a transaction. The Inngest event is published only after the transaction commits, preventing a worker from receiving an event before the scan row is visible. If event publication fails, the newly admitted scheduled scan is marked FAILED rather than remaining indefinitely QUEUED.
+
+This phase is specifically about queue admission correctness; it does not claim that the system has DDoS immunity or unlimited crawl capacity. Crawl resource budgets, public authentication abuse controls, global backlog quotas, and edge/WAF protections remain separate work.
