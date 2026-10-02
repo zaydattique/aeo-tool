@@ -3,6 +3,7 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/session";
+import { readJsonBody } from "@/lib/request-security";
 
 function slugify(text: string): string {
   return text
@@ -69,7 +70,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = await req.json();
+    const body = await readJsonBody<unknown>(req);
     const parsed = createSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ error: "Invalid input" }, { status: 400 });
@@ -139,6 +140,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(result, { status: 201 });
   } catch (err) {
+    if (err instanceof Error && err.message === "REQUEST_BODY_TOO_LARGE") return NextResponse.json({ error: "Request body too large" }, { status: 413 });
+    if (err && typeof err === "object" && "code" in err && (err as { code?: string }).code === "P2002") return NextResponse.json({ error: "Agency or owner email already exists" }, { status: 409 });
     console.error("Admin create agency:", err);
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
