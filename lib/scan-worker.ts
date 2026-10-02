@@ -217,11 +217,17 @@ export async function runScan(scanId: string) {
 
 export async function enqueueScan(scanId: string) {
   try {
+    const scan = await prisma.scan.findUnique({
+      where: { id: scanId },
+      select: { agencyId: true },
+    });
+    if (!scan) throw new Error(`Scan ${scanId} not found for enqueue`);
+
     const { isInngestConfigured, inngest } = await import(
       "@/lib/inngest/client"
     );
     if (isInngestConfigured()) {
-      await inngest.send({ name: "scan/run", data: { scanId } });
+      await inngest.send({ name: "scan/run", data: { scanId, agencyId: scan.agencyId } });
       console.log(`[scan-worker] Enqueued scan ${scanId} via Inngest`);
       return;
     }
