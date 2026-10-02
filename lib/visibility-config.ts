@@ -100,3 +100,29 @@ export function actionRedraftRateWindowMs(): number {
 export function rateLimitRedisTimeoutMs(): number {
   return intEnv("RATE_LIMIT_REDIS_TIMEOUT_MS", 1500);
 }
+
+
+/** Maximum queued/running scans across the deployment admission gate. */
+export function scanGlobalBacklogLimit(): number {
+  return Math.max(1, intEnv("SCAN_GLOBAL_BACKLOG_LIMIT", 1000));
+}
+
+/** Maximum queued/running scans attributable to one agency. */
+export function scanAgencyBacklogLimit(): number {
+  return Math.max(1, intEnv("SCAN_AGENCY_BACKLOG_LIMIT", 25));
+}
+
+/** Maximum scan execution steps across the Inngest environment. */
+export function scanGlobalExecutionConcurrency(): number {
+  return Math.max(1, intEnv("SCAN_GLOBAL_EXECUTION_CONCURRENCY", 8));
+}
+
+/** Maximum simultaneously executing scan steps for one agency. */
+export function scanAgencyExecutionConcurrency(): number {
+  return Math.max(1, intEnv("SCAN_AGENCY_EXECUTION_CONCURRENCY", 2));
+}
+
+/** Maximum time an admission transaction waits on the distributed PostgreSQL lock. */
+export function scanAdmissionLockTimeoutMs(): number {
+  return Math.max(100, intEnv("SCAN_ADMISSION_LOCK_TIMEOUT_MS", 1500));
+}
