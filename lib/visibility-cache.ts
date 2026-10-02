@@ -1,4 +1,8 @@
 import { createHash, randomUUID } from "crypto";
+import {
+  visibilityCacheLockSeconds,
+  visibilityCacheTtlSeconds,
+} from "./visibility-config";
 
 export type CachedProviderResult<T> = {
   value: T;
@@ -12,8 +16,6 @@ type CacheEnvelope<T> = {
 };
 
 const CACHE_VERSION = "v1";
-const DEFAULT_TTL_SECONDS = 6 * 60 * 60;
-const DEFAULT_LOCK_SECONDS = 45;
 const WAIT_MS = 250;
 const WAIT_ATTEMPTS = 80;
 
@@ -21,16 +23,6 @@ function redisConfig() {
   const url = process.env.UPSTASH_REDIS_REST_URL?.replace(/\/$/, "");
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
   return url && token ? { url, token } : null;
-}
-
-function ttlSeconds() {
-  const raw = Number.parseInt(process.env.VISIBILITY_CACHE_TTL_SECONDS || "", 10);
-  return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_TTL_SECONDS;
-}
-
-function lockSeconds() {
-  const raw = Number.parseInt(process.env.VISIBILITY_CACHE_LOCK_SECONDS || "", 10);
-  return Number.isFinite(raw) && raw > 0 ? raw : DEFAULT_LOCK_SECONDS;
 }
 
 function cacheKey(input: {
@@ -152,7 +144,7 @@ export async function withProviderCache<T>(
   const lockKey = `${key}:lock`;
   const owner = randomUUID();
 
-  const lock = await setNx(lockKey, owner, lockSeconds());
+  const lock = await setNx(lockKey, owner, visibilityCacheLockSeconds());
   if (lock === "unavailable") {
     // Redis is an optimization/cost-control layer, not a hard dependency for
     // completing a measurement. Fail open immediately if Redis is unhealthy.
@@ -166,7 +158,7 @@ export async function withProviderCache<T>(
 
       const value = await loader();
       if (value != null) {
-        await setCache(key, value, ttlSeconds());
+        await setCache(key, value, visibilityCacheTtlSeconds());
       }
       return { value, cacheHit: false };
     } finally {
