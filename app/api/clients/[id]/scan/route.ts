@@ -42,6 +42,7 @@ export async function POST(
       agencyId: auth.agencyId,
       status: { in: ["QUEUED", "RUNNING"] },
     },
+    orderBy: { createdAt: "asc" },
   });
 
   if (activeScan) {
