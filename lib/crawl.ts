@@ -195,7 +195,9 @@ async function crawlWithFirecrawl(url: string): Promise<CrawlResult> {
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 35_000);
-  const res = await fetch("https://api.firecrawl.dev/v1/scrape", {
+  let res: Response;
+  try {
+    res = await fetch("https://api.firecrawl.dev/v1/scrape", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -209,14 +211,24 @@ async function crawlWithFirecrawl(url: string): Promise<CrawlResult> {
       timeout: 30000,
     }),
   });
-  clearTimeout(timeout);
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
     throw new Error(`Firecrawl error ${res.status}: ${text.slice(0, 200)}`);
   }
 
-  const json = await res.json();
+  const contentLength = Number(res.headers.get("content-length") || 0);
+  if (contentLength > 10 * 1024 * 1024) {
+    throw new Error("Firecrawl response exceeded 10MB");
+  }
+  const jsonText = await res.text();
+  if (Buffer.byteLength(jsonText, "utf8") > 10 * 1024 * 1024) {
+    throw new Error("Firecrawl response exceeded 10MB");
+  }
+  const json = JSON.parse(jsonText);
   const data = json.data || json;
 
   const html: string = data.html || "";
