@@ -62,6 +62,27 @@ AGENTS.md → **this file** → HISTORY → docs/FILEMAP.md → docs/DEPLOY.md
 
 **Exit criteria:** CI green; production has Upstash Redis and RATE_LIMIT_REQUIRE_REDIS=1.
 
+### PHASE 0-F — Crawl resource hardening
+
+**Status:** In verification
+
+**Goal:** Bound attacker-controlled website resources so hostile targets cannot consume unbounded crawl time, redirects, or response memory.
+
+| Deliverable | Result |
+|-------------|--------|
+| Basic crawl total timeout | Configurable with bounded 1s–60s range |
+| Connection timeout | Configurable with bounded 0.5s–20s range |
+| Redirect budget | Configurable with bounded 0–10 range |
+| Response byte budget | Configurable with bounded 64KB–10MB range |
+| Firecrawl execution timeout | Explicit 35s abort |
+| Firecrawl response budget | 10MB payload ceiling |
+| Existing SSRF controls | Preserved |
+| CI | Dedicated P0-F Prisma + safe-fetch tests + TypeScript workflow |
+
+**Exit criteria:** P0-F CI green; then merge only after P0-D/P0-E dependency chain is verified.
+
+**Deferred:** Global crawl backlog quotas, per-agency concurrent crawl caps, public-auth abuse controls, and edge/WAF configuration.
+
 ### PHASE 0-E — Queue admission and scan race hardening
 
 **Status:** In verification (branch prepared; merge gated on CI)
