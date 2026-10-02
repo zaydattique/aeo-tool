@@ -19,10 +19,13 @@ export async function GET(req: NextRequest) {
   }
 
   const rawLimit = Number.parseInt(req.nextUrl.searchParams.get("limit") || "50", 10);
+  const cursor = req.nextUrl.searchParams.get("cursor");
+  let cursorData: { createdAt: string; id: string } | null = null;
+  if (cursor) { try { cursorData = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8")); } catch { return NextResponse.json({ error: "Invalid cursor" }, { status: 400 }); } }
   const limit = Number.isFinite(rawLimit) ? Math.min(100, Math.max(1, rawLimit)) : 50;
 
   const clients = await prisma.client.findMany({
-    where: { agencyId, deletedAt: null },
+    where: { agencyId, deletedAt: null, ...(cursorData ? { OR: [{ createdAt: { lt: new Date(cursorData.createdAt) } }, { createdAt: new Date(cursorData.createdAt), id: { lt: cursorData.id } }] } : {}) },
     orderBy: { createdAt: "desc" },
     take: limit + 1,
     select: {
@@ -50,7 +53,10 @@ export async function GET(req: NextRequest) {
   });
 
   const hasMore = clients.length > limit;
-  return NextResponse.json({ clients: hasMore ? clients.slice(0, limit) : clients, hasMore });
+  const page = hasMore ? clients.slice(0, limit) : clients;
+  const last = page[page.length - 1];
+  const nextCursor = hasMore && last ? Buffer.from(JSON.stringify({ createdAt: last.createdAt.toISOString(), id: last.id })).toString("base64url") : null;
+  return NextResponse.json({ clients: page, hasMore, nextCursor });
 }
 
 export async function POST(req: NextRequest) {
