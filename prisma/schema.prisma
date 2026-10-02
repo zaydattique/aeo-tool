@@ -342,6 +342,7 @@ model VisibilityJob {
   promptCount      Int                 @default(0)
   opsReserved      Int                 @default(0)
   opsConsumed      Int                 @default(0)
+  usageMeterId     String
   /// Once true, meter settle for this job must not run again (retry-safe)
   usageSettled     Boolean             @default(false)
   liveEngineCount  Int                 @default(0)
@@ -361,6 +362,7 @@ model VisibilityJob {
 
   agency           Agency              @relation(fields: [agencyId], references: [id])
   client           Client              @relation(fields: [clientId], references: [id])
+  usageMeter        UsageMeter          @relation(fields: [usageMeterId], references: [id])
   snapshots        VisibilitySnapshot[]
 
   @@unique([agencyId, idempotencyKey])
@@ -468,7 +470,8 @@ model UsageMeter {
   createdAt              DateTime @default(now())
   updatedAt              DateTime @updatedAt
 
-  agency            Agency   @relation(fields: [agencyId], references: [id])
+  agency            Agency           @relation(fields: [agencyId], references: [id])
+  visibilityJobs    VisibilityJob[]
 
   @@unique([agencyId, periodStart])
   @@index([agencyId])
