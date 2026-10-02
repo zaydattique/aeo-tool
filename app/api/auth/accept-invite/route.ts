@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
 import { getClientIp, readJsonBody } from "@/lib/request-security";
@@ -66,13 +67,38 @@ export async function POST(req: NextRequest) {
     const passwordHash = await bcrypt.hash(password, 12);
 
     const user = await prisma.$transaction(async (tx) => {
+      const currentInvite = await tx.teamInvite.findUnique({
+        where: { id: invite.id },
+        select: { acceptedAt: true, expiresAt: true, agencyId: true, role: true },
+      });
+      if (!currentInvite || currentInvite.acceptedAt || currentInvite.expiresAt <= new Date()) {
+        throw new Error("INVITE_ALREADY_USED");
+      }
+
+      const agency = await tx.agency.findUnique({
+        where: { id: currentInvite.agencyId },
+        include: { plan: true },
+      });
+      if (!agency || agency.deletedAt || agency.status === "CANCELLED") {
+        throw new Error("AGENCY_INACTIVE");
+      }
+
+      if (agency.plan) {
+        const seatCount = await tx.user.count({
+          where: { agencyId: currentInvite.agencyId, deletedAt: null },
+        });
+        if (seatCount >= agency.plan.maxTeamSeats) {
+          throw new Error("SEAT_LIMIT_REACHED");
+        }
+      }
+
       const newUser = await tx.user.create({
         data: {
           email: invite.email,
           passwordHash,
           fullName: fullName.trim(),
-          role: invite.role,
-          agencyId: invite.agencyId,
+          role: currentInvite.role,
+          agencyId: currentInvite.agencyId,
           emailVerified: new Date(),
         },
       });
@@ -84,17 +110,17 @@ export async function POST(req: NextRequest) {
 
       await tx.activityLog.create({
         data: {
-          agencyId: invite.agencyId,
+          agencyId: currentInvite.agencyId,
           actorId: newUser.id,
           action: "team.invite_accepted",
           resourceType: "user",
           resourceId: newUser.id,
-          metadata: { role: invite.role },
+          metadata: { role: currentInvite.role },
         },
       });
 
       return newUser;
-    });
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 
     return NextResponse.json({
       success: true,
@@ -102,6 +128,10 @@ export async function POST(req: NextRequest) {
       message: "Invite accepted. You can now log in.",
     });
   } catch (err) {
+    if (err instanceof Error && err.message === "INVITE_ALREADY_USED") return NextResponse.json({ error: "Invalid or expired invite" }, { status: 400 });
+    if (err instanceof Error && err.message === "AGENCY_INACTIVE") return NextResponse.json({ error: "Agency is no longer active" }, { status: 400 });
+    if (err instanceof Error && err.message === "SEAT_LIMIT_REACHED") return NextResponse.json({ error: "Team seat limit reached. Ask the agency owner to upgrade the plan." }, { status: 403 });
+    if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2034") return NextResponse.json({ error: "Concurrent invite acceptance detected. Please retry." }, { status: 409 });
     if (err instanceof Error && err.message === "REQUEST_BODY_TOO_LARGE") {
       return NextResponse.json({ error: "Request body too large" }, { status: 413 });
     }
