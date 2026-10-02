@@ -125,10 +125,18 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        if (agencyId && sub.status === "canceled") {
+        if (agencyId) {
           await prisma.agency.update({
             where: { id: agencyId },
-            data: { status: "CANCELLED" },
+            data: {
+              ...(sub.metadata?.planId ? { planId: sub.metadata.planId } : {}),
+              status:
+                sub.status === "canceled"
+                  ? "CANCELLED"
+                  : sub.status === "active" || sub.status === "trialing"
+                    ? "ACTIVE"
+                    : undefined,
+            },
           });
         }
         break;
