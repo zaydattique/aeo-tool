@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
 
   const clients = await prisma.client.findMany({
     where: { agencyId, deletedAt: null, ...(cursorData ? { OR: [{ createdAt: { lt: new Date(cursorData.createdAt) } }, { createdAt: new Date(cursorData.createdAt), id: { lt: cursorData.id } }] } : {}) },
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     take: limit + 1,
     select: {
       id: true,
