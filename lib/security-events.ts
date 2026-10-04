@@ -24,7 +24,7 @@ export async function recordSecurityEvent(input: SecurityEventInput): Promise<vo
         targetId: input.targetId ?? null,
         ip: input.ip ?? null,
         userAgent: input.userAgent ?? null,
-        metadata: input.metadata,
+        metadata: input.metadata ? JSON.parse(JSON.stringify(input.metadata)) : undefined,
       },
     });
   } catch (error) {
