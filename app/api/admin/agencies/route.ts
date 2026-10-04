@@ -56,7 +56,7 @@ const createSchema = z.object({
   name: z.string().min(1).max(120),
   ownerEmail: z.string().email(),
   ownerName: z.string().min(1).max(120),
-  password: z.string().min(12).max(128),
+  ownerPassword: z.string().min(12).max(128),
   billingRegion: z.enum(["PAKISTAN", "INTERNATIONAL"]).default("PAKISTAN"),
 });
 
