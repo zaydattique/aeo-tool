@@ -14,7 +14,15 @@ export async function GET() {
   });
 
   return NextResponse.json({
-    sessions: sessions.map((s) => ({ ...s, current: s.tokenId === auth.session!.user.sessionId })),
+    sessions: sessions.map((s) => ({
+      id: s.id,
+      issuedAt: s.issuedAt,
+      expiresAt: s.expiresAt,
+      lastActiveAt: s.lastActiveAt,
+      ip: s.ip,
+      userAgent: s.userAgent,
+      current: s.tokenId === auth.session!.user.sessionId,
+    })),
   });
 }
 
