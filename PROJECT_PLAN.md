@@ -90,7 +90,7 @@ Marketing is intentionally late. The product must stabilize before the public si
 
 # 1. PHASE 0 - SECURITY CONSOLIDATION AND PRODUCTION GATE
 
-**Status: NEXT**
+**Status: COMPLETE**
 
 **Goal:** Reconcile the existing P0 hardening into one verified baseline and close the remaining production security gaps before major feature work.
 
@@ -131,6 +131,8 @@ Document and implement CDN/WAF, origin protection, edge rate limits, bot control
 ---
 
 # 2. PHASE 1 - IDENTITY, SESSIONS, AUTHORIZATION, AND SUPER ADMIN
+
+**Status: IN PROGRESS**
 
 **Goal:** Make security and administration observable and controllable instead of scattered across routes.
 
