@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAgency, canManageClients } from "@/lib/session";
+import { readJsonBody } from "@/lib/request-security";
 
 const updateSchema = z.object({
   name: z.string().min(1).max(200).optional(),
@@ -76,7 +77,7 @@ export async function PATCH(
   }
 
   try {
-    const body = await req.json();
+    const body = await readJsonBody<unknown>(req);
     const parsed = updateSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json(
@@ -124,6 +125,7 @@ export async function PATCH(
 
     return NextResponse.json({ client });
   } catch (err) {
+    if (err instanceof Error && err.message === "REQUEST_BODY_TOO_LARGE") return NextResponse.json({ error: "Request body too large" }, { status: 413 });
     console.error("Update client error:", err);
     return NextResponse.json(
       { error: "Internal server error" },

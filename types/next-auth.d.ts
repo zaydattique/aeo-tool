@@ -10,6 +10,7 @@ declare module "next-auth" {
       agencyId: string | null;
       agencyName: string | null;
       onboardingCompleted: boolean;
+      impersonationExpiresAt?: number | null;
     } & DefaultSession["user"];
   }
 
@@ -18,6 +19,7 @@ declare module "next-auth" {
     agencyId: string | null;
     agencyName: string | null;
     onboardingCompleted: boolean;
+    impersonationExpiresAt?: number | null;
   }
 }
 
@@ -28,5 +30,6 @@ declare module "next-auth/jwt" {
     agencyId: string | null;
     agencyName: string | null;
     onboardingCompleted: boolean;
+    impersonationExpiresAt?: number | null;
   }
 }

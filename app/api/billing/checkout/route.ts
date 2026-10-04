@@ -5,6 +5,7 @@ import { requireAgency } from "@/lib/session";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { rateLimit } from "@/lib/rate-limit";
 import { billingCheckoutLimit, billingCheckoutWindowMs } from "@/lib/expensive-rate-limits";
+import { readJsonBody } from "@/lib/request-security";
 
 const schema = z.object({
   planSlug: z.string().min(1),
@@ -33,7 +34,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = await req.json();
+    const body = await readJsonBody<unknown>(req);
     const parsed = schema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
@@ -105,6 +106,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ url: session.url });
   } catch (err) {
+    if (err instanceof Error && err.message === "REQUEST_BODY_TOO_LARGE") return NextResponse.json({ error: "Request body too large" }, { status: 413 });
     console.error("Checkout error:", err);
     return NextResponse.json(
       { error: err instanceof Error ? err.message : "Checkout failed" },

@@ -443,6 +443,17 @@ model ActivityLog {
   @@index([resourceType, resourceId])
 }
 
+model StripeEvent {
+  id         String   @id @default(cuid())
+  eventId    String   @unique
+  eventType  String
+  receivedAt DateTime @default(now())
+  processedAt DateTime?
+  error      String?
+
+  @@index([eventType, receivedAt])
+}
+
 model Subscription {
   id                   String             @id @default(cuid())
   agencyId             String

@@ -5,6 +5,7 @@ import { enrichActionFields } from "@/lib/action-mapper";
 import { rateLimit } from "@/lib/rate-limit";
 import { consumeProviderBudget } from "@/lib/provider-budget";
 import { actionRedraftRateLimit, actionRedraftRateWindowMs, visibilityProviderTimeoutMs } from "@/lib/visibility-config";
+import { readJsonResponse } from "@/lib/request-security";
 
 async function aiRedraft(opts: {
   title: string;
@@ -54,12 +55,9 @@ Requirements:
     });
 
     if (!res.ok) return null;
-    const raw = await res.text();
-    if (raw.length > 1_000_000) return null;
-
-    const json = JSON.parse(raw) as {
+    const json = await readJsonResponse<{
       content?: Array<{ text?: string }>;
-    };
+    }>(res, 256 * 1024);
     const text = Array.isArray(json.content)
       ? json.content.map((c) => c.text || "").join("")
       : "";

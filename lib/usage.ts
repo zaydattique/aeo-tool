@@ -12,23 +12,17 @@ function currentPeriod() {
 export async function getOrCreateUsageMeter(agencyId: string) {
   const { start, end } = currentPeriod();
 
-  let meter = await prisma.usageMeter.findUnique({
+  return prisma.usageMeter.upsert({
     where: {
       agencyId_periodStart: { agencyId, periodStart: start },
     },
+    create: {
+      agencyId,
+      periodStart: start,
+      periodEnd: end,
+    },
+    update: {},
   });
-
-  if (!meter) {
-    meter = await prisma.usageMeter.create({
-      data: {
-        agencyId,
-        periodStart: start,
-        periodEnd: end,
-      },
-    });
-  }
-
-  return meter;
 }
 
 export async function getUsageSummary(agencyId: string) {

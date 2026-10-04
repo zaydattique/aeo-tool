@@ -21,7 +21,8 @@ describe("P0-M expensive-operation hardening", () => {
   it("isolates AI redraft spend and caps provider response buffering", () => {
     const s = read("app/api/actions/[id]/redraft/route.ts");
     expect(s).toContain('consumeProviderBudget("ai"');
-    expect(s).toContain("raw.length > 1_000_000");
+    expect(s).toContain("readJsonResponse");
+    expect(s).toContain("256 * 1024");
     expect(s).toContain("text.slice(0, 8000)");
   });
 

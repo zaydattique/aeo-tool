@@ -1,4 +1,27 @@
-# AEO Command — HISTORY
+### 2026-10-05 - Phase 0 verification branch started
+
+**Goal**
+
+Create one isolated verification branch that combines the existing P0-T hardening with the new master product execution plan without touching `main`.
+
+**What we did**
+
+- Started `phase0-verified-master-integration` from the verified P0-T code head `1aacd260f59e04dfacb442722e5e27b3eb26b555`.
+- Fixed the four known missing shared request-security imports that caused the P0-T TypeScript gate to fail.
+- Integrated the existing master `PROJECT_PLAN.md`, `AGENTS.md`, and `HISTORY.md` into this verification branch.
+- Preserved the rule that no merge to `main` happens until the full verification gate is green and the owner explicitly asks for the merge.
+
+**Verification pending**
+
+The branch still requires the full TypeScript, Prisma, test, build, security regression, and relevant workflow checks before it is eligible for merge.
+
+**Important**
+
+This branch is the only place for the current verification work. `main` has not been changed.
+
+---
+
+# AEO Command - HISTORY
 
 > Repo: `zaydattique/aeo-tool` · Updated **2026-09-30**
 
@@ -13,16 +36,16 @@
 | Schema | `db push` when first deploying (portal, competitors, prompt kind) |
 | PDF | `pdfkit` on `npm install` |
 | Live engines | Optional keys; heuristic fallback always |
-| Rate limit | `rateLimit()` is **async** — always `await`. Optional Upstash: `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` |
+| Rate limit | `rateLimit()` is **async** - always `await`. Optional Upstash: `UPSTASH_REDIS_REST_URL` + `UPSTASH_REDIS_REST_TOKEN` |
 | SSRF | Never use raw `fetch` for user-supplied URLs; use `safeFetch` from `lib/safe-fetch.ts` |
 
 ---
 
-### 2026-09-30 — Phase 14B Security (SSRF, rate limits, headers, API audit)
+### 2026-09-30 - Phase 14B Security (SSRF, rate limits, headers, API audit)
 
 **1. Date + phase/name**
 
-2026-09-30 — **Phase 14B Security**
+2026-09-30 - **Phase 14B Security**
 
 **2. Goal**
 
@@ -54,20 +77,20 @@
 | `/api/billing/webhook` | Stripe signature | N/A | Outside session |
 | `/api/inngest` | Inngest signing | N/A | Outside session |
 
-No clear cross-agency IDOR found on client/scan paths that use `findFirst({ where: { id, agencyId } })`. Residual risk: any route that loads by primary key only without `agencyId` — agents should keep the `findFirst` + `agencyId` pattern on every new route.
+No clear cross-agency IDOR found on client/scan paths that use `findFirst({ where: { id, agencyId } })`. Residual risk: any route that loads by primary key only without `agencyId` - agents should keep the `findFirst` + `agencyId` pattern on every new route.
 
 **4. Key files**
 
-- `lib/safe-fetch.ts` — SSRF-safe HTTP client  
-- `lib/url.ts` — strict website URL validation  
-- `lib/crawl.ts` — uses safeFetch + validation  
-- `lib/scan-worker.ts` — validate-at-scan-time  
-- `lib/rate-limit.ts` — pluggable backend  
-- `lib/auth.ts` — login rate limit  
-- `next.config.ts` — security headers  
-- `app/api/auth/*`, PDF routes — rate limits  
-- `lib/__tests__/url-and-safe-fetch.test.ts` — unit tests  
-- `vitest.config.ts`, `package.json` — test runner
+- `lib/safe-fetch.ts` - SSRF-safe HTTP client  
+- `lib/url.ts` - strict website URL validation  
+- `lib/crawl.ts` - uses safeFetch + validation  
+- `lib/scan-worker.ts` - validate-at-scan-time  
+- `lib/rate-limit.ts` - pluggable backend  
+- `lib/auth.ts` - login rate limit  
+- `next.config.ts` - security headers  
+- `app/api/auth/*`, PDF routes - rate limits  
+- `lib/__tests__/url-and-safe-fetch.test.ts` - unit tests  
+- `vitest.config.ts`, `package.json` - test runner
 
 **5. Outcome / acceptance**
 
@@ -96,7 +119,7 @@ Manual: create client with `https://169.254.169.254` → rejected; `https://user
 
 ---
 
-### 2026-09-28 — Plan restructure: Phase 14–18 as 20-minute sessions
+### 2026-09-28 - Plan restructure: Phase 14–18 as 20-minute sessions
 
 **Goal**
 
@@ -106,20 +129,20 @@ Owner asked for new phases wherever work remains, broken into **~20 minute sessi
 
 Replaced the open-ended “optional later” tail with ordered phases:
 
-- **Phase 14** — Go live (mostly owner: DNS, DB, host, env, smoke, Search Console, optional keys). Eight sessions 14.S1–S8.
-- **Phase 15** — First pilot polish (post-scan UX, empty states, report/portal tweaks, SOV on report, competitors on create). 15.S1–S8.
-- **Phase 16** — Agency ops (CSV exports, bulk status, prompt packs, single recheck, archive→portal off). 16.S1–S8.
-- **Phase 17** — Trust/cost (live engine caps, public rate limits, legal microcopy, health/backup docs). 17.S1–S8.
-- **Phase 18** — Growth marketing surfaces aligned to Phase 13 product. 18.S1–S8.
-- **Phase 19+** — Optional only when owner opens (password portal, custom domain, API, etc.).
+- **Phase 14** - Go live (mostly owner: DNS, DB, host, env, smoke, Search Console, optional keys). Eight sessions 14.S1–S8.
+- **Phase 15** - First pilot polish (post-scan UX, empty states, report/portal tweaks, SOV on report, competitors on create). 15.S1–S8.
+- **Phase 16** - Agency ops (CSV exports, bulk status, prompt packs, single recheck, archive→portal off). 16.S1–S8.
+- **Phase 17** - Trust/cost (live engine caps, public rate limits, legal microcopy, health/backup docs). 17.S1–S8.
+- **Phase 18** - Growth marketing surfaces aligned to Phase 13 product. 18.S1–S8.
+- **Phase 19+** - Optional only when owner opens (password portal, custom domain, API, etc.).
 
 Documented agent rules: one session at a time, HISTORY per session, prefer edit-existing, owner-only steps not faked.
 
 **Key files**
 
-- `PROJECT_PLAN.md` — full session tables  
-- `HISTORY.md` — this entry  
-- `AGENTS.md` — session discipline pointer
+- `PROJECT_PLAN.md` - full session tables  
+- `HISTORY.md` - this entry  
+- `AGENTS.md` - session discipline pointer
 
 **Outcome / acceptance**
 
@@ -139,31 +162,31 @@ Documented agent rules: one session at a time, HISTORY per session, prefer edit-
 
 ---
 
-### 2026-09-28 — Phase 13.5: Richer Action drafts
+### 2026-09-28 - Phase 13.5: Richer Action drafts
 
 Templates + enrich mapper + `/api/actions/[id]/redraft` + Action Center **Enrich draft**.
 
 ---
 
-### 2026-09-28 — Phase 13.4: Live multi-engine
+### 2026-09-28 - Phase 13.4: Live multi-engine
 
 Perplexity, OpenAI, Gemini, Claude when keyed; status UI.
 
 ---
 
-### 2026-09-28 — Phase 13.3: Competitors + SOV
+### 2026-09-28 - Phase 13.3: Competitors + SOV
 
 ---
 
-### 2026-09-28 — Phase 13.2: PDF
+### 2026-09-28 - Phase 13.2: PDF
 
 ---
 
-### 2026-09-28 — Phase 13.1: Client portal
+### 2026-09-28 - Phase 13.1: Client portal
 
 ---
 
-### 2026-09-28 — Phase 12: AEO/SEO foundation
+### 2026-09-28 - Phase 12: AEO/SEO foundation
 
 ---
 
@@ -172,7 +195,7 @@ Deploy reference: **docs/DEPLOY.md**.
 
 ---
 
-### 2026-10-02 — Phase 0-C: Distributed visibility provider concurrency hardening
+### 2026-10-02 - Phase 0-C: Distributed visibility provider concurrency hardening
 
 **Goal**
 
@@ -194,16 +217,16 @@ Updated the README architecture notes, environment guidance, and file map so the
 
 **Key files**
 
-- lib/visibility-concurrency.ts — atomic Redis/local provider concurrency leases and release logic.
-- lib/visibility-config.ts — P0-C concurrency and provider timeout configuration.
-- lib/visibility-check.ts — applies the guard only around fresh external provider calls and adds request timeouts.
-- lib/__tests__/visibility-hardening.test.ts — verifies provider, global, and agency concurrency limits.
-- .github/workflows/p0c-provider-concurrency.yml — automated P0-C verification.
-- .env.example — documents production concurrency, Redis, lease, wait, and timeout controls.
-- README.md — records Redis-backed visibility concurrency in the architecture/deployment guidance.
-- docs/FILEMAP.md — indexes the new concurrency and test paths.
-- PROJECT_PLAN.md — records the completed P0-C hardening session.
-- HISTORY.md — this full session record.
+- lib/visibility-concurrency.ts - atomic Redis/local provider concurrency leases and release logic.
+- lib/visibility-config.ts - P0-C concurrency and provider timeout configuration.
+- lib/visibility-check.ts - applies the guard only around fresh external provider calls and adds request timeouts.
+- lib/__tests__/visibility-hardening.test.ts - verifies provider, global, and agency concurrency limits.
+- .github/workflows/p0c-provider-concurrency.yml - automated P0-C verification.
+- .env.example - documents production concurrency, Redis, lease, wait, and timeout controls.
+- README.md - records Redis-backed visibility concurrency in the architecture/deployment guidance.
+- docs/FILEMAP.md - indexes the new concurrency and test paths.
+- PROJECT_PLAN.md - records the completed P0-C hardening session.
+- HISTORY.md - this full session record.
 
 **Outcome / acceptance**
 
@@ -226,7 +249,7 @@ Production horizontal scaling depends on Redis being configured; without it, the
 
 ---
 
-### 2026-10-02 — Phase 0-D: Abuse and rate-limit hardening
+### 2026-10-02 - Phase 0-D: Abuse and rate-limit hardening
 
 **Goal**
 
@@ -254,7 +277,7 @@ The next scalability layer should audit queue admission and scan creation as a t
 
 ---
 
-### 2026-10-02 — Phase 0-E: Queue admission and scan race hardening
+### 2026-10-02 - Phase 0-E: Queue admission and scan race hardening
 
 P0-E closes a concurrency gap that remained after P0-D: two app instances could independently pass the active-scan check before either created its scan, and scheduled rescans had the same check/create race. Manual admission now serializes active-scan and monthly-plan checks with creation under a PostgreSQL advisory transaction lock. A partial unique database index independently enforces the one-active-scan-per-client invariant. The active-scan query also has a supporting composite index.
 
@@ -264,7 +287,7 @@ This phase is specifically about queue admission correctness; it does not claim 
 
 ---
 
-### 2026-10-02 — Phase 0-F: Crawl resource hardening
+### 2026-10-02 - Phase 0-F: Crawl resource hardening
 
 P0-F adds bounded crawl resource controls for hostile or unusually large websites. The SSRF-safe fetcher now supports bounded total/connect timeouts, redirect counts, and response bytes through environment configuration, with conservative defaults and hard min/max bounds. Firecrawl requests receive an explicit execution timeout and a 10MB response-payload ceiling. The existing SSRF protections, manual redirect validation, content-type restrictions, and response cap remain in place.
 
@@ -273,14 +296,14 @@ These controls reduce application/provider resource amplification from slow, red
 
 ---
 
-### 2026-10-02 — Phase 0-H: Public authentication abuse hardening
+### 2026-10-02 - Phase 0-H: Public authentication abuse hardening
 
 P0-H adds defense-in-depth controls to public account and recovery endpoints. Signup now has a per-email bucket in addition to its existing per-IP bucket. Password recovery has a per-email bucket in addition to its existing per-IP bucket, reducing reset-email flooding against one account. Reset-password requests add a hashed-token bucket, and invite acceptance receives a per-IP bucket.
 
 Client IP extraction is centralized with an explicit trust-boundary comment: forwarding headers are only trustworthy when the public edge/proxy strips and rewrites client-supplied values. This phase does not claim edge/WAF bot protection or DDoS immunity.
 
 
-## P0-I — Provider/network cost isolation
+## P0-I - Provider/network cost isolation
 - Added distributed hourly global + agency provider budgets for scan crawl and paid AI calls.
 - Added bounded AI provider timeout/response size and normalized AI issue output limits.
 - Added Firecrawl response, stored-link, and metadata caps to limit response amplification.
@@ -288,8 +311,45 @@ Client IP extraction is centralized with an explicit trust-boundary comment: for
 - Production budget/rate controls fail closed when Redis is required but unavailable.
 
 
-## P0-J — Database/query hardening
+## P0-J - Database/query hardening
 - Added tenant-scoped composite indexes for high-frequency list/status queries.
 - Added bounded list responses for clients, actions, and visibility snapshots with explicit `hasMore` metadata.
 - Documented bounded Prisma connection-pool guidance for production Postgres.
 - Preserved the prior P0-A through P0-I controls.
+
+
+---
+
+### 2026-10-05 - Master product execution plan redesign
+
+**Goal**
+
+The previous PROJECT_PLAN had grown around short 20-minute sessions and no longer represented the actual product ambition. The owner requested a single, deeply connected execution plan covering security, backend, frontend, UI, UX, analytics, AI visibility, citations, competitors, crawlability, pricing, profitability, Super Admin, email and provider configuration, chatbot spend, accessibility, content, marketing, legal, scale, and final PDF integration. The acceptance criteria for this documentation ship were that the plan must group related work into substantial phases, explain implementation steps in human language, define exact verification rather than generic "test it" statements, protect the existing architecture, prohibit layered overrides and unnecessary duplicate files, and place marketing late enough that it reflects the finished product.
+
+**What we did**
+
+Replaced the previous micro-session roadmap with a master phase-based execution plan. The new plan begins with security consolidation and the outstanding P0-T verification, then moves through identity and Super Admin, configuration and provider cost control, canonical analytics, AI visibility and citation intelligence, crawl/SEO/AEO/GEO intelligence, Action Center execution, dashboard UX, client reporting, accessibility, QA, pricing and margin controls, marketing-site chatbot accounting, blog/content infrastructure, final marketing and legal, competitor sales enablement, production scale, enterprise capabilities, final owner-supplied PDF template integration, and launch certification.
+
+The plan now explicitly requires a closed-loop product workflow from discovery through implementation and recheck. It defines more than 50 analytics categories as a canonical metric architecture rather than independent dashboard calculations. It requires Super Admin control over sessions, security events, provider and email configuration, costs, branding, marketing headings, pricing, media, legal content, chatbot usage, and operational health. It specifies a server-enforced $0.05 target budget per unique marketing chatbot visitor with atomic spend admission and reconciliation. It makes accessibility a first-class product phase, including screen-reader, keyboard, deaf/hard-of-hearing, chart, notification, and WCAG 2.2 AA requirements.
+
+The plan also establishes the recommended product identity as Threezero AEO with the descriptor AI Search Visibility Platform and the footer attribution Backed by threezero.agency, while requiring the values to be editable through Super Admin. It explicitly keeps marketing late, requires SEO/AEO/GEO protection for every public-route change, adds a detailed content and blog system, and reserves final PDF visual integration until the owner supplies the template.
+
+AGENTS.md was updated to retire the old 20-minute session rule and enforce the new phase model, the no-duplicate/no-layered-override engineering rules, dollar-based product pricing, admin-managed branding/media, accessibility, and exact phase acceptance criteria.
+
+**Key files**
+
+- PROJECT_PLAN.md - replaced the short-session roadmap with the master ordered product execution plan and exact phase acceptance criteria.
+- AGENTS.md - aligned all future agent behavior with the new phase model and engineering constraints.
+- HISTORY.md - records why the planning model changed and what the new plan guarantees.
+
+**Outcome / acceptance**
+
+The branch must show PROJECT_PLAN.md as the only ordered execution plan, with Phase 0 as the current next work. The plan must explicitly cover backend, frontend, UI, UX, security, multi-tenant isolation, Super Admin, providers, email, cost accounting, analytics, accessibility, content, marketing, legal, pricing, chatbot, scale, and final PDF work. It must also require exact tests and verification for each major phase rather than generic completion statements.
+
+**What is still missing / deferred**
+
+This ship changes the execution plan and agent rules. It does not implement the product features described by the new plan. Phase 0 is intentionally next and must finish the outstanding P0-T security consolidation before feature expansion. The final product name remains a recommended working identity until the owner confirms it. The owner-supplied PDF design is intentionally deferred to the final PDF phase.
+
+**Gotchas**
+
+The current main branch remains the production code baseline. The planning branch must not be mistaken for a product-feature branch. The open P0-T branch still requires its known TypeScript import fixes and full verification before merge. The new plan deliberately does not claim DDoS immunity or 100k-user scale without infrastructure and load evidence.

@@ -1,3 +1,4 @@
+import { readJsonResponse } from "@/lib/request-security";
 /**
  * Visibility check across answer engines.
  *
@@ -219,7 +220,7 @@ async function checkPerplexityLiveUncached(
       return null;
     }
 
-    const json = await res.json();
+    const json = await readJsonResponse<Record<string, any>>(res, 1024 * 1024);
     const content: string =
       json.choices?.[0]?.message?.content ||
       json.choices?.[0]?.delta?.content ||
@@ -292,7 +293,7 @@ async function checkOpenAiLiveUncached(
       return null;
     }
 
-    const json = await res.json();
+    const json = await readJsonResponse<Record<string, any>>(res, 1024 * 1024);
     const content: string = json.choices?.[0]?.message?.content || "";
     const scored = scoreFromText(content, brandName, competitorName);
     return { engine: "chatgpt", live: true, ...scored };
@@ -361,7 +362,7 @@ async function checkGeminiLiveUncached(
       return null;
     }
 
-    const json = await res.json();
+    const json = await readJsonResponse<Record<string, any>>(res, 1024 * 1024);
     const content: string =
       json.candidates?.[0]?.content?.parts
         ?.map((p: { text?: string }) => p.text || "")
@@ -430,7 +431,7 @@ async function checkClaudeLiveUncached(
       return null;
     }
 
-    const json = await res.json();
+    const json = await readJsonResponse<Record<string, any>>(res, 1024 * 1024);
     const content: string = Array.isArray(json.content)
       ? json.content.map((c: { text?: string }) => c.text || "").join("")
       : "";

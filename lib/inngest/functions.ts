@@ -60,6 +60,8 @@ export const runScanJob = inngest.createFunction(
                   deletedAt: null,
                 },
                 select: { email: true, role: true },
+                take: 50,
+                orderBy: { createdAt: "asc" },
               },
             },
           },
@@ -129,7 +131,7 @@ export const runVisibilitySnapshotJob = inngest.createFunction(
 
 /** Every 5 minutes: reclaim scans abandoned by crashed workers. */
 export const staleScanRecoveryCron = inngest.createFunction(
-  { id: "stale-scan-recovery", retries: 1 },
+  { id: "stale-scan-recovery", retries: 1, concurrency: { scope: "env", key: '"stale-scan-recovery"', limit: 1 } },
   { cron: "*/5 * * * *" },
   async ({ step }) => {
     return step.run("recover-stale-scans", () => recoverStaleScans());
@@ -138,7 +140,7 @@ export const staleScanRecoveryCron = inngest.createFunction(
 
 /** Hourly: enqueue due weekly re-scans */
 export const weeklyRescanCron = inngest.createFunction(
-  { id: "weekly-rescan-cron", retries: 1 },
+  { id: "weekly-rescan-cron", retries: 1, concurrency: { scope: "env", key: '"weekly-rescan-cron"', limit: 1 } },
   { cron: "0 * * * *" },
   async ({ step }) => {
     const due = await step.run("find-due-clients", async () => {
@@ -160,6 +162,7 @@ export const weeklyRescanCron = inngest.createFunction(
           rescanIntervalDays: true,
           agency: { select: { plan: true } },
         },
+        orderBy: [{ nextRescanAt: "asc" }, { id: "asc" }],
         take: 50,
       });
     });
@@ -226,7 +229,7 @@ export const weeklyRescanCron = inngest.createFunction(
 
 /** Monday 09:00 UTC — simple agency digest */
 export const weeklyDigestCron = inngest.createFunction(
-  { id: "weekly-digest-cron", retries: 1 },
+  { id: "weekly-digest-cron", retries: 1, concurrency: { scope: "env", key: '"weekly-digest-cron"', limit: 1 } },
   { cron: "0 9 * * 1" },
   async ({ step }) => {
     const agencies = await step.run("list-agencies", async () =>
@@ -241,8 +244,11 @@ export const weeklyDigestCron = inngest.createFunction(
           users: {
             where: { role: "AGENCY_OWNER", deletedAt: null },
             select: { email: true },
+            take: 10,
           },
         },
+        orderBy: { id: "asc" },
+        take: 1000,
       })
     );
 

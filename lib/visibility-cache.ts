@@ -17,7 +17,14 @@ type CacheEnvelope<T> = {
 
 const CACHE_VERSION = "v1";
 const WAIT_MS = 250;
-const WAIT_ATTEMPTS = 80;
+const WAIT_ATTEMPTS = 40;
+const DEFAULT_REDIS_TIMEOUT_MS = 1500;
+
+function redisTimeoutMs() {
+  const raw = Number(process.env.VISIBILITY_CONCURRENCY_REDIS_TIMEOUT_MS ?? DEFAULT_REDIS_TIMEOUT_MS);
+  if (!Number.isFinite(raw)) return DEFAULT_REDIS_TIMEOUT_MS;
+  return Math.min(5000, Math.max(250, Math.floor(raw)));
+}
 
 function redisConfig() {
   const url = process.env.UPSTASH_REDIS_REST_URL?.replace(/\/$/, "");
@@ -50,6 +57,8 @@ function cacheKey(input: {
 }
 
 async function pipeline<T>(baseUrl: string, token: string, commands: unknown[][]): Promise<T[] | null> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), redisTimeoutMs());
   try {
     const res = await fetch(`${baseUrl}/pipeline`, {
       method: "POST",
@@ -58,11 +67,14 @@ async function pipeline<T>(baseUrl: string, token: string, commands: unknown[][]
         "Content-Type": "application/json",
       },
       body: JSON.stringify(commands),
+      signal: controller.signal,
     });
     if (!res.ok) return null;
     return (await res.json()) as T[];
   } catch {
     return null;
+  } finally {
+    clearTimeout(timeout);
   }
 }
 

@@ -3,6 +3,7 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/session";
+import { readJsonBody } from "@/lib/request-security";
 
 function slugify(text: string): string {
   return text
@@ -12,7 +13,7 @@ function slugify(text: string): string {
     .slice(0, 60);
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const auth = await requireAuth();
   if (auth.error || !auth.session) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
@@ -21,29 +22,34 @@ export async function GET() {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const agencies = await prisma.agency.findMany({
-    where: { deletedAt: null },
-    orderBy: { createdAt: "desc" },
-    include: {
-      plan: { select: { name: true, slug: true } },
-      _count: {
-        select: {
-          users: true,
-          clients: true,
-          scans: true,
-        },
+  const rawLimit = Number(req.nextUrl.searchParams.get("limit") ?? 50);
+  const limit = Number.isFinite(rawLimit) ? Math.min(100, Math.max(1, Math.floor(rawLimit))) : 50;
+  const rawOffset = Number(req.nextUrl.searchParams.get("offset") ?? 0);
+  const offset = Number.isFinite(rawOffset) ? Math.max(0, Math.floor(rawOffset)) : 0;
+
+  const [agencies, totalAgencies, active, trial, suspended] = await Promise.all([
+    prisma.agency.findMany({
+      where: { deletedAt: null },
+      orderBy: { createdAt: "desc" },
+      skip: offset,
+      take: limit + 1,
+      include: {
+        plan: { select: { name: true, slug: true } },
+        _count: { select: { users: true, clients: true, scans: true } },
       },
-    },
-  });
+    }),
+    prisma.agency.count({ where: { deletedAt: null } }),
+    prisma.agency.count({ where: { deletedAt: null, status: "ACTIVE" } }),
+    prisma.agency.count({ where: { deletedAt: null, status: "TRIAL" } }),
+    prisma.agency.count({ where: { deletedAt: null, status: "SUSPENDED" } }),
+  ]);
 
-  const metrics = {
-    totalAgencies: agencies.length,
-    active: agencies.filter((a) => a.status === "ACTIVE").length,
-    trial: agencies.filter((a) => a.status === "TRIAL").length,
-    suspended: agencies.filter((a) => a.status === "SUSPENDED").length,
-  };
+  const hasMore = agencies.length > limit;
+  agencies.splice(limit);
 
-  return NextResponse.json({ agencies, metrics });
+  const metrics = { totalAgencies, active, trial, suspended };
+
+  return NextResponse.json({ agencies, metrics, pagination: { offset, limit, hasMore } });
 }
 
 const createSchema = z.object({
@@ -64,7 +70,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const body = await req.json();
+    const body = await readJsonBody<unknown>(req);
     const parsed = createSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ error: "Invalid input" }, { status: 400 });
@@ -134,6 +140,8 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(result, { status: 201 });
   } catch (err) {
+    if (err instanceof Error && err.message === "REQUEST_BODY_TOO_LARGE") return NextResponse.json({ error: "Request body too large" }, { status: 413 });
+    if (err && typeof err === "object" && "code" in err && (err as { code?: string }).code === "P2002") return NextResponse.json({ error: "Agency or owner email already exists" }, { status: 409 });
     console.error("Admin create agency:", err);
     return NextResponse.json({ error: "Internal error" }, { status: 500 });
   }
