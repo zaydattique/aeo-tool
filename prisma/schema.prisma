@@ -149,6 +149,8 @@ model Agency {
   reports              Report[]
   teamInvites          TeamInvite[]
   activityLogs         ActivityLog[]
+  sessions             UserSession[]
+  securityEvents       SecurityEvent[]
   subscriptions        Subscription[]
   usageMeters          UsageMeter[]
   visibilityJobs       VisibilityJob[]
