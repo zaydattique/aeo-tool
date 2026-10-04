@@ -3,6 +3,9 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
 import { rateLimit } from "./rate-limit";
+import crypto from "node:crypto";
+import { consumeRecoveryCode, decryptMfaSecret, verifyTotp } from "./mfa";
+import { recordSecurityEvent } from "./security-events";
 
 export const authOptions: NextAuthOptions = {
   session: {
@@ -19,8 +22,10 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
+        totpCode: { label: "Authenticator code", type: "text" },
+        recoveryCode: { label: "Recovery code", type: "text" },
       },
-      async authorize(credentials) {
+      async authorize(credentials, req) {
         if (!credentials?.email || !credentials?.password) {
           return null;
         }
@@ -60,6 +65,14 @@ export const authOptions: NextAuthOptions = {
           user.passwordHash
         );
         if (!valid) {
+          await recordSecurityEvent({
+            userId: user.id,
+            agencyId: user.agencyId,
+            eventType: "auth.login_failed",
+            severity: "WARNING",
+            ip: req.headers?.["x-forwarded-for"]?.split(",")[0]?.trim() ?? null,
+            userAgent: req.headers?.["user-agent"] ?? null,
+          });
           return null;
         }
 
@@ -72,6 +85,59 @@ export const authOptions: NextAuthOptions = {
         ) {
           throw new Error("AgencySuspended");
         }
+
+        if (user.role === "SUPER_ADMIN" || user.role === "AGENCY_OWNER") {
+          if (!user.mfaEnabled || !user.mfaSecretCiphertext) {
+            throw new Error("MFASetupRequired");
+          }
+
+          let mfaValid = false;
+          if (credentials.totpCode) {
+            try {
+              mfaValid = verifyTotp(decryptMfaSecret(user.mfaSecretCiphertext), String(credentials.totpCode));
+            } catch {
+              mfaValid = false;
+            }
+          } else if (credentials.recoveryCode) {
+            const records = await prisma.mfaRecoveryCode.findMany({
+              where: { userId: user.id, usedAt: null },
+              select: { id: true, codeHash: true, usedAt: true },
+            });
+            const recoveryId = await consumeRecoveryCode(records, String(credentials.recoveryCode));
+            if (recoveryId) {
+              await prisma.mfaRecoveryCode.update({ where: { id: recoveryId }, data: { usedAt: new Date() } });
+              mfaValid = true;
+              await recordSecurityEvent({ userId: user.id, agencyId: user.agencyId, eventType: "auth.recovery_code_used", severity: "WARNING" });
+            }
+          }
+          if (!mfaValid) {
+            await recordSecurityEvent({ userId: user.id, agencyId: user.agencyId, eventType: "auth.mfa_failed", severity: "WARNING" });
+            throw new Error("MFARequired");
+          }
+        }
+
+        const tokenId = crypto.randomUUID();
+        const now = new Date();
+        const expiresAt = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+        await prisma.userSession.create({
+          data: {
+            userId: user.id,
+            agencyId: user.agencyId,
+            tokenId,
+            issuedAt: now,
+            expiresAt,
+            ip: req.headers?.["x-forwarded-for"]?.split(",")[0]?.trim() ?? null,
+            userAgent: req.headers?.["user-agent"] ?? null,
+          },
+        });
+
+        await recordSecurityEvent({
+          userId: user.id,
+          agencyId: user.agencyId,
+          eventType: "auth.login_success",
+          ip: req.headers?.["x-forwarded-for"]?.split(",")[0]?.trim() ?? null,
+          userAgent: req.headers?.["user-agent"] ?? null,
+        });
 
         await prisma.user.update({
           where: { id: user.id },
@@ -86,6 +152,7 @@ export const authOptions: NextAuthOptions = {
           agencyId: user.agencyId,
           agencyName: user.agency?.name ?? null,
           onboardingCompleted: user.agency?.onboardingCompleted ?? true,
+          sessionId: tokenId,
         };
       },
     }),
@@ -98,6 +165,7 @@ export const authOptions: NextAuthOptions = {
         token.agencyId = user.agencyId;
         token.agencyName = user.agencyName;
         token.onboardingCompleted = user.onboardingCompleted;
+        token.sessionId = user.sessionId;
         token.impersonationExpiresAt = null;
       }
 
@@ -148,8 +216,18 @@ export const authOptions: NextAuthOptions = {
         session.user.impersonationExpiresAt = impersonationExpired
           ? null
           : token.impersonationExpiresAt;
+        session.user.sessionId = token.sessionId;
       }
       return session;
+    },
+    async signOut({ token }) {
+      if (token?.sessionId) {
+        await prisma.userSession.updateMany({
+          where: { tokenId: String(token.sessionId), revokedAt: null },
+          data: { revokedAt: new Date() },
+        });
+        await recordSecurityEvent({ userId: token.id ? String(token.id) : null, agencyId: token.agencyId ? String(token.agencyId) : null, eventType: "auth.logout" });
+      }
     },
   },
   secret: process.env.NEXTAUTH_SECRET,
