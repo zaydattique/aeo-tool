@@ -40,9 +40,6 @@ export async function requireAgency() {
     })).catch(() => undefined);
   }
 
-  if ((session.user.role === "SUPER_ADMIN" || session.user.role === "AGENCY_OWNER") && !session.user.mfaEnabled) {
-    return { error: "MFA setup required" as const, status: 403 as const, session: null };
-  }
 
   if (
     session.user.role === "SUPER_ADMIN" &&
