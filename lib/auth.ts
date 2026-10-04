@@ -220,13 +220,19 @@ export const authOptions: NextAuthOptions = {
       }
       return session;
     },
+  },
+  events: {
     async signOut({ token }) {
       if (token?.sessionId) {
         await prisma.userSession.updateMany({
           where: { tokenId: String(token.sessionId), revokedAt: null },
           data: { revokedAt: new Date() },
         });
-        await recordSecurityEvent({ userId: token.id ? String(token.id) : null, agencyId: token.agencyId ? String(token.agencyId) : null, eventType: "auth.logout" });
+        await recordSecurityEvent({
+          userId: token.id ? String(token.id) : null,
+          agencyId: token.agencyId ? String(token.agencyId) : null,
+          eventType: "auth.logout",
+        });
       }
     },
   },
