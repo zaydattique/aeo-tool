@@ -3,6 +3,7 @@ import { randomBytes } from "crypto";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAgency, canManageClients } from "@/lib/session";
+import { readJsonBody } from "@/lib/request-security";
 
 const bodySchema = z.object({
   action: z.enum(["enable", "disable", "rotate"]),
