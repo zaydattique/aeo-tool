@@ -5,6 +5,7 @@ import { requireAgency } from "@/lib/session";
 import { getStripe, isStripeConfigured } from "@/lib/stripe";
 import { rateLimit } from "@/lib/rate-limit";
 import { billingCheckoutLimit, billingCheckoutWindowMs } from "@/lib/expensive-rate-limits";
+import { readJsonBody } from "@/lib/request-security";
 
 const schema = z.object({
   planSlug: z.string().min(1),
