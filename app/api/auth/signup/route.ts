@@ -7,7 +7,7 @@ import { getClientIp, readJsonBody } from "@/lib/request-security";
 
 const signupSchema = z.object({
   email: z.string().email().max(255),
-  password: z.string().min(8).max(128),
+  password: z.string().min(12).max(128),
   fullName: z.string().min(1).max(120),
   agencyName: z.string().min(1).max(120),
   billingRegion: z.enum(["PAKISTAN", "INTERNATIONAL"]).default("PAKISTAN"),
