@@ -1,116 +1,107 @@
-# AGENTS.md — every AI
+# AGENTS.md - every AI
 
-Repo: `zaydattique/aeo-tool`  
-Product: **AEO Command** (Answer Engine Optimization platform for agencies)
+Repo: `zaydattique/aeo-tool`
+Product target identity: **Threezero AEO**
+Descriptor: **AI Search Visibility and Answer Engine Optimization Platform**
+Parent brand: **threezero.agency**
 
-## Boot (before any edit)
+## Boot before any edit
 
-1. **[PROJECT_PLAN.md](./PROJECT_PLAN.md)** — **only** ordered to-do (do everything in sequence)
-2. **[HISTORY.md](./HISTORY.md)** — full detail of what exists; do not redo completed work
-3. **This file**
-4. **[docs/FILEMAP.md](./docs/FILEMAP.md)** — paths to touch
-5. **[README.md](./README.md)** — architecture and how the system fits together
+1. Read [PROJECT_PLAN.md](./PROJECT_PLAN.md). It is the only ordered product execution plan.
+2. Read [HISTORY.md](./HISTORY.md) to understand what already exists and why.
+3. Read this file.
+4. Read [docs/FILEMAP.md](./docs/FILEMAP.md) before changing major paths.
+5. Read [README.md](./README.md) for architecture and deployment behavior.
 
-**No other todo lists.** If an old docs file lists features, ignore it — PROJECT_PLAN wins.
+Do not invent a second todo list. PROJECT_PLAN.md controls sequence.
 
----
+## Execution model
 
-## SESSION RULE (Phase 14+)
+The old 20-minute session model is retired.
 
-- Work is split into **~20 minute sessions** labeled `PHASE.S#` (e.g. `15.S3`).
-- Complete **one session per ship** when possible; do not merge an entire phase in one go unless the owner explicitly asks.
-- Owner-only sessions (most of **Phase 14**): prepare checklists / docs only — **never** claim DNS, host, or secrets are done without owner confirmation.
-- After each session: full **HISTORY** entry + mark that session done in PROJECT_PLAN.
+Work is organized into coherent phases. A phase may require multiple implementation commits and multiple verification cycles. Do not split tightly related backend, frontend, data, API, UI, UX, security, QA, or documentation work into arbitrary micro-sessions.
 
----
+Do not start the next phase until the current phase acceptance criteria are actually satisfied, unless the owner explicitly changes the order.
 
-## CRITICAL FILE RULES (NO EXCEPTIONS)
+## CRITICAL FILE RULES
 
-- **NEVER** push placeholders, stubs, TODOs, partial files, or strings like `SEE_FILE` / `PLACEHOLDER` / `SEE_ARTIFACTS` / `TODO` / `FIXME`.
-- Every file push **MUST** contain the **COMPLETE real content** — not a path reference, not a comment, not a truncated half.
-- Before any GitHub push: verify the body has **no** placeholder / TODO / FIXME / SEE_FILE strings.
-- If file is **>10KB** → split into multiple smaller **verified** pushes **OR** use git from local. Do not invent partial content.
-- If any file becomes empty or corrupt → **STOP and ask human**.
-- Critical paths (never tiny): schema, scan worker, Action Center, auth middleware, report generator, crawl/AI libs.
-- **Prefer edit existing files** over creating new ones when the same concern can be solved by extending an existing page, component, lib, or doc. Do not create parallel files for the same topic (e.g. two competing SEO guides).
+- Never push placeholders, stubs, TODOs, FIXME markers, truncated files, or fake implementations.
+- Every pushed file must contain complete real content.
+- Search before creating a file.
+- Prefer editing an existing source of truth over creating a parallel file.
+- Never maintain two competing implementations of the same concern.
+- Fix the original source of truth instead of adding a later override.
+- Do not solve a CSS problem by adding an unnecessary higher-specificity override when the original rule should be corrected.
+- Do not create duplicate API routes, duplicate configuration stores, duplicate analytics definitions, duplicate branding systems, or duplicate content systems.
 
----
+## SECURITY RULES
 
-## DOCUMENTATION RULES (MANDATORY AFTER EVERY SHIP) — OWNER STRENGTHENED 2026-09-28
+- Never skip agencyId isolation on business data.
+- Never trust a client-supplied agencyId.
+- Never expose passwords, session tokens, reset tokens, API keys, provider secrets, or MFA secrets.
+- Expensive operations require authentication, authorization, quota, rate, timeout, concurrency, response-size, retry, and cost controls appropriate to their risk.
+- Never treat application rate limiting as DDoS immunity.
+- Preserve SSRF controls when changing crawl or URL-fetch behavior.
+- Re-test cross-tenant access after changing any identifier-based route.
+- Never present heuristic AI visibility as a real provider statement.
+- Keep live, cached, and estimated observations distinguishable.
 
-Owner requirement: docs must explain **what was built**, **why**, **how it works**, **what remains**, and **how to verify** — never one-liners.
+## PRODUCT AND UI RULES
 
-### HISTORY.md — after every phase or meaningful ship
+- The target product name is Threezero AEO unless the owner changes it through the project plan.
+- The parent brand is threezero.agency.
+- The final marketing footer must contain a form of "Backed by threezero.agency".
+- Product and marketing company information must become Super Admin editable rather than remaining hardcoded.
+- Marketing media must become admin-managed rather than hardcoded page assets.
+- Major marketing headings, navigation labels, pricing, CTAs, legal links, company information, and SEO metadata must be admin-editable.
+- Do not add generic guidance paragraphs to UI. Use clear labels, meaningful actions, state information, concise explanations, and useful contextual content.
+- Accessibility is mandatory, with WCAG 2.2 AA as the target.
+- Important notifications must have a visible representation and must not depend on audio alone.
+- Product pricing is dollar-based and must not become Pakistan-specific.
 
-Append a section that includes **all** of the following in full prose (not bullets alone):
+## ENGINEERING QUALITY
 
-1. **Date + phase/name**
-2. **Goal** — the exact problem this ship solved and the success criteria that were set before work began
-3. **What we did** — concrete behaviors: every API route changed, every UI surface, every data-model field, every external integration, every content page. Name the user-visible outcome.
-4. **Key files** — paths created or substantially changed, with a one-sentence role for each
-5. **Outcome / acceptance** — how a human or the next agent can verify the ship works (commands, URLs, expected UI states)
-6. **What is still missing / deferred** — explicit list of related work that was intentionally left out and why
-7. **Gotchas** — anything the next agent will trip on (env vars, migrations, race conditions, plan limits)
+- No code may be overwritten by a later competing implementation merely to make the newer code win.
+- Remove obsolete rules after the canonical implementation is proven.
+- Do not add a new file when an existing file is the correct owner.
+- Do not claim a feature is complete because a helper exists. Prove the end-to-end workflow.
+- Do not claim 100k-user scalability without a controlled benchmark.
+- Do not claim DDoS immunity.
+- Do not publish unsupported marketing claims.
+- Do not represent heuristic visibility as real AI output.
+- Do not use em dash characters in project documentation or product copy.
 
-**Forbidden:** one-liners like “Phase 6 complete (Grok)” with no substance. HISTORY entries must be long enough that a new agent can reconstruct intent without reading the code.
+## DOCUMENTATION RULES
 
-### README.md — must stay the single source of truth for architecture
+After every meaningful ship, update the relevant existing documentation.
 
-README **must** contain, in full detail:
+HISTORY.md entries must explain:
+1. date and phase,
+2. goal and acceptance criteria,
+3. concrete implementation,
+4. changed files,
+5. verification,
+6. remaining/deferred work,
+7. gotchas.
 
-- Product identity and promise
-- Current architecture diagram (text) and every major layer (runtime, DB, auth, scans, billing, email, jobs)
-- Frontend surface map (marketing routes, product UI, public report, admin)
-- Core user flows end-to-end
-- Local development steps and production deploy summary
-- Environment variables (required vs optional) with purpose of each
-- Tech stack versions and why each was chosen
-- Goals achieved to date and goals remaining
-- License / ownership note
+README.md remains the architecture source of truth.
 
-After any structural change (new major area: billing, admin, reports, queue, AEO content cluster), update the corresponding README sections in the **same** ship — not only a phase bullet.
+docs/FILEMAP.md must include every new important route, library, component, schema area, and configuration surface.
 
-### docs/FILEMAP.md — keep accurate
+PROJECT_PLAN.md remains the only ordered execution plan and must identify the current phase.
 
-- When you add a **new** important path (`lib/*`, `app/api/*`, major page), **add a row** to FILEMAP in the same ship.
-- Do not leave orphan routes undocumented.
+## OWNER-ONLY BOUNDARIES
 
-### PROJECT_PLAN.md
+Do not claim DNS, hosting, production secrets, live Stripe configuration, irreversible deletion, or other owner-controlled external infrastructure is complete without owner confirmation.
 
-- Mark phase/session Done with a short **deliverables completed** list (can be tighter than HISTORY).
-- Point **NEXT** at the single open session (`14.S1`, `15.S2`, …).
-- Never invent parallel phase numbers outside this file.
+Do not invent credentials.
 
----
+When the plan requires an owner decision about pricing, role model, legal policy, or irreversible data behavior, surface the decision before implementing the irreversible portion.
 
-## Working with owner
+## NEVER
 
-- Do all code Grok can do; **ask owner** only for: production secrets, Stripe live keys, DNS, domain setup, irreversible data deletes, pricing model changes.
-- **Ask before** changing business logic, pricing model, permission/role model, or deleting user data paths.
-- After ship: **detailed HISTORY** + mark PROJECT_PLAN + update FILEMAP/README when structure changed.
-- Language with owner: **English, Urdu, or Roman Urdu only**.
-
----
-
-## Never
-
-- Placeholder / stub / incomplete critical files
-- Thin HISTORY that only says a phase is done
-- Thin README that only lists tech names without explaining architecture and flows
-- Blind restore over newer main
-- Commit `.env` / private keys / secrets
-- Skip `agencyId` isolation on any business table or query
-- Ship expensive ops (scans, AI, reports) without plan limits / rate awareness where already established
-- Create a new file when editing an existing one solves the same need
-- Mark owner host/DNS sessions complete without owner confirmation
-
----
-
-## Product identity (stable)
-
-AEO Command is a **multi-tenant SaaS** for agencies:
-
-- Paste client URL → full scan → prioritized Action Center with exact steps → assign → track → white-label report.
-- Strict multi-tenant isolation (`agencyId` everywhere).
-- Roles: `SUPER_ADMIN` | `AGENCY_OWNER` | `AGENCY_MEMBER`.
-- Domains: threezero.agency (marketing), app.threezero.agency (app), admin.threezero.agency (super admin).
+- Never merge an unverified security branch.
+- Never leave obsolete code underneath a working override.
+- Never hardcode company identity into a page that should be admin-managed.
+- Never create duplicate implementations for the same purpose.
+- Never skip exact acceptance criteria in PROJECT_PLAN.md.
