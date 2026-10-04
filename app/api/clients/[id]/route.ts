@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAgency, canManageClients } from "@/lib/session";
+import { readJsonBody } from "@/lib/request-security";
 
 const updateSchema = z.object({
   name: z.string().min(1).max(200).optional(),
