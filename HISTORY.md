@@ -293,3 +293,40 @@ Client IP extraction is centralized with an explicit trust-boundary comment: for
 - Added bounded list responses for clients, actions, and visibility snapshots with explicit `hasMore` metadata.
 - Documented bounded Prisma connection-pool guidance for production Postgres.
 - Preserved the prior P0-A through P0-I controls.
+
+
+---
+
+### 2026-10-05 - Master product execution plan redesign
+
+**Goal**
+
+The previous PROJECT_PLAN had grown around short 20-minute sessions and no longer represented the actual product ambition. The owner requested a single, deeply connected execution plan covering security, backend, frontend, UI, UX, analytics, AI visibility, citations, competitors, crawlability, pricing, profitability, Super Admin, email and provider configuration, chatbot spend, accessibility, content, marketing, legal, scale, and final PDF integration. The acceptance criteria for this documentation ship were that the plan must group related work into substantial phases, explain implementation steps in human language, define exact verification rather than generic "test it" statements, protect the existing architecture, prohibit layered overrides and unnecessary duplicate files, and place marketing late enough that it reflects the finished product.
+
+**What we did**
+
+Replaced the previous micro-session roadmap with a master phase-based execution plan. The new plan begins with security consolidation and the outstanding P0-T verification, then moves through identity and Super Admin, configuration and provider cost control, canonical analytics, AI visibility and citation intelligence, crawl/SEO/AEO/GEO intelligence, Action Center execution, dashboard UX, client reporting, accessibility, QA, pricing and margin controls, marketing-site chatbot accounting, blog/content infrastructure, final marketing and legal, competitor sales enablement, production scale, enterprise capabilities, final owner-supplied PDF template integration, and launch certification.
+
+The plan now explicitly requires a closed-loop product workflow from discovery through implementation and recheck. It defines more than 50 analytics categories as a canonical metric architecture rather than independent dashboard calculations. It requires Super Admin control over sessions, security events, provider and email configuration, costs, branding, marketing headings, pricing, media, legal content, chatbot usage, and operational health. It specifies a server-enforced $0.05 target budget per unique marketing chatbot visitor with atomic spend admission and reconciliation. It makes accessibility a first-class product phase, including screen-reader, keyboard, deaf/hard-of-hearing, chart, notification, and WCAG 2.2 AA requirements.
+
+The plan also establishes the recommended product identity as Threezero AEO with the descriptor AI Search Visibility Platform and the footer attribution Backed by threezero.agency, while requiring the values to be editable through Super Admin. It explicitly keeps marketing late, requires SEO/AEO/GEO protection for every public-route change, adds a detailed content and blog system, and reserves final PDF visual integration until the owner supplies the template.
+
+AGENTS.md was updated to retire the old 20-minute session rule and enforce the new phase model, the no-duplicate/no-layered-override engineering rules, dollar-based product pricing, admin-managed branding/media, accessibility, and exact phase acceptance criteria.
+
+**Key files**
+
+- PROJECT_PLAN.md - replaced the short-session roadmap with the master ordered product execution plan and exact phase acceptance criteria.
+- AGENTS.md - aligned all future agent behavior with the new phase model and engineering constraints.
+- HISTORY.md - records why the planning model changed and what the new plan guarantees.
+
+**Outcome / acceptance**
+
+The branch must show PROJECT_PLAN.md as the only ordered execution plan, with Phase 0 as the current next work. The plan must explicitly cover backend, frontend, UI, UX, security, multi-tenant isolation, Super Admin, providers, email, cost accounting, analytics, accessibility, content, marketing, legal, pricing, chatbot, scale, and final PDF work. It must also require exact tests and verification for each major phase rather than generic completion statements.
+
+**What is still missing / deferred**
+
+This ship changes the execution plan and agent rules. It does not implement the product features described by the new plan. Phase 0 is intentionally next and must finish the outstanding P0-T security consolidation before feature expansion. The final product name remains a recommended working identity until the owner confirms it. The owner-supplied PDF design is intentionally deferred to the final PDF phase.
+
+**Gotchas**
+
+The current main branch remains the production code baseline. The planning branch must not be mistaken for a product-feature branch. The open P0-T branch still requires its known TypeScript import fixes and full verification before merge. The new plan deliberately does not claim DDoS immunity or 100k-user scale without infrastructure and load evidence.
