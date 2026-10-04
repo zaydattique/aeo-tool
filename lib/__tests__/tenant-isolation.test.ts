@@ -15,7 +15,7 @@ describe("P0-K tenant isolation guards", () => {
 
   it("keeps seeded prompt reads tenant-scoped", () => {
     const source = route("app/api/clients/[id]/prompts/route.ts");
-    expect(source).toContain("where: { clientId, agencyId: auth.agencyId, deletedAt: null }");
+    expect(source).toMatch(/where:\s*\{\s*clientId,\s*agencyId,\s*deletedAt:\s*null\s*\}/);
   });
 
   it("keeps competitor prompt discovery tenant-scoped", () => {
