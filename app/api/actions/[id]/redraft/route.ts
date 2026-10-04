@@ -5,6 +5,7 @@ import { enrichActionFields } from "@/lib/action-mapper";
 import { rateLimit } from "@/lib/rate-limit";
 import { consumeProviderBudget } from "@/lib/provider-budget";
 import { actionRedraftRateLimit, actionRedraftRateWindowMs, visibilityProviderTimeoutMs } from "@/lib/visibility-config";
+import { readJsonResponse } from "@/lib/request-security";
 
 async function aiRedraft(opts: {
   title: string;
