@@ -1,106 +1,226 @@
-# AEO Command — Production deploy
+# Threezero AEO Deployment and Launch Runbook
 
-> Phase 10C. Read before first production launch.
+This document is the deployment source of truth for staging, owner testing, and public launch.
 
-## 1. Choose a host
+## 1. Deployment milestones
 
-| Host | Fit | Notes |
-|------|-----|--------|
-| **Railway / Render / Fly** (Node long-running) | **Best today** | In-process scan worker can finish crawl+AI without serverless timeout |
-| **Vercel** | OK for marketing + light scans | Heavy Firecrawl/Claude jobs may hit function time limits; migrate to Inngest first (see `docs/QUEUE_AND_JOBS.md`) |
+### Phase 15: private production-like staging
 
-**Recommendation:** Railway (or similar) for `app` until scans run on a durable queue; marketing can stay on same app or split later.
+This is the first hosted environment intended for serious owner testing.
 
-## 2. Database
+It must use:
 
-1. Provision **PostgreSQL** (Neon, Supabase, Railway Postgres).
-2. Set `DATABASE_URL` with SSL if required (`?sslmode=require`).
-3. From CI or a one-off shell:
+- production build
+- production-like PostgreSQL
+- Redis where distributed controls require it
+- real provider adapters with controlled/test credentials as appropriate
+- durable job configuration
+- HTTPS
+- real authentication flow
+- real email configuration where safe
+- monitoring and logs
+- backups
+- realistic seeded data
 
-```bash
-npx prisma generate
-npx prisma db push
-# or: npx prisma migrate deploy  (once you add formal migrations)
-npm run db:seed
-```
+It must remain private and must not be presented as the finished public product.
 
-## 3. Environment checklist (production)
+The purpose is to discover real workflow, data, UX, mobile, accessibility, security, provider, performance, and cost problems before final launch work.
 
-| Variable | Required | Notes |
-|----------|----------|--------|
-| `DATABASE_URL` | Yes | Postgres connection string |
-| `NEXTAUTH_SECRET` | Yes | Long random string (`openssl rand -base64 32`) |
-| `NEXTAUTH_URL` | Yes | **Public HTTPS origin**, e.g. `https://app.threezero.agency` |
-| `NEXT_PUBLIC_APP_URL` | Strongly recommended | Same public origin (canonical links, sitemap, invites) |
-| `ANTHROPIC_API_KEY` | Recommended | Real AI analysis |
-| `FIRECRAWL_API_KEY` | Recommended | Better crawl quality |
-| `STRIPE_SECRET_KEY` | If billing | Live or test key |
-| `STRIPE_WEBHOOK_SECRET` | If billing | From Stripe webhook endpoint |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Optional | If you add client-side Stripe later |
-| `SEED_SUPER_ADMIN_EMAIL` | Seed only | Used by `db:seed` |
-| `SEED_SUPER_ADMIN_PASSWORD` | Seed only | Min 12 chars; **unset after seed** in long-lived env if possible |
-| `SEED_SUPER_ADMIN_NAME` | Optional | Defaults to "Super Admin" |
+### Phase 16: public production
 
-Never commit `.env` / `.env.local`. Rotate any secret that was pasted into chat.
+Public launch happens only after:
 
-## 4. Super Admin
+- owner testing on Phase 15 staging
+- all P0/P1 issues are closed
+- final UI/UX rebuild
+- accessibility certification
+- final PDF template integration
+- security regression
+- tenant isolation regression
+- cost controls
+- backups and restore verification
+- monitoring
+- production smoke tests
+- SEO/AEO/GEO validation
+- legal pages
+- rollback procedure
 
-**Preferred (seed):**
+## 2. Infrastructure
 
-```bash
-export SEED_SUPER_ADMIN_EMAIL="you@threezero.agency"
-export SEED_SUPER_ADMIN_PASSWORD="a-long-random-password"
-export SEED_SUPER_ADMIN_NAME="Zayd"
-npm run db:seed
-```
+Preferred architecture:
 
-Login → `/admin` (role `SUPER_ADMIN`, `agencyId` null until impersonation).
+**CDN/WAF -> load balancer/edge -> Next.js application -> Redis + PostgreSQL + durable workers + external providers**
 
-**Manual SQL alternative** (hash must be bcrypt cost 12):
+Application rate limiting is not DDoS immunity. Use edge/WAF controls and protect the origin.
 
-```sql
--- Generate hash offline with: node -e "require('bcryptjs').hash('YOUR_PASSWORD',12).then(console.log)"
-INSERT INTO "User" (id, email, "passwordHash", "fullName", role, "emailVerified", "createdAt", "updatedAt")
-VALUES (
-  gen_random_uuid(),
-  'you@threezero.agency',
-  '$2a$12$REPLACE_WITH_BCRYPT_HASH',
-  'Super Admin',
-  'SUPER_ADMIN',
-  NOW(),
-  NOW(),
-  NOW()
-);
-```
+Do not expose provider secrets to the browser.
 
-(Exact column names follow Prisma’s mapped PostgreSQL names — verify with `\d "User"` in psql if this fails.)
+## 3. Required production configuration
 
-## 5. Stripe webhook
+At minimum, production requires correctly configured values for:
 
-1. Stripe Dashboard → Webhooks → endpoint  
-   `https://YOUR_DOMAIN/api/billing/webhook`
-2. Events: `checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`
-3. Copy signing secret → `STRIPE_WEBHOOK_SECRET`
+- DATABASE_URL
+- NEXTAUTH_SECRET
+- NEXTAUTH_URL
+- NEXT_PUBLIC_APP_URL
 
-## 6. Post-deploy smoke test
+Depending on enabled features:
 
-1. `GET /api/health` → 200  
-2. Marketing: `/`, `/pricing`, `/aeo`, `/guides`, `/llms.txt`, `/sitemap.xml`  
-3. Signup → onboarding → add client → start scan → Action Center has tasks  
-4. Generate report → open `/r/{token}`  
-5. Super admin login → `/admin` lists agencies  
-6. (Optional) Stripe test checkout  
+- Redis credentials
+- durable job/inngest credentials
+- AI provider credentials
+- Firecrawl
+- Resend
+- Stripe
+- object/media storage
 
-## 7. SEO / AEO after go-live
+Use infrastructure secret management where available.
 
-1. Google Search Console → property = production domain → submit `sitemap.xml`  
-2. Confirm `/robots.txt` and `/llms.txt` reachable  
-3. Set DNS for `threezero.agency` / `app.threezero.agency` as planned  
-4. Content cluster already in repo — promote guides for backlinks  
+Never commit .env, .env.local, provider keys, webhook secrets, database credentials, or MFA secrets.
 
-## 8. Known production limits (until queue migrates)
+## 4. Database
 
-- Scans run **in-process**; deploy/restart can interrupt active jobs  
-- Multi-instance rate limits are **per process** (in-memory)  
-- Prefer single long-running Node instance for scan reliability  
-- Full migration path: `docs/QUEUE_AND_JOBS.md`  
+Before deployment:
+
+1. generate Prisma client
+2. validate Prisma schema
+3. validate migrations
+4. back up the database
+5. deploy migrations using the documented production mechanism
+6. run health checks
+7. verify indexes and constraints
+8. verify tenant data boundaries
+
+Do not use destructive schema operations against production.
+
+## 5. Redis
+
+Production Redis is required for distributed controls where the current application contract says so.
+
+Verify:
+
+- distributed rate limits
+- provider concurrency
+- cache/single-flight
+- queue coordination where applicable
+- failure behavior
+
+A Redis outage must not silently turn production distributed controls into unsafe per-process behavior.
+
+## 6. Background work
+
+Prefer durable background jobs for long-running scans, AI visibility collection, crawl work, reports, and scheduled tasks.
+
+Verify:
+
+- job admission
+- retry behavior
+- idempotency
+- stale-job recovery
+- provider timeout handling
+- concurrency limits
+- queue backlog visibility
+
+A web request must not be the only place where critical long-running work exists.
+
+## 7. Email
+
+Before public launch:
+
+- verified sending domain
+- SPF
+- DKIM
+- DMARC
+- configured from address
+- reply-to
+- test delivery
+- bounce/suppression handling
+- template verification
+
+Do not leave development/test sender identities as production defaults.
+
+## 8. Stripe
+
+If billing is enabled:
+
+1. configure production keys in the secret manager
+2. configure webhook endpoint
+3. verify webhook signature validation
+4. test checkout and subscription lifecycle
+5. verify plan/usage limits
+6. verify cancellation behavior
+7. verify failed payment behavior
+8. verify billing events are tenant-safe
+
+Do not expose secret Stripe keys to client code.
+
+## 9. Phase 15 owner testing checklist
+
+The owner must personally exercise:
+
+- login
+- signup
+- MFA
+- sessions
+- Super Admin
+- agency creation
+- client creation
+- URL submission
+- scan
+- AI visibility
+- citations
+- competitor analysis
+- technical audit
+- Action Center
+- assignments
+- rechecks
+- notifications
+- reports
+- client portal
+- provider configuration
+- email
+- chatbot
+- billing/test checkout
+- mobile navigation
+- mobile analytics
+- keyboard navigation
+- screen-reader-critical flows
+
+Record every defect. Fix the source of the problem rather than layering a temporary patch.
+
+## 10. Final launch smoke test
+
+Immediately before public launch:
+
+1. application health endpoint returns expected success
+2. login works
+3. MFA works for privileged roles
+4. session revoke works
+5. tenant isolation checks pass
+6. create client works
+7. scan admission works
+8. scan worker completes
+9. AI visibility collection works
+10. citations render
+11. Action Center works
+12. report snapshot generates
+13. client portal authorization works
+14. email test works
+15. billing webhook verification works if enabled
+16. notification delivery works
+17. Super Admin can inspect operational health
+18. public marketing pages load
+19. robots/sitemap/llms.txt are correct
+20. legal pages load
+21. monitoring receives expected events
+22. backup exists
+23. restore procedure has been tested
+24. rollback procedure is documented
+
+## 11. Launch gate
+
+Public production launch is approved only after Phase 16 launch certification.
+
+No one should use "live" to mean public production before this gate.
+
+The Phase 15 staging environment is the deliberate early-live checkpoint for owner testing.
