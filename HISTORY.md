@@ -439,3 +439,27 @@ Phase 1 still requires the owner's explicit merge approval. Phase 2 remains next
 **Important correction**
 
 Older HISTORY entries contain the previous roadmap and short-session model because they are historical records. Those entries are not current instructions. PROJECT_PLAN.md is the current ordered source of truth.
+
+
+---
+
+### 2026-10-07 - Mandatory public SEO/AEO/GEO foundation
+
+**Decision**
+
+The public Threezero AEO website must not launch with a partial search foundation. The requirement is a complete, tested, preventable-defect-free SEO/AEO/GEO foundation before public production.
+
+This is not a promise of instant ranking. Search engines and AI systems independently decide crawling, indexing, ranking, citations, and answer inclusion. The product requirement is to remove known technical and structural barriers and provide strong crawlability, indexability, entity clarity, useful content, machine readability, AI crawler access, performance, accessibility, and discovery signals before launch.
+
+**Repository changes**
+
+- PROJECT_PLAN.md now contains the Search Visibility Launch Standard.
+- docs/SEARCH_FOUNDATION.md contains the detailed release checklist.
+- README.md links the new foundation and records the launch principle.
+- Official Google and Bing guidance was checked while defining the current standard.
+
+**Launch rule**
+
+The website is blocked from public production if there is an accidental noindex, crawler block, wrong canonical, broken sitemap, inaccessible important content, serious structured-data issue, contradictory entity information, serious mobile/performance failure, critical accessibility failure, placeholder content, missing legal requirements, or unresolved P0/P1 SEO/AEO/GEO issue.
+
+Actual rankings and AI citations will be measured after launch rather than guaranteed in advance.
