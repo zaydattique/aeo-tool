@@ -21,6 +21,10 @@ The old 20-minute session model is retired.
 
 Work is organized into coherent phases. A phase may require multiple implementation commits and multiple verification cycles. Do not split tightly related backend, frontend, data, API, UI, UX, security, QA, or documentation work into arbitrary micro-sessions.
 
+For every phase, use this sequence: create a new branch from the latest verified main -> implement -> verify -> open PR -> report exact changes and verification -> wait for explicit owner approval -> merge -> verify main -> create the next phase branch. Never implement phase work directly on main.
+
+The product must not be developed blindly until the roadmap ends. After Phase 15, deploy a private production-like staging environment for owner testing. Use the findings from that testing before the final Phase 16 UI/UX, accessibility, PDF, and public launch work. Public production launch happens only after Phase 16 certification.
+
 Do not start the next phase until the current phase acceptance criteria are actually satisfied, unless the owner explicitly changes the order.
 
 ## CRITICAL FILE RULES
@@ -85,6 +89,10 @@ HISTORY.md entries must explain:
 7. gotchas.
 
 README.md remains the architecture source of truth.
+
+PROJECT_PLAN.md is the single ordered execution plan and project memory. Important requirements, decisions, verification results, and workflow changes must be written there rather than relying on chat memory.
+
+The owner-supplied 2026-10-05 dashboard reference is the final visual direction for Phase 16. Treat it as a close reproduction target, combined with claymorphism and mobile-first requirements. Do not turn it into a vague inspiration reference.
 
 docs/FILEMAP.md must include every new important route, library, component, schema area, and configuration surface.
 
