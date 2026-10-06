@@ -390,3 +390,52 @@ This ship changes the execution plan and agent rules. It does not implement the 
 **Gotchas**
 
 The current main branch remains the production code baseline. The planning branch must not be mistaken for a product-feature branch. The open P0-T branch still requires its known TypeScript import fixes and full verification before merge. The new plan deliberately does not claim DDoS immunity or 100k-user scale without infrastructure and load evidence.
+
+
+---
+
+### 2026-10-07 - Product execution memory, live validation checkpoint, and final dashboard reference
+
+**Goal**
+
+Record the owner's requirement that the product must not be developed blindly until the entire roadmap is finished. The owner wants a hosted environment for real testing before public launch, and wants the final dashboard UI to closely reproduce the supplied reference rather than receiving a loosely inspired redesign.
+
+**Decisions recorded**
+
+- The current roadmap is exactly 16 major phases.
+- Every phase is implemented on a new branch from the latest verified main.
+- Every phase is verified before merge.
+- The owner explicitly approves the merge.
+- The merged main branch is verified before the next phase branch is created.
+- Phase 15 is the first hosted, production-like owner testing checkpoint.
+- Phase 15 is not the public customer launch.
+- Phase 16 is the final UI/UX rebuild, accessibility work, owner-supplied PDF template integration, and public launch certification.
+- Public production launch happens only after Phase 16.
+- The final UI rebuild remains intentionally last.
+- The supplied 2026-10-05 dashboard reference is the visual source of truth for the final dashboard.
+- The dashboard must combine the reference with the owner's claymorphism requirement.
+- The dashboard must be mobile-first.
+- Important analytics must remain accessible to blind and low-vision users through semantic summaries and underlying data.
+- Important notifications must not depend on sound, supporting deaf and hard-of-hearing users.
+- Product requirements and decisions must be written into repository documentation, not kept only in chat memory.
+
+**Documentation updated**
+
+- PROJECT_PLAN.md: replaced stale roadmap/status text with the current 16-phase plan, branch/merge contract, live testing checkpoints, dashboard reference requirements, and launch gates.
+- README.md: corrected product identity, current status, development workflow, live testing strategy, architecture direction, accessibility, analytics, and dashboard requirements.
+- AGENTS.md: reinforced branch discipline, repository-as-memory rules, live testing checkpoint, and final dashboard requirements.
+- docs/DEPLOY.md: replaced stale deployment notes with Phase 15 staging and Phase 16 public launch gates.
+- docs/FILEMAP.md: indexed Phase 1 security/admin paths and current documentation.
+- docs/UI_REFERENCE.md: created the canonical repository record of the supplied dashboard reference, visual hierarchy, claymorphism, mobile-first behavior, and accessibility requirements.
+
+**Verification**
+
+Documentation was written on the existing Phase 1 branch rather than directly on main. The updated files are intended to be reviewed as part of the existing Phase 1 PR. No application feature behavior was changed by this documentation-only addition.
+
+**Remaining**
+
+Phase 1 still requires the owner's explicit merge approval. Phase 2 remains next after that merge. The Phase 15 staging deployment and Phase 16 public launch gates are future work.
+
+**Important correction**
+
+Older HISTORY entries contain the previous roadmap and short-session model because they are historical records. Those entries are not current instructions. PROJECT_PLAN.md is the current ordered source of truth.
