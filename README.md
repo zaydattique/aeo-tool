@@ -163,6 +163,7 @@ Business media must not be hardcoded into product pages when it belongs in the m
 | [AGENTS.md](./AGENTS.md) | Rules for every implementation agent |
 | [docs/FILEMAP.md](./docs/FILEMAP.md) | Important code and route index |
 | [docs/DEPLOY.md](./docs/DEPLOY.md) | Deployment, staging, and production launch gates |
+| [docs/SEARCH_FOUNDATION.md](./docs/SEARCH_FOUNDATION.md) | Mandatory SEO, AEO, and GEO public-launch foundation checklist |
 | [docs/UI_REFERENCE.md](./docs/UI_REFERENCE.md) | Final dashboard visual and UX requirements |
 | [docs/QUEUE_AND_JOBS.md](./docs/QUEUE_AND_JOBS.md) | Queue and worker architecture |
 
@@ -180,6 +181,12 @@ npm run dev
 ```
 
 Use a strong local `NEXTAUTH_SECRET`. Never commit environment files or secrets.
+
+## Search visibility principle
+
+The public website must launch with a complete, tested SEO/AEO/GEO foundation. This means no known preventable crawlability, indexability, canonical, structured-data, entity, content, AI-crawler, mobile, accessibility, or discoverability defects. This improves eligibility and discoverability but does not guarantee rankings or AI citations.
+
+See [docs/SEARCH_FOUNDATION.md](./docs/SEARCH_FOUNDATION.md) and the Search Visibility Launch Standard in [PROJECT_PLAN.md](./PROJECT_PLAN.md).
 
 ## Production principle
 
