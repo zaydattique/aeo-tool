@@ -6,6 +6,7 @@
 
 import { safeFetch } from "./safe-fetch";
 import { validateWebsiteUrl } from "./url";
+import { getProviderRuntime } from "./provider-control";
 
 export type CrawlResult = {
   url: string;
@@ -222,7 +223,9 @@ async function crawlWithFirecrawl(url: string): Promise<CrawlResult> {
   // Defense in depth: never send an unvalidated URL to a third party
   const v = validateWebsiteUrl(url);
   if (!v.ok) throw new Error(v.error);
-  const apiKey = process.env.FIRECRAWL_API_KEY!;
+  const runtime = await getProviderRuntime("firecrawl");
+  if (!runtime) throw new Error("Firecrawl is disabled or not configured");
+  const apiKey = runtime.credential;
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 35_000);
@@ -326,7 +329,7 @@ export async function crawlWebsite(url: string): Promise<CrawlResult> {
   }
   url = v.url;
 
-  if (process.env.FIRECRAWL_API_KEY) {
+  if (await getProviderRuntime("firecrawl")) {
     try {
       return await crawlWithFirecrawl(url);
     } catch (err) {

@@ -463,3 +463,14 @@ This is not a promise of instant ranking. Search engines and AI systems independ
 The website is blocked from public production if there is an accidental noindex, crawler block, wrong canonical, broken sitemap, inaccessible important content, serious structured-data issue, contradictory entity information, serious mobile/performance failure, critical accessibility failure, placeholder content, missing legal requirements, or unresolved P0/P1 SEO/AEO/GEO issue.
 
 Actual rankings and AI citations will be measured after launch rather than guaranteed in advance.
+
+
+---
+
+### 2026-10-07 - Phase 2 provider, email, secrets, cost, and operational control plane
+
+Branch: `phase2-provider-operational-control-plane`
+
+Implemented one canonical provider registry for OpenAI, Anthropic, Perplexity, Gemini, Firecrawl, Resend, Stripe, Redis, and Inngest. Added encrypted credential storage, fingerprints, enable/disable state, model and operational limits, monthly budgets, connection-test state, credential rotation history, usage events, Super Admin APIs and UI, operational usage summaries, email test endpoint, and email lifecycle schema. Live visibility providers and Firecrawl now resolve through the control plane so a database-disabled provider cannot silently use its environment credential.
+
+Automated verification is still pending. This branch is not merged.

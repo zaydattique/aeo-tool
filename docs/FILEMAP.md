@@ -93,3 +93,14 @@ Existing product UI includes the dashboard, Action Center, visibility reports, c
 Future analytics, provider, crawler, action, notification, reporting, marketing CMS, media, chatbot, and Super Admin additions must be indexed here when they become real code.
 
 Do not add placeholder paths for features that have not been implemented.
+
+
+## Phase 2 operational control plane
+
+- `lib/provider-control.ts`: canonical provider registry, encrypted credentials, runtime resolution, usage accounting, and Super Admin summaries.
+- `app/api/admin/providers/route.ts`: provider configuration API.
+- `app/api/admin/providers/[provider]/test/route.ts`: bounded provider connection test.
+- `app/api/admin/operations/route.ts`: monthly provider usage and latency summary.
+- `app/api/admin/email/test/route.ts`: authenticated email configuration test.
+- `app/admin/providers/page.tsx`: Super Admin provider control UI.
+- `prisma/schema.prisma`: provider configuration, rotation, usage, email template, and delivery models.

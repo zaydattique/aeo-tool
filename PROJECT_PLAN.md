@@ -119,7 +119,7 @@ Acceptance requires:
 
 # 2. Phase 1 - Identity, Sessions, Authorization, and Super Admin Control Plane
 
-**Status: IN PROGRESS**
+**Status: COMPLETE and merged to main**
 
 Goal: make identity, sessions, security events, and privileged administration observable and controllable.
 

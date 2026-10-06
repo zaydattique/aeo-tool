@@ -224,3 +224,19 @@ Public production launch is approved only after Phase 16 launch certification.
 No one should use "live" to mean public production before this gate.
 
 The Phase 15 staging environment is the deliberate early-live checkpoint for owner testing.
+
+
+## Phase 2 provider control plane
+
+Before enabling a paid provider in production:
+
+1. Configure it from Super Admin.
+2. Store `PROVIDER_SECRET_ENCRYPTION_KEY` in infrastructure secret management.
+3. Enter the credential once. The browser receives only masked metadata.
+4. Run the connection test and confirm its recorded result.
+5. Set timeout, concurrency, rate, and monthly budget controls.
+6. Disable the provider and verify application dispatch stops before the external call.
+7. Rotate the credential and verify the new non-secret fingerprint is recorded.
+8. Review monthly usage and estimated cost by provider and workload attribution.
+
+This control plane does not replace edge/WAF protection. Application limits and provider budgets are not DDoS protection.
