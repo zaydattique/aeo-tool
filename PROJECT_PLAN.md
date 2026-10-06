@@ -707,6 +707,209 @@ Exact verification includes Google-oriented technical checks, structured-data va
 
 ---
 
+
+# Search Visibility Launch Standard
+
+The public website must not go live with a partially configured SEO, AEO, or GEO foundation.
+
+The goal is not to promise instant rankings. No legitimate implementation can guarantee ranking "everywhere" immediately because search and AI systems decide crawling, indexing, ranking, citation, and answer inclusion independently. The product requirement is stronger and more precise: **when the site becomes public, there must be no known technical, structural, accessibility, discoverability, entity, content, or AI-crawl foundation defect that we could reasonably have prevented.**
+
+Google's current documentation emphasizes Search Essentials, crawlability, indexability, structured data, useful content, and page experience. Google also makes clear that good technical signals do not guarantee top rankings. citeturn0search0turn0search2turn0search7
+
+Bing's current guidance similarly connects SEO fundamentals with eligibility for traditional search, Copilot, grounding, and AI citations, and recommends crawlable internal links, accurate XML sitemaps, and IndexNow for change discovery. citeturn0search3turn0search4turn0search10
+
+## Required pre-publication foundation
+
+### Technical SEO
+
+Before public launch:
+
+- one canonical production domain
+- HTTPS everywhere
+- correct HTTP status codes
+- no accidental staging/indexable URLs
+- no duplicate host variants
+- correct canonical tags
+- correct redirect map
+- no redirect chains or loops
+- clean URL architecture
+- crawlable internal links
+- XML sitemap index or sitemap set as appropriate
+- sitemap contains only intended canonical indexable URLs
+- accurate sitemap lastmod values where applicable
+- robots.txt is intentional and tested
+- no accidental noindex/nofollow
+- correct pagination behavior where applicable
+- correct hreflang only where genuinely needed
+- 404 and 410 behavior is intentional
+- soft-404 risks checked
+- JavaScript rendering does not hide critical content
+- important content exists in crawlable HTML
+- structured data is valid, relevant, and consistent with visible content
+- Open Graph and social metadata are complete
+- favicons and site identity are complete
+- image dimensions, alt text, lazy loading, and modern formats are correct
+- Core Web Vitals and mobile page experience are tested
+- security headers and HTTPS are verified
+- no mixed content
+- no broken internal links
+- no orphaned public pages that are intended to rank
+- no accidental duplicate content
+- no thin doorway or programmatic spam pages
+
+Google recommends validating structured data, confirming pages are accessible to crawlers, and submitting a sitemap through Search Console. citeturn0search6
+
+### AEO and AI-search foundation
+
+The public website must make the company, product, capabilities, facts, and answers easy for retrieval systems to understand.
+
+Required:
+
+- clear entity identity for Threezero AEO
+- consistent organization/company information
+- consistent product identity
+- explicit product category and purpose
+- authoritative About page
+- clear contact and company information
+- clear authorship where editorial content exists
+- source/evidence references where appropriate
+- answer-first sections on important informational pages
+- concise definitions followed by substantive detail
+- question-led headings where they match genuine search intent
+- tables and structured lists where they improve machine and human comprehension
+- factual claims supported by evidence where appropriate
+- consistent terminology across pages
+- no contradictory product/pricing/company facts
+- strong internal topical relationships
+- meaningful FAQ content where genuinely useful
+- visible methodology pages for important product claims
+- transparent explanation of how visibility metrics are calculated
+- crawlable public documentation where appropriate
+- AI crawler access intentionally configured
+- no accidental blocking of legitimate search/AI crawlers
+- no misleading AI-generated claims
+- no fabricated testimonials, metrics, citations, customers, or results
+
+The site must not depend on llms.txt as a magic ranking mechanism. It can be maintained as an additional machine-readable resource where useful, but normal crawlability, indexability, content quality, internal linking, authority, and entity clarity remain foundational.
+
+Bing's current AI Performance documentation specifically measures page citations in AI-generated answers and recommends intent alignment, depth, clarity, evidence, freshness, and consistency across formats. citeturn0search10
+
+### GEO foundation
+
+"GEO" here means making the public entity and content understandable and discoverable across geographic and location-sensitive search contexts, not stuffing city names into pages.
+
+Where relevant to the actual business:
+
+- consistent business name
+- consistent legal/company identity
+- consistent address and contact data
+- consistent service/product descriptions
+- region and market information
+- organization/entity structured data
+- location information where legitimate
+- localized pages only where there is real unique value
+- no doorway location pages
+- language and locale signals are consistent
+- regional content is genuinely useful
+- external authority signals are pursued through legitimate relationships and mentions
+- business profiles and third-party listings are kept consistent where applicable
+
+### Content foundation
+
+Before launch, every important public page must have:
+
+- one clear search intent
+- one clear primary topic
+- unique title
+- unique meta description where appropriate
+- one clear primary heading
+- logical heading hierarchy
+- useful body content
+- meaningful internal links
+- relevant related pages
+- appropriate structured data
+- author/date/update information where applicable
+- original value beyond generic AI-generated summaries
+- no keyword stuffing
+- no duplicate template copy
+- no placeholder text
+- no dead CTA
+- no fake statistics
+- no unsupported ranking claims
+
+The marketing site must be built to satisfy people first. Search optimization is the technical and structural layer around useful content, not a replacement for it.
+
+### Search-engine readiness
+
+Before public launch, establish and verify the relevant official webmaster properties:
+
+- Google Search Console
+- Bing Webmaster Tools
+- analytics and consent configuration as legally appropriate
+- sitemap submission
+- indexing diagnostics
+- crawl diagnostics
+- Core Web Vitals monitoring
+- manual-action/security monitoring
+
+Where supported and appropriate, IndexNow should be implemented for changed URLs. IndexNow accelerates notification to participating search engines, but does not guarantee crawling, indexing, or ranking. citeturn0search4turn0search8
+
+### Search and AI launch audit
+
+The release candidate must be tested as an external crawler would see it.
+
+Run:
+
+1. unauthenticated crawl of the public site
+2. canonical extraction for every indexable page
+3. robots.txt validation
+4. sitemap validation
+5. status-code validation
+6. redirect-chain detection
+7. duplicate-title and duplicate-description detection
+8. heading and content extraction
+9. structured-data extraction and validation
+10. internal-link graph analysis
+11. orphan-page detection
+12. broken-link detection
+13. image and media accessibility checks
+14. mobile rendering checks
+15. Core Web Vitals checks
+16. JavaScript-rendered content comparison
+17. AI crawler access checks
+18. entity consistency checks
+19. content quality and duplication review
+20. Search Console URL Inspection checks on representative pages
+21. Bing Webmaster indexing checks
+22. IndexNow delivery verification where enabled
+23. production sitemap submission
+24. production robots verification
+25. final noindex/staging-domain sweep
+
+### Hard launch gate
+
+Public production is blocked if any of these exist:
+
+- accidental noindex on an intended ranking page
+- robots blocking intended crawlers
+- wrong canonical domain
+- sitemap containing staging, redirect, noncanonical, or broken URLs
+- inaccessible important content
+- broken production redirects
+- serious structured-data errors on intended rich-result pages
+- duplicate or contradictory company/product identity
+- missing core metadata on important pages
+- major mobile usability failure
+- serious Core Web Vitals regression on core pages
+- accidental private/authenticated pages exposed publicly
+- placeholder or unfinished public content
+- legal pages missing
+- AI/search crawler access unintentionally blocked
+- known critical accessibility failure
+- unresolved P0/P1 SEO/AEO/GEO issue
+
+A perfect technical score is not the same thing as ranking. The launch gate proves that we have removed preventable technical and structural barriers and supplied strong discovery, entity, content, and AI-search signals. Actual rankings and AI citations are then measured continuously after launch.
+
 # 16. Phase 15 - Hosted Product Validation, Owner Testing, and Launch Readiness
 
 **This is the first live testing checkpoint.**
