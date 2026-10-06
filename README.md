@@ -1,77 +1,170 @@
-# AEO Command
+# Threezero AEO
 
-Multi-tenant **Answer Engine Optimization (AEO / GEO)** SaaS for agencies.
+**Threezero AEO** is an agency-focused **AI Search Visibility Platform** for measuring how brands appear in AI answers, understanding citations and competitors, finding technical and content gaps, turning findings into assigned work, rechecking the result, and proving impact.
 
-**Product promise:** paste a client URL → full scan → prioritized **Action Center** with exact steps → assign & track → **white-label** live report.
+Parent brand: **threezero.agency**  
+Required product attribution: **Backed by threezero.agency**
 
-| Doc | Purpose |
-|-----|---------|
-| **[AGENTS.md](./AGENTS.md)** | Rules every AI must follow (full-detail HISTORY/README mandatory) |
-| **[PROJECT_PLAN.md](./PROJECT_PLAN.md)** | Ordered phases / next work |
-| **[HISTORY.md](./HISTORY.md)** | Detailed what/why/files/outcome/missing per ship |
-| **[docs/FILEMAP.md](./docs/FILEMAP.md)** | Path index |
-| **[docs/DEPLOY.md](./docs/DEPLOY.md)** | **Production deploy checklist** |
-| **[docs/QUEUE_AND_JOBS.md](./docs/QUEUE_AND_JOBS.md)** | Scan queue migration + weekly re-scan design |
+## Product loop
 
-**Repo:** https://github.com/zaydattique/aeo-tool  
-**Status:** Phases **0–11 complete**. **Phase 12 (NEXT):** AEO + SEO 10/10 foundation — competitor map locked, 100 advanced methods inventoried, governance hardened for full-detail docs. Live ranking requires subdomain host + Search Console + continued in-place content/schema expansion on existing marketing pages.
+**Discover -> Crawl -> Measure -> Compare -> Explain -> Prioritize -> Draft -> Assign -> Implement -> Recheck -> Measure Impact -> Report -> Repeat**
 
----
+The product is being built as one connected operating system, not as a collection of disconnected SEO/AEO dashboards.
 
-## Architecture overview
+## Current execution status
+
+The repository follows the 16-phase master plan in [PROJECT_PLAN.md](./PROJECT_PLAN.md).
+
+- Phase 0: security and production hardening, complete and merged
+- Phase 1: identity, sessions, authorization, and Super Admin control plane, implemented and verified on `phase1-identity-sessions-super-admin`, awaiting explicit merge approval
+- Phase 2: provider, email, secrets, cost, and operational control plane, next
+- Phases 3-16: planned
+- Hosted owner testing: after Phase 15
+- Public production launch: after Phase 16
+- Final UI/UX rebuild: intentionally last, Phase 16
+
+Do not use older roadmap text in this README or other docs as the current phase status. [PROJECT_PLAN.md](./PROJECT_PLAN.md) is the ordered source of truth.
+
+## Development and merge workflow
+
+Every phase is implemented on a new branch from the latest verified `main`.
+
+**Implement -> verify -> open PR -> report exact changes and verification -> wait for explicit owner approval -> merge -> verify main -> next branch**
+
+No phase work is performed directly on `main`.
+
+A phase is not complete merely because code compiles. The phase acceptance criteria must prove the real workflow, including security, authorization, data integrity, UI states, failure behavior, tests, and documentation.
+
+## Live testing strategy
+
+The owner does not want to wait until the entire roadmap is finished to discover product problems.
+
+After **Phase 15**, the product will be deployed to a private production-like staging environment for real owner testing. This is the first "live enough to use" checkpoint.
+
+After the owner testing cycle, Phase 16 performs the final UI/UX rebuild, accessibility work, PDF template integration, and launch certification. **Public production launch happens only after Phase 16.**
+
+## Architecture
 
 ```
-┌─────────────┐     JWT session (NextAuth)      ┌──────────────────┐
-│  Browser UI │ ◄──────────────────────────────► │  Next.js 15 App  │
-│  Tailwind   │     /api/*  REST-style routes   │  Route Handlers  │
-└─────────────┘                                 └────────┬─────────┘
-                                                         │
-                         ┌───────────────────────────────┼───────────────────────────────┐
-                         ▼                               ▼                               ▼
-                  ┌─────────────┐               ┌─────────────┐               ┌─────────────────┐
-                  │   Prisma    │               │ Scan worker │               │ Stripe (opt)    │
-                  │  PostgreSQL │               │ crawl + AI  │               │ Checkout/WH     │
-                  └─────────────┘               │ + Inngest   │               └─────────────────┘
-                                                └─────────────┘
+Browser
+  |
+  v
+CDN / WAF / Edge protection
+  |
+  v
+Next.js application and API
+  |
+  +--> PostgreSQL / Prisma
+  +--> Redis
+  +--> durable job / worker system
+  +--> crawl workers
+  +--> AI provider adapters
+  +--> report generation
+  +--> email
+  +--> billing
+  +--> managed media/content
 ```
 
-Scans prefer **Inngest** durable functions when `INNGEST_EVENT_KEY` is set; otherwise they fall back to **in-process** (`setImmediate`). Prefer a long-running Node host (Railway/Render) until the queue is fully relied upon — details in [docs/QUEUE_AND_JOBS.md](./docs/QUEUE_AND_JOBS.md) and [docs/DEPLOY.md](./docs/DEPLOY.md).
+The application remains multi-tenant. Business queries must enforce tenant isolation server-side.
 
-### Backend layers
+### Backend
 
-| Layer | Choice | Role |
-|-------|--------|------|
-| Runtime | Next.js 15 App Router | UI + API route handlers in one deploy unit |
-| DB | PostgreSQL + Prisma 6 | Multi-tenant `agencyId` on every business table; soft deletes where needed |
-| Auth | NextAuth JWT + bcrypt | Session carries role + agency; middleware guards product routes |
-| Scans | Crawl → AI analysis → Action mapper | Firecrawl/Claude optional; results become assignable Action Center tasks |
-| Jobs | Inngest (optional) | Durable `scan/run`, hourly re-scan cron, Monday digest |
-| Email | Resend (optional) | Scan-complete + weekly digest; console fallback without key |
-| Billing | Stripe Checkout + webhook | Optional until keys set; plan limits gate expensive ops |
-| Visibility | Multi-engine heuristics + optional live providers | Redis cache/single-flight + distributed provider concurrency; stored snapshots for trend reporting |
+| Layer | Current direction |
+|---|---|
+| Runtime | Next.js App Router |
+| UI | React + Tailwind |
+| Database | PostgreSQL + Prisma |
+| Auth | NextAuth with persistent/revocable session records |
+| Background work | Inngest/durable jobs plus controlled worker paths |
+| Cache and distributed controls | Redis |
+| Crawling | SSRF-safe bounded fetch plus Firecrawl where enabled |
+| AI visibility | Provider adapter layer with cache, single-flight, concurrency, timeout, and cost controls |
+| Billing | Stripe |
+| Email | Resend or configured provider |
+| Reports | Canonical report snapshot, final PDF template integrated later |
 
-### Frontend surface map
+## Security and trust rules
 
-**Marketing (public, indexable):** `/`, `/product`, `/pricing`, `/aeo`, `/guides`, `/guides/aeo-checklist`, `/guides/chatgpt-citations`, `/guides/perplexity-visibility`, `/compare/aeo-tools`, `/case-studies`, `/ai`, `/llms.txt` (static), robots + sitemap generators.
+- Never trust a client-supplied tenant identifier.
+- Never expose passwords, session tokens, reset tokens, API keys, provider secrets, or MFA secrets.
+- Expensive work requires authentication, authorization, quotas, rate limits, timeouts, concurrency limits, response limits, retries, and cost controls.
+- Application rate limiting is not DDoS immunity.
+- Preserve SSRF protections for every crawl/fetch change.
+- Live, cached, estimated, and heuristic AI observations must remain distinguishable.
+- Do not claim 100k-user scalability until controlled benchmarks exist.
+- Pricing is dollar-based.
+- Do not introduce duplicate implementations or layered CSS overrides.
 
-**Auth:** `/login`, `/signup`, `/forgot-password`, `/reset-password`, `/invite/[token]`.
+## Analytics target
 
-**Product (authenticated, multi-tenant):** `/onboarding`, `/dashboard/*` (clients, scans, actions, settings, team, billing).
+The analytics architecture is designed around 50+ canonical metrics across:
 
-**Public report:** `/r/[token]` white-label live report.
+- AI visibility
+- citations
+- AI answer quality and positioning
+- competitors
+- crawlability
+- indexability
+- structured data
+- entity clarity
+- content completeness
+- topical coverage
+- internal linking
+- schema
+- AI readiness
+- AI referral traffic
+- AI leads
+- AI-assisted conversions
+- AI revenue
+- visibility-to-business correlation
 
-**Super admin:** `/admin` (agency list, impersonate).
+See Phase 3 and Phase 4 in [PROJECT_PLAN.md](./PROJECT_PLAN.md).
 
-### Core flows
+## Accessibility target
 
-1. Signup → onboarding (agency profile) → create client → paste URL → run scan  
-2. Scan produces findings → Action Center prioritizes and suggests fixes → assign to team members → track status  
-3. Visibility prompts tracked over time (heuristics or live Perplexity)  
-4. Share white-label report link with client  
-5. Settings: team invites, billing portal, re-scan schedule  
-6. Super admin: manage agencies, impersonate for support
+The final product targets **WCAG 2.2 AA** and must support blind, low-vision, deaf, hard-of-hearing, keyboard-only, reduced-motion, and assistive-technology users.
 
----
+Important analytics cannot depend on visual charts alone. Important notifications cannot depend on sound alone.
+
+## Final dashboard direction
+
+The owner supplied a dashboard reference on 2026-10-05. The final dashboard must closely reproduce that reference's composition and visual language:
+
+- dark premium SaaS shell
+- sidebar
+- top search and controls
+- KPI cards
+- large analytics visualization
+- citation performance
+- top cited pages
+- competitor gap
+- recent AI mentions
+- dense but organized analytics
+- rounded cards
+- subtle depth
+- premium data visualization
+
+The final product also uses the owner's requested **claymorphism** direction and is **mobile-first**.
+
+The final dashboard rebuild is deliberately Phase 16, after the product's data and workflows have been proven. See [docs/UI_REFERENCE.md](./docs/UI_REFERENCE.md).
+
+## Admin-managed content and media
+
+Company identity, pricing, major marketing copy, marketing headings, legal links, and product/media content must become editable through Super Admin where the architecture calls for it.
+
+Business media must not be hardcoded into product pages when it belongs in the managed media system.
+
+## Documentation map
+
+| Document | Purpose |
+|---|---|
+| [PROJECT_PLAN.md](./PROJECT_PLAN.md) | Single ordered 16-phase execution plan and current project decisions |
+| [HISTORY.md](./HISTORY.md) | Detailed historical implementation record |
+| [AGENTS.md](./AGENTS.md) | Rules for every implementation agent |
+| [docs/FILEMAP.md](./docs/FILEMAP.md) | Important code and route index |
+| [docs/DEPLOY.md](./docs/DEPLOY.md) | Deployment, staging, and production launch gates |
+| [docs/UI_REFERENCE.md](./docs/UI_REFERENCE.md) | Final dashboard visual and UX requirements |
+| [docs/QUEUE_AND_JOBS.md](./docs/QUEUE_AND_JOBS.md) | Queue and worker architecture |
 
 ## Local development
 
@@ -79,7 +172,6 @@ Scans prefer **Inngest** durable functions when `INNGEST_EVENT_KEY` is set; othe
 git clone https://github.com/zaydattique/aeo-tool.git
 cd aeo-tool
 cp .env.example .env.local
-# Set DATABASE_URL, NEXTAUTH_SECRET, NEXTAUTH_URL
 npm install
 npx prisma generate
 npx prisma db push
@@ -87,58 +179,14 @@ npm run db:seed
 npm run dev
 ```
 
-Optional super admin on seed:
+Use a strong local `NEXTAUTH_SECRET`. Never commit environment files or secrets.
 
-```bash
-SEED_SUPER_ADMIN_EMAIL=you@example.com \
-SEED_SUPER_ADMIN_PASSWORD=your-long-password \
-npm run db:seed
-```
+## Production principle
 
-Then open http://localhost:3000/admin after login.
+Production is not the first place where the owner should discover whether the product works.
 
-**Note for this owner:** local setup is optional; production target is VPS + main-domain subdomain. Set `NEXT_PUBLIC_APP_URL` and `NEXTAUTH_URL` to the real HTTPS subdomain before launch so metadata, canonicals, sitemap, and robots resolve correctly.
-
----
-
-## Production deploy (summary)
-
-Full checklist: **[docs/DEPLOY.md](./docs/DEPLOY.md)**.
-
-1. Postgres + set env (`DATABASE_URL`, `NEXTAUTH_SECRET`, **HTTPS** `NEXTAUTH_URL`, `NEXT_PUBLIC_APP_URL`)
-2. `prisma db push` + `db:seed` (plans + optional SUPER_ADMIN)
-3. Prefer **Railway/Render** over pure Vercel for long scans until Inngest is primary; configure Upstash Redis for distributed visibility cache, single-flight, rate limiting, and provider concurrency
-4. Stripe webhook → `/api/billing/webhook` if billing
-5. Inngest sync → `/api/inngest` if durable jobs desired
-6. Smoke test: health, signup, scan, report, `/admin`
-7. Search Console → submit sitemap; verify `/llms.txt` and AI crawler access on marketing paths
-
----
-
-## Environment variables
-
-See [`.env.example`](./.env.example).
-
-**Required:** `DATABASE_URL`, `NEXTAUTH_SECRET`, `NEXTAUTH_URL`  
-**Strongly recommended for launch:** `NEXT_PUBLIC_APP_URL` (exact public HTTPS origin used in metadata/sitemap/OG)  
-**Optional:** Anthropic, Firecrawl, Stripe, Resend, Inngest, Perplexity, seed super-admin vars, and Upstash Redis. For production live visibility, Upstash Redis should be configured so provider concurrency is enforced across all instances.
-
----
-
-## Tech stack
-
-Next.js 15 · React 19 · TypeScript · Tailwind · Prisma 6 · PostgreSQL · NextAuth 4 · Zod · Stripe / Firecrawl / Anthropic / Inngest / Resend (optional)
-
----
-
-## Goals achieved vs remaining
-
-**Achieved (Phases 0–11):** multi-tenant core, scan → Action Center, white-label reports, team invites, billing hooks, admin/impersonate, marketing cluster (`/aeo`, guides, compare, case studies, `/ai`, `llms.txt`), robots/sitemap, durable job path via Inngest, re-scan + email, multi-engine visibility.
-
-**Remaining for 10/10 AEO+SEO (Phase 12):** live subdomain + correct public URL env; denser answer-first content and nested schema on existing marketing pages; full Organization `sameAs` + OG images; internal linking cluster; post-host Search Console + citation monitoring; earned third-party corroboration (reviews, roundups, Wikipedia/Wikidata where appropriate).
-
----
+The first real owner testing environment is the private production-like staging deployment after Phase 15. Public production comes only after Phase 16 launch certification.
 
 ## License
 
-UNLICENSED — private Threezero Agency software.
+UNLICENSED. Private Threezero Agency software.
