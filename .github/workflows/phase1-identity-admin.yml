@@ -1,0 +1,36 @@
+name: Phase 1 identity and admin gate
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "app/**"
+      - "components/**"
+      - "lib/**"
+      - "prisma/**"
+      - "types/**"
+      - "package.json"
+      - ".github/workflows/phase1-identity-admin.yml"
+  push:
+    branches:
+      - phase1-identity-sessions-super-admin
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/aeo_test
+      NEXTAUTH_SECRET: test-nextauth-secret-for-ci
+      NEXTAUTH_URL: http://localhost:3000
+      NEXT_PUBLIC_APP_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm install
+      - run: npx prisma generate
+      - run: npx prisma validate
+      - run: npx tsc --noEmit
+      - run: npm test
+      - run: npm run build

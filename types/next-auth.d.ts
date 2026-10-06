@@ -11,6 +11,7 @@ declare module "next-auth" {
       agencyName: string | null;
       onboardingCompleted: boolean;
       impersonationExpiresAt?: number | null;
+      sessionId: string;
     } & DefaultSession["user"];
   }
 
@@ -20,6 +21,7 @@ declare module "next-auth" {
     agencyName: string | null;
     onboardingCompleted: boolean;
     impersonationExpiresAt?: number | null;
+    sessionId: string;
   }
 }
 
@@ -31,5 +33,6 @@ declare module "next-auth/jwt" {
     agencyName: string | null;
     onboardingCompleted: boolean;
     impersonationExpiresAt?: number | null;
+    sessionId: string;
   }
 }

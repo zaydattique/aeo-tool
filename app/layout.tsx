@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Providers } from "@/components/providers";
+import { ImpersonationBanner } from "@/components/impersonation-banner";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -16,11 +17,11 @@ const ogImage = `${root}/opengraph-image`;
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "AEO Command — Answer Engine Optimization for Agencies",
-    template: "%s | AEO Command",
+    default: "Threezero AEO — Answer Engine Optimization for Agencies",
+    template: "%s | Threezero AEO",
   },
   description:
-    "AEO Command is the multi-tenant Answer Engine Optimization platform for agencies. Scan any client site, get a prioritized Action Center, track AI visibility, and deliver white-label reports.",
+    "Threezero AEO is the multi-tenant Answer Engine Optimization platform for agencies. Scan any client site, get a prioritized Action Center, track AI visibility, and deliver white-label reports.",
   keywords: [
     "AEO",
     "Answer Engine Optimization",
@@ -44,8 +45,8 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: root,
-    siteName: "AEO Command",
-    title: "AEO Command — Answer Engine Optimization for Agencies",
+    siteName: "Threezero AEO",
+    title: "Threezero AEO — Answer Engine Optimization for Agencies",
     description:
       "Paste a client URL → prioritized Action Center → track AI visibility → white-label report. Built for multi-tenant agencies.",
     images: [
@@ -53,13 +54,13 @@ export const metadata: Metadata = {
         url: ogImage,
         width: 1200,
         height: 630,
-        alt: "AEO Command — Answer Engine Optimization for agencies",
+        alt: "Threezero AEO — Answer Engine Optimization for agencies",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "AEO Command — AEO Platform for Agencies",
+    title: "Threezero AEO — AEO Platform for Agencies",
     description:
       "Scan, act, track, and report on Answer Engine Optimization — multi-client control for agencies.",
     images: [ogImage],
@@ -88,13 +89,13 @@ const graphJsonLd = {
       },
       sameAs: ["https://threezero.agency", "https://github.com/zaydattique"],
       description:
-        "Threezero Agency builds and operates AEO Command, a multi-tenant Answer Engine Optimization platform for marketing agencies.",
+        "Threezero Agency builds and operates Threezero AEO, a multi-tenant Answer Engine Optimization platform for marketing agencies.",
     },
     {
       "@type": "WebSite",
       "@id": `${root}/#website`,
       url: root,
-      name: "AEO Command",
+      name: "Threezero AEO",
       description:
         "Multi-tenant Answer Engine Optimization (AEO) SaaS for agencies — scan, Action Center, visibility tracking, white-label reports.",
       publisher: { "@id": `${root}/#organization` },
@@ -103,7 +104,7 @@ const graphJsonLd = {
     {
       "@type": "SoftwareApplication",
       "@id": `${root}/#software`,
-      name: "AEO Command",
+      name: "Threezero AEO",
       applicationCategory: "BusinessApplication",
       operatingSystem: "Web",
       url: root,
@@ -145,7 +146,10 @@ export default function RootLayout({
         />
       </head>
       <body className={inter.className}>
-        <Providers>{children}</Providers>
+        <Providers>
+          <ImpersonationBanner />
+          {children}
+        </Providers>
       </body>
     </html>
   );

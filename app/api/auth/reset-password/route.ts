@@ -5,10 +5,11 @@ import { prisma } from "@/lib/prisma";
 import { rateLimit } from "@/lib/rate-limit";
 import { getClientIp, readJsonBody } from "@/lib/request-security";
 import { createHash } from "crypto";
+import { recordSecurityEvent } from "@/lib/security-events";
 
 const schema = z.object({
   token: z.string().min(1),
-  password: z.string().min(8).max(128),
+  password: z.string().min(12).max(128),
 });
 
 export async function POST(req: NextRequest) {
@@ -76,6 +77,9 @@ export async function POST(req: NextRequest) {
     if (updated.count !== 1) {
       return NextResponse.json({ error: "Invalid or expired reset token" }, { status: 400 });
     }
+
+    await prisma.userSession.updateMany({ where: { userId: user.id, revokedAt: null }, data: { revokedAt: new Date() } });
+    await recordSecurityEvent({ userId: user.id, agencyId: user.agencyId, eventType: "auth.password_reset", severity: "WARNING" });
 
     return NextResponse.json({
       success: true,

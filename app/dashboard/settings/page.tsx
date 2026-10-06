@@ -43,11 +43,13 @@ export default function SettingsPage() {
   } | null>(null);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [sessions, setSessions] = useState<Array<{ id: string; current: boolean; issuedAt: string; expiresAt: string; lastActiveAt: string; ip: string | null; userAgent: string | null }>>([]);
 
   async function load() {
-    const [teamRes, usageRes] = await Promise.all([
+    const [teamRes, usageRes, sessionsRes] = await Promise.all([
       fetch("/api/team/invites"),
       fetch("/api/billing/usage"),
+      fetch("/api/auth/sessions"),
     ]);
     if (teamRes.ok) {
       const data = await teamRes.json();
@@ -58,6 +60,7 @@ export default function SettingsPage() {
       const data = await usageRes.json();
       setUsage(data);
     }
+    if (sessionsRes.ok) setSessions((await sessionsRes.json()).sessions || []);
   }
 
   useEffect(() => {
@@ -227,6 +230,36 @@ export default function SettingsPage() {
           )}
         </section>
 
+        {/* Sessions */}
+        <section className="space-y-4">
+          <h2 className="font-medium">Your sessions</h2>
+          <div className="space-y-2">
+            {sessions.map((s) => (
+              <div key={s.id} className="rounded-lg border bg-white p-3 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="font-medium">{s.current ? "Current session" : "Other session"}</span>
+                  {!s.current && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await fetch(`/api/auth/sessions?id=${encodeURIComponent(s.id)}`, { method: "DELETE" });
+                        await load();
+                      }}
+                      className="rounded border px-2 py-1 text-xs"
+                    >
+                      Revoke
+                    </button>
+                  )}
+                </div>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Last active {new Date(s.lastActiveAt).toLocaleString()} · expires {new Date(s.expiresAt).toLocaleString()} · {s.ip || "IP unavailable"}
+                </p>
+                <p className="mt-1 text-xs break-words">{s.userAgent || "User agent unavailable"}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* Billing */}
         <section className="space-y-4">
           <div className="flex items-center justify-between">
@@ -241,7 +274,7 @@ export default function SettingsPage() {
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             {(usage?.plans || [])
-              .filter((p) => p.region === "PAKISTAN" || p.region === "INTERNATIONAL")
+              .filter((p) => p.region === "INTERNATIONAL")
               .slice(0, 6)
               .map((p) => (
                 <div key={p.id} className="rounded-lg border bg-white p-4">

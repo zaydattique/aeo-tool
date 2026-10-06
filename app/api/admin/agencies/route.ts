@@ -56,7 +56,7 @@ const createSchema = z.object({
   name: z.string().min(1).max(120),
   ownerEmail: z.string().email(),
   ownerName: z.string().min(1).max(120),
-  ownerPassword: z.string().min(8).max(128),
+  ownerPassword: z.string().min(12).max(128),
   billingRegion: z.enum(["PAKISTAN", "INTERNATIONAL"]).default("PAKISTAN"),
 });
 
@@ -138,7 +138,24 @@ export async function POST(req: NextRequest) {
       return { agency, user };
     });
 
-    return NextResponse.json(result, { status: 201 });
+    return NextResponse.json({
+      agency: {
+        id: result.agency.id,
+        name: result.agency.name,
+        slug: result.agency.slug,
+        status: result.agency.status,
+        billingRegion: result.agency.billingRegion,
+        planId: result.agency.planId,
+        trialEndsAt: result.agency.trialEndsAt,
+      },
+      owner: {
+        id: result.user.id,
+        email: result.user.email,
+        fullName: result.user.fullName,
+        role: result.user.role,
+        agencyId: result.user.agencyId,
+      },
+    }, { status: 201 });
   } catch (err) {
     if (err instanceof Error && err.message === "REQUEST_BODY_TOO_LARGE") return NextResponse.json({ error: "Request body too large" }, { status: 413 });
     if (err && typeof err === "object" && "code" in err && (err as { code?: string }).code === "P2002") return NextResponse.json({ error: "Agency or owner email already exists" }, { status: 409 });

@@ -5,6 +5,10 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
+type AdminUser = { id: string; email: string; fullName: string | null; role: string; mfaEnabled: boolean; lastLoginAt: string | null; agency: { name: string; status: string } | null };
+type AdminSession = { id: string; userId: string; agencyId: string | null; issuedAt: string; expiresAt: string; lastActiveAt: string; revokedAt: string | null; ip: string | null; userAgent: string | null; user: { email: string; fullName: string | null; role: string }; agency: { name: string } | null };
+type SecurityEvent = { id: string; eventType: string; severity: string; ip: string | null; createdAt: string; user: { email: string; fullName: string | null; role: string } | null; agency: { name: string } | null };
+
 type Agency = {
   id: string;
   name: string;
@@ -28,13 +32,16 @@ export default function AdminPage() {
   });
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [sessions, setSessions] = useState<AdminSession[]>([]);
+  const [securityEvents, setSecurityEvents] = useState<SecurityEvent[]>([]);
 
   // Create form
   const [name, setName] = useState("");
   const [ownerEmail, setOwnerEmail] = useState("");
   const [ownerName, setOwnerName] = useState("");
   const [ownerPassword, setOwnerPassword] = useState("");
-  const [region, setRegion] = useState("PAKISTAN");
+  const [region, setRegion] = useState("INTERNATIONAL");
 
   async function load() {
     const res = await fetch("/api/admin/agencies");
@@ -42,6 +49,14 @@ export default function AdminPage() {
       const data = await res.json();
       setAgencies(data.agencies || []);
       setMetrics(data.metrics || metrics);
+      const [usersRes, sessionsRes, eventsRes] = await Promise.all([
+        fetch("/api/admin/users?limit=25"),
+        fetch("/api/admin/sessions?limit=25"),
+        fetch("/api/admin/security-events?limit=25"),
+      ]);
+      if (usersRes.ok) setUsers((await usersRes.json()).users || []);
+      if (sessionsRes.ok) setSessions((await sessionsRes.json()).sessions || []);
+      if (eventsRes.ok) setSecurityEvents((await eventsRes.json()).events || []);
     } else if (res.status === 403) {
       setError("Super admin only");
     }
@@ -191,7 +206,6 @@ export default function AdminPage() {
               onChange={(e) => setRegion(e.target.value)}
               className="rounded-md border px-3 py-2 text-sm"
             >
-              <option value="PAKISTAN">Pakistan</option>
               <option value="INTERNATIONAL">International</option>
             </select>
             <button
@@ -202,6 +216,30 @@ export default function AdminPage() {
               Create
             </button>
           </form>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="font-medium">Users</h2>
+          <div className="overflow-x-auto rounded-lg border bg-white">
+            <table className="w-full text-left text-sm">
+              <thead><tr className="border-b"><th className="p-3">User</th><th className="p-3">Role</th><th className="p-3">Agency</th><th className="p-3">MFA</th><th className="p-3">Last login</th></tr></thead>
+              <tbody>{users.map((u) => <tr key={u.id} className="border-b last:border-0"><td className="p-3"><div className="font-medium">{u.fullName || "Unnamed"}</div><div className="text-xs text-muted-foreground">{u.email}</div></td><td className="p-3">{u.role}</td><td className="p-3">{u.agency?.name || "Platform"}</td><td className="p-3">{u.mfaEnabled ? "Enabled" : u.role === "SUPER_ADMIN" || u.role === "AGENCY_OWNER" ? "Required" : "Optional"}</td><td className="p-3">{u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString() : "Never"}</td></tr>)}</tbody>
+            </table>
+          </div>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="font-medium">Active and recent sessions</h2>
+          <div className="space-y-2">
+            {sessions.map((s) => <div key={s.id} className="rounded-lg border bg-white p-3 text-sm"><div className="flex flex-wrap justify-between gap-2"><span className="font-medium">{s.user.fullName || s.user.email}</span><span>{s.revokedAt ? "Revoked" : "Active"}</span></div><div className="mt-1 text-xs text-muted-foreground">{s.agency?.name || "Platform"} · last active {new Date(s.lastActiveAt).toLocaleString()} · {s.ip || "IP unavailable"}</div><div className="mt-1 text-xs break-words">{s.userAgent || "User agent unavailable"}</div></div>)}
+          </div>
+        </section>
+
+        <section className="space-y-3">
+          <h2 className="font-medium">Security events</h2>
+          <div className="space-y-2">
+            {securityEvents.map((e) => <div key={e.id} className="rounded-lg border bg-white p-3 text-sm"><div className="flex flex-wrap justify-between gap-2"><span className="font-medium">{e.eventType}</span><span>{e.severity}</span></div><div className="mt-1 text-xs text-muted-foreground">{e.user?.email || "System"} · {e.agency?.name || "Platform"} · {new Date(e.createdAt).toLocaleString()} · {e.ip || "IP unavailable"}</div></div>)}
+          </div>
         </section>
 
         <section className="space-y-3">

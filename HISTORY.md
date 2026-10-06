@@ -1,3 +1,40 @@
+### 2026-10-05 - Phase 1 identity, sessions, authorization, and Super Admin
+
+**Branch:** `phase1-identity-sessions-super-admin`
+
+**Status:** Verification complete on the Phase 1 CI gate. PR #25 remains unmerged pending explicit owner approval.
+
+**Implemented**
+
+- Added revocable server-side sessions bound to JWT session identifiers, with expiry and throttled last-activity updates.
+- Added self-service session inspection and revocation.
+- Added Super Admin users, sessions, and security-event APIs.
+- Added centralized security-event recording with actor, agency, target, severity, IP, user agent, timestamp, and metadata.
+- Added persistent impersonation banner with visible expiry and stop control.
+- Added mandatory TOTP MFA for SUPER_ADMIN and AGENCY_OWNER, with encrypted secrets and one-time recovery codes.
+- Added password-verified MFA enrollment for existing privileged accounts before privileged login can proceed.
+- Raised the password baseline to 12 characters for signup, reset, and Super Admin-created owners.
+- Revoked all active sessions after password reset.
+- Removed password hashes and session token identifiers from admin/session API responses.
+- Expanded the Super Admin UI with users, sessions, and security event visibility.
+- Added Phase 1 CI covering Prisma generation/validation, TypeScript, tests, and production build.
+
+**Verification**
+
+- Prisma generate: PASS
+- Prisma validate: PASS
+- TypeScript: PASS
+- Test suite: PASS
+- Production build: PASS
+- P0-B through P0-R regression workflows on the Phase 1 head: PASS
+- Phase 1 security response contract tests: included in the passing suite
+
+**Merge rule**
+
+Do not merge PR #25 until the owner explicitly requests the merge after reviewing this report.
+
+---
+
 ### 2026-10-05 - Phase 0 verification branch started
 
 **Goal**
@@ -353,3 +390,76 @@ This ship changes the execution plan and agent rules. It does not implement the 
 **Gotchas**
 
 The current main branch remains the production code baseline. The planning branch must not be mistaken for a product-feature branch. The open P0-T branch still requires its known TypeScript import fixes and full verification before merge. The new plan deliberately does not claim DDoS immunity or 100k-user scale without infrastructure and load evidence.
+
+
+---
+
+### 2026-10-07 - Product execution memory, live validation checkpoint, and final dashboard reference
+
+**Goal**
+
+Record the owner's requirement that the product must not be developed blindly until the entire roadmap is finished. The owner wants a hosted environment for real testing before public launch, and wants the final dashboard UI to closely reproduce the supplied reference rather than receiving a loosely inspired redesign.
+
+**Decisions recorded**
+
+- The current roadmap is exactly 16 major phases.
+- Every phase is implemented on a new branch from the latest verified main.
+- Every phase is verified before merge.
+- The owner explicitly approves the merge.
+- The merged main branch is verified before the next phase branch is created.
+- Phase 15 is the first hosted, production-like owner testing checkpoint.
+- Phase 15 is not the public customer launch.
+- Phase 16 is the final UI/UX rebuild, accessibility work, owner-supplied PDF template integration, and public launch certification.
+- Public production launch happens only after Phase 16.
+- The final UI rebuild remains intentionally last.
+- The supplied 2026-10-05 dashboard reference is the visual source of truth for the final dashboard.
+- The dashboard must combine the reference with the owner's claymorphism requirement.
+- The dashboard must be mobile-first.
+- Important analytics must remain accessible to blind and low-vision users through semantic summaries and underlying data.
+- Important notifications must not depend on sound, supporting deaf and hard-of-hearing users.
+- Product requirements and decisions must be written into repository documentation, not kept only in chat memory.
+
+**Documentation updated**
+
+- PROJECT_PLAN.md: replaced stale roadmap/status text with the current 16-phase plan, branch/merge contract, live testing checkpoints, dashboard reference requirements, and launch gates.
+- README.md: corrected product identity, current status, development workflow, live testing strategy, architecture direction, accessibility, analytics, and dashboard requirements.
+- AGENTS.md: reinforced branch discipline, repository-as-memory rules, live testing checkpoint, and final dashboard requirements.
+- docs/DEPLOY.md: replaced stale deployment notes with Phase 15 staging and Phase 16 public launch gates.
+- docs/FILEMAP.md: indexed Phase 1 security/admin paths and current documentation.
+- docs/UI_REFERENCE.md: created the canonical repository record of the supplied dashboard reference, visual hierarchy, claymorphism, mobile-first behavior, and accessibility requirements.
+
+**Verification**
+
+Documentation was written on the existing Phase 1 branch rather than directly on main. The updated files are intended to be reviewed as part of the existing Phase 1 PR. No application feature behavior was changed by this documentation-only addition.
+
+**Remaining**
+
+Phase 1 still requires the owner's explicit merge approval. Phase 2 remains next after that merge. The Phase 15 staging deployment and Phase 16 public launch gates are future work.
+
+**Important correction**
+
+Older HISTORY entries contain the previous roadmap and short-session model because they are historical records. Those entries are not current instructions. PROJECT_PLAN.md is the current ordered source of truth.
+
+
+---
+
+### 2026-10-07 - Mandatory public SEO/AEO/GEO foundation
+
+**Decision**
+
+The public Threezero AEO website must not launch with a partial search foundation. The requirement is a complete, tested, preventable-defect-free SEO/AEO/GEO foundation before public production.
+
+This is not a promise of instant ranking. Search engines and AI systems independently decide crawling, indexing, ranking, citations, and answer inclusion. The product requirement is to remove known technical and structural barriers and provide strong crawlability, indexability, entity clarity, useful content, machine readability, AI crawler access, performance, accessibility, and discovery signals before launch.
+
+**Repository changes**
+
+- PROJECT_PLAN.md now contains the Search Visibility Launch Standard.
+- docs/SEARCH_FOUNDATION.md contains the detailed release checklist.
+- README.md links the new foundation and records the launch principle.
+- Official Google and Bing guidance was checked while defining the current standard.
+
+**Launch rule**
+
+The website is blocked from public production if there is an accidental noindex, crawler block, wrong canonical, broken sitemap, inaccessible important content, serious structured-data issue, contradictory entity information, serious mobile/performance failure, critical accessibility failure, placeholder content, missing legal requirements, or unresolved P0/P1 SEO/AEO/GEO issue.
+
+Actual rankings and AI citations will be measured after launch rather than guaranteed in advance.
