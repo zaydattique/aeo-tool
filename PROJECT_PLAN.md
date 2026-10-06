@@ -92,6 +92,336 @@ Use the relevant combination of:
 
 Every phase must also check for duplicate implementations, obsolete overrides, dead code, hardcoded business values, and undocumented behavior.
 
+
+---
+
+# Product Strategy V2 - AI Search Visibility Operating System
+
+**Effective:** 2026-10-07
+
+This is the current product direction. It supersedes older positioning that framed Threezero AEO primarily as an agency SEO/AEO dashboard.
+
+## Product definition
+
+**Threezero AEO is an AI Search Visibility Operating System.**
+
+It measures, explains, and improves how a business is discovered, understood, cited, recommended, and represented across traditional search, Google Search, Google AI Overviews, Google AI Mode, Search Console generative-AI reporting where available, Googlebot crawl/render/indexability signals, relevant Google crawler/fetcher signals, local search, third-party authority/citations, ChatGPT, Perplexity, Gemini, Claude, Microsoft Copilot, and future engines through versioned adapters.
+
+**Terminology rule:** Googlebot is a crawler/fetcher, not an AI answer engine. Googlebot crawlability, rendering, access, and indexability must be measured separately from AI Overview and AI Mode visibility. Google-Extended is a robots.txt product token for Gemini-related training/grounding controls and is not a Google Search ranking signal. Never collapse these systems into a fake single "AI ranking" metric.
+
+## Core promise
+
+> **Why are we not being discovered, cited, recommended, or trusted, and what should we do next?**
+
+Canonical loop:
+
+**Discover -> Crawl -> Measure -> Compare -> Explain -> Diagnose -> Prioritize -> Draft -> Assign -> Implement -> Recheck -> Verify -> Measure Impact -> Report -> Repeat**
+
+Core moat:
+
+**Visibility -> Evidence -> Diagnosis -> Action -> Verification**
+
+We are not building a cheaper Surfer. We are building a broader operational system that connects visibility data to evidence, decisions, execution, and verification while maintaining healthy gross margins.
+
+## Product principles
+
+1. Value before volume. Give decisions and actions, not a wall of metrics.
+2. AI is an interface and execution layer, not a decorative chat box.
+3. Customer-data answers must use real platform tools and cite underlying observations.
+4. Brand knowledge is persistent, permissioned, source-aware, editable, and auditable.
+5. Every expensive operation has server-enforced admission control and cost accounting.
+6. Caching, deterministic analysis, batching, model routing, quotas, concurrency, and provider budgets are first-class architecture.
+7. Single-business owners and agencies are first-class customers.
+8. Dashboard, Chrome extension, API, MCP, coding agents, and AI assistant are access surfaces over the same canonical services.
+9. Never create duplicate crawler, analytics, report, action, provider, chat, or billing systems.
+10. Never claim ranking/citation guarantees. Every observation carries provenance, timestamp, methodology, confidence, and state.
+11. A non-SEO expert must be able to ask a plain-language question and receive an actionable answer.
+12. Profitability is a release requirement, not a later finance exercise.
+
+## Product pillars
+
+### 1. Visibility Data Engine
+
+Unify technical SEO, crawlability, indexability, Googlebot behavior, Google Search performance, AI Overviews, AI Mode, AI answer visibility, citations, local visibility, content, competitors, entities, authority, and business attribution where integrations permit.
+
+### 2. Brand Intelligence Vault
+
+Every business/client gets a canonical editable vault containing company identity, legal/company names, products, services, locations, service areas, people/authors, categories, industry, pricing/offers, hours, guarantees, policies, certifications, awards, positioning, USPs, audiences, brand voice, terminology, forbidden claims/words, competitors, facts, evidence sources, citations, reviews, social profiles, business profiles, source freshness, confidence, and claim-to-evidence relationships.
+
+Classify facts as verified, customer-provided, observed, inferred, disputed/contradictory, or stale. Important facts must be traceable to source and collection time.
+
+For agencies:
+
+**Agency -> Client -> Brand Vault**
+
+For direct customers:
+
+**Business Workspace -> Brand Vault**
+
+### 3. AI Evidence Engine
+
+For each AI result or claim, determine what was said, whether the business was mentioned/recommended, citations and cited pages/domains, competitor evidence, authority gaps, missing/contradictory/stale facts, likely win/loss causes, confidence, and sample size.
+
+The system should answer:
+
+> "Why did the AI recommend them instead of us?"
+
+### 4. Action Engine
+
+Turn findings into prioritized actions, exact implementation steps, suggested copy/schema where appropriate, content briefs, citation opportunities, local tasks, assignments, deadlines, rechecks, expected impact, and verified outcomes. Every action remains linked to its finding and verification history.
+
+### 5. AI Operating Assistant
+
+This is a platform agent with controlled tools, not a generic chatbot.
+
+It must support requests such as:
+
+- "Why aren't we appearing for emergency plumber searches?"
+- "Audit our homepage for AI search."
+- "Show our biggest citation gaps."
+- "Compare us with our top competitors."
+- "What changed in our AI visibility?"
+- "Check whether Google can crawl our service pages."
+- "Find the five highest-impact fixes."
+- "Explain this metric."
+- "Create an implementation plan."
+- "Re-run the audit after changes."
+- "What did the last crawl discover?"
+
+Canonical assistant tools include crawl page/site, retrieve crawl findings, AI visibility, citations, competitors, brand facts, Search Console data, local/business data, historical comparisons, recommendations, action creation/update, rechecks, methodology explanations, and report generation.
+
+The assistant must enforce the same tenant permissions, quotas, budgets, audit logging, provenance, and rate limits as the normal UI.
+
+### 6. Chrome Extension and Live Research
+
+Build a Threezero AEO Chrome extension over the same backend services.
+
+Core workflows:
+
+- analyze current page
+- live page crawl
+- technical SEO
+- AI readiness
+- entities/schema
+- citations
+- competitor pages
+- Google Search result pages
+- AI Overview/AI Mode observations where technically observable
+- compare observed results against the workspace
+- send page/query for deeper analysis
+- open the matching dashboard finding
+
+The extension must never implement a second crawler or analytics engine. Live results must be labeled as live/observed and not presented as universal personalized search truth.
+
+### 7. Open Platform and Agent Connectivity
+
+Build toward:
+
+- REST API
+- scoped API keys/service accounts
+- webhooks
+- MCP
+- CLI where useful
+- coding-agent integrations
+- GitHub
+- WordPress
+- Shopify
+- Webflow
+- Google Search Console
+- Google Analytics
+- Google Business Profile where API permissions allow
+- automation platforms
+- future adapters
+
+MCP/API responses must be machine-readable and suitable for coding agents. A coding agent can audit a site, inspect findings, implement approved changes, request a re-audit, compare before/after, and report verified improvement.
+
+Threezero must never silently modify production code or external systems. Writes require explicit authorization and appropriate scopes.
+
+## Customer segments
+
+### Single-business owners and internal teams
+
+They should not need an SEO expert or agency.
+
+Workflow:
+
+**Connect business -> tell Threezero what you want -> automatic discovery -> explain -> prioritized fixes -> monitor -> verify**
+
+Plans should emphasize guided onboarding, one/small number of businesses, Brand Intelligence, website crawl, Google/Search visibility, AI visibility, citations, local visibility, competitor tracking, AI assistant, extension, recommendations, monitoring, and simple reporting.
+
+### Agencies and consultants
+
+Agency plans must be genuinely multi-client and operational, with:
+
+- multiple client workspaces
+- strict client isolation
+- client brand vaults
+- agency templates/playbooks
+- bulk scans/actions
+- scheduled monitoring
+- team roles and permissions
+- assignments
+- client portal
+- branded/white-label reporting where licensed
+- agency health dashboard
+- client health overview
+- profitability/cost view
+- API
+- MCP
+- webhooks
+- automation
+- audit history
+- client quotas
+- agency-wide budgets
+- reusable prompts/playbooks
+- consolidated reporting
+
+Agency pricing must not simply multiply a business plan by client count. It prices operational value, automation, collaboration, and scale.
+
+## Packaging and profitability
+
+Pricing is not final until actual provider and infrastructure economics are measured.
+
+The packaging architecture must support:
+
+- single-business entry plan
+- advanced single-business/pro plan
+- agency plan
+- agency scale plan
+- enterprise/custom
+
+Every paid plan has explicit included usage and server-enforced fair-use limits. No accidental unlimited expensive AI operations.
+
+All pricing is dollar-denominated. No Pakistan-specific pricing.
+
+Earlier working figures of $49 / $129 / $299 remain historical hypotheses only. They are not final pricing.
+
+For every plan/feature calculate:
+
+**Revenue - payment cost - provider cost - crawl cost - compute - storage - email - queue/cache - support allocation = contribution margin**
+
+Super Admin must eventually expose revenue, provider/infrastructure spend, cost per workspace/client/crawl/AI action/prompt/report/extension action, gross margin, contribution margin, worst-case usage, forecast spend, and margin by plan, agency, feature, and provider.
+
+Before final pricing, run normal, high-usage, and adversarial usage simulations.
+
+## Controlled AI economics
+
+Canonical flow:
+
+**User/Agent -> authorization -> quota admission -> cache/deterministic check -> job admission -> provider/model routing -> provider call -> normalized result -> usage ledger -> cost reconciliation -> cache -> response**
+
+Track workspace, agency, client, user, feature, action/tool, provider, model, request type, prompt class, input/output tokens, provider latency, estimated/reconciled cost, quota/budget consumed, cache hit/miss, retries, and failure reason.
+
+Controls must include:
+
+- per-user/client/agency/plan quotas
+- provider and feature budgets
+- atomic pre-dispatch budget reservation
+- concurrency and request rate limits
+- token/output limits
+- crawl/page/response limits
+- timeouts
+- retry budgets
+- circuit breakers
+- cache TTL
+- duplicate request coalescing
+- deterministic analysis before LLM calls
+- model routing by task complexity
+- graceful fallback
+- abuse detection
+
+No front-end-only quota is acceptable.
+
+## AI assistant quotas
+
+Each paid plan receives an AI assistant allowance appropriate to its economics. Dimensions can include conversations, tool calls, deep research, page audits, crawl-triggered actions, competitor analyses, and report generation.
+
+Exact numbers must come from cost modeling, not copied from competitors.
+
+When exhausted, explain the limit, use cached/deterministic information where possible, and never silently exceed budget.
+
+## Canonical analytics
+
+Support 50+ analytics through one metric registry, not 50 separate systems.
+
+### Search and technical
+
+Crawlability, Googlebot accessibility, indexability, indexed-page coverage, canonical health, robots health, sitemap health, crawl errors, response performance, Core Web Vitals, internal linking, structured data health, entity clarity.
+
+### Google Search
+
+Impressions, clicks, CTR, average position, query visibility, page visibility, Search Console generative-AI performance where available, AI Overview visibility, AI Mode visibility, branded/non-branded segmentation, query intent segmentation.
+
+### AI visibility
+
+AI Visibility Score, Mention Rate, Recommendation Rate, Citation Rate, Share of Voice, Competitor Win Rate, Answer Position, Prompt Coverage, Prompt Volatility, Engine Visibility, country/language visibility, product/service visibility, Brand Accuracy, Sentiment, Source Authority.
+
+### Citation intelligence
+
+Total Citations, Unique Cited Domains, Citation Frequency, Citation Freshness, Citation Authority, Cited Page Distribution, Competitor Citation Overlap, Citation Gap, Missing Authority Sources, Influential Sources, Source Concentration, Source Diversity.
+
+### Content/entity
+
+Topical Coverage, Entity Coverage, Content Completeness, Question Coverage, Content Freshness, Citation Readiness, Factual Support, Contradiction Count, Unsupported Claim Count, Entity Relationship Strength.
+
+### Business impact
+
+Organic Traffic, AI Referral Traffic, Leads, Conversions, AI-Assisted Conversions where attribution permits, Revenue, Visibility-to-Traffic Relationship, Visibility-to-Conversion Relationship.
+
+Every metric defines source, formula, freshness, confidence, methodology version, and observed/calculated/cached/estimated/heuristic state.
+
+## Engine and crawler coverage contract
+
+Versioned adapters are mandatory.
+
+### Google/Search
+
+- Google Search
+- Googlebot crawl/render/indexability signals
+- Google AI Overviews
+- Google AI Mode
+- Search Console generative-AI reporting where available
+- Google Search result features
+- Google-Extended policy/control signals where observable
+- relevant Google crawlers/fetchers where documented and measurable
+
+### AI/search engines
+
+- ChatGPT
+- Perplexity
+- Gemini
+- Claude
+- Microsoft Copilot
+- future engines/providers
+
+Do not claim direct access to a private ranking/citation system when unavailable.
+
+Each adapter declares what is directly observed, API-sourced, browser-observed, inferred, unavailable, sampling method, refresh cadence, confidence, and limitations.
+
+## Cross-surface parity
+
+Dashboard, AI assistant, extension, API, MCP, and integrations must call the same canonical backend services. No feature may have a second implementation just because it is exposed through another surface.
+
+## Agent security
+
+AI and agent actions obey tenant isolation, role permissions, client/workspace scope, API/MCP scope, rate limits, quotas, budget admission, audit logging, and explicit write authorization. Read operations follow role permissions. Write operations support explicit approval mode.
+
+## Competitive strategy
+
+Compete on capability and usefulness, not price.
+
+Benchmark Surfer, Semrush, Ahrefs, Profound, Otterly, Peec, SearchAtlas, and material emerging platforms across traditional SEO depth, technical crawl depth, AI visibility, citations, entities, local SEO, brand knowledge, agentic workflows, extension, API, MCP, integrations, action/verification, agency operations, business-owner usability, accessibility, mobile UX, provenance, pricing, and unit economics.
+
+For every competitive feature record the user problem, competitive baseline, Threezero advantage, cost to serve, verification method, and plan/tier placement.
+
+## Launch philosophy
+
+Do not launch a thin dashboard and promise the rest later. The public minimum must support:
+
+**Connect -> Understand -> Measure -> Explain -> Act -> Verify**
+
+Marketing describes only functionality that actually works. No fabricated benchmarks, customers, testimonials, citations, or unsupported "better than X" claims.
+
 ---
 
 # 1. Phase 0 - Security and Production Hardening
@@ -119,7 +449,7 @@ Acceptance requires:
 
 # 2. Phase 1 - Identity, Sessions, Authorization, and Super Admin Control Plane
 
-**Status: IN PROGRESS**
+**Status: COMPLETE and merged into main**
 
 Goal: make identity, sessions, security events, and privileged administration observable and controllable.
 
@@ -161,13 +491,14 @@ Known non-blocking finding:
 
 Merge gate:
 
-- owner must explicitly approve merge
-- after merge, verify the merged commit on main
-- only then begin Phase 2
+- MERGED into main as 152908bc6ca3a368733fc80538e5e5a095e3e8dc
+- merged result verified before Phase 2 branch creation
 
 ---
 
 # 3. Phase 2 - Provider, Email, Secrets, Cost, and Operational Control Plane
+
+**Status: IMPLEMENTED on phase2-provider-operational-control-plane; PR #26 open and awaiting explicit owner merge approval.**
 
 Goal: eliminate scattered provider configuration and make external-service behavior visible and controllable.
 
@@ -237,12 +568,13 @@ Exact verification:
 5. Reconcile raw provider usage with Super Admin totals.
 6. Trigger a budget and prove paid calls are rejected before dispatch.
 7. Verify provider outage and timeout behavior.
+8. Prove atomic pre-dispatch budget reservation/enforcement under concurrent requests. A stored monthly budget without atomic admission is not complete.
 
 ---
 
-# 4. Phase 3 - Canonical Analytics and Data Foundation
+# 4. Phase 3 - Canonical Analytics, Brand Intelligence, and Data Foundation
 
-Goal: support 50+ analytics from one metric architecture instead of unrelated dashboard calculations.
+Goal: support 50+ analytics from one metric architecture instead of unrelated dashboard calculations, while establishing the canonical Brand Intelligence Vault and evidence graph used by the dashboard, assistant, extension, API, and agents.
 
 Canonical metric registry must contain:
 
@@ -290,9 +622,9 @@ Exact verification:
 
 ---
 
-# 5. Phase 4 - AI Visibility, Prompts, Citations, Engines, and Competitors
+# 5. Phase 4 - AI Visibility, Google AI Experiences, Prompts, Citations, Engines, and Competitors
 
-Goal: make AI visibility the product intelligence core.
+Goal: make AI visibility the product intelligence core across Google AI Overviews, Google AI Mode, ChatGPT, Perplexity, Gemini, Claude, Copilot, and future engines, while separately measuring Googlebot/crawl/indexability signals.
 
 Scope:
 
@@ -327,9 +659,9 @@ Exact verification:
 
 ---
 
-# 6. Phase 5 - Deep Crawler and Technical SEO/AEO/GEO Intelligence
+# 6. Phase 5 - Deep Crawler, Googlebot Intelligence, and Technical SEO/AEO/GEO
 
-Goal: make the audit deep enough to identify why a site is weak in search and AI systems.
+Goal: make the audit deep enough to identify why a site is weak in search and AI systems, including live crawl/render behavior and Google crawler/fetcher access signals where measurable.
 
 Scope:
 
@@ -366,9 +698,9 @@ Exact verification uses controlled fixture sites covering broken, slow, oversize
 
 ---
 
-# 7. Phase 6 - Execution Loop and Action Center
+# 7. Phase 6 - Execution Loop, AI Assistant, and Action Center
 
-Goal: turn findings into measurable agency work.
+Goal: turn findings into measurable work for both single-business owners and agencies, with the AI assistant able to query canonical platform tools and create permitted actions.
 
 Canonical lifecycle:
 
@@ -396,9 +728,9 @@ Exact verification runs one finding through the complete lifecycle and proves pe
 
 ---
 
-# 8. Phase 7 - Notifications, Preferences, and Product Communication
+# 8. Phase 7 - Notifications, Preferences, AI Quotas, and Product Communication
 
-Goal: make the product proactively useful without making accessibility or notification behavior dependent on sound.
+Goal: make the product proactively useful without making accessibility or notification behavior dependent on sound, while exposing controlled assistant quota state and usage events.
 
 Notification categories:
 
@@ -445,9 +777,9 @@ Exact verification:
 
 ---
 
-# 9. Phase 8 - Client Portal, Reporting, and Canonical Report Architecture
+# 9. Phase 8 - Client Portal, Business Mode, Agency Operations, Reporting, and Canonical Report Architecture
 
-Goal: make client-facing reporting reliable while separating report data from final visual PDF design.
+Goal: make reporting and operations reliable for both direct business customers and multi-client agencies while separating report data from final visual PDF design.
 
 Build one canonical report snapshot containing:
 
@@ -481,9 +813,9 @@ Exact verification:
 
 ---
 
-# 10. Phase 9 - QA, Regression, Reliability, and Release Engineering
+# 10. Phase 9 - API, MCP, Chrome Extension, Integrations, QA, and Release Engineering
 
-Goal: stop regressions from accumulating while the product becomes larger.
+Goal: expose the same canonical services through API, MCP, Chrome extension, and integrations without duplicate business logic, while stopping regressions from accumulating.
 
 CI gate:
 
@@ -514,9 +846,9 @@ Exact verification requires a green production build and reproducible CI artifac
 
 ---
 
-# 11. Phase 10 - Scalability, Performance, and 100K-User Architecture
+# 11. Phase 10 - Scalability, Performance, Unit Economics, and 100K-User Architecture
 
-Goal: prove the architecture under controlled load.
+Goal: prove the architecture under controlled load and prove that growth does not destroy gross margin.
 
 Target architecture:
 
@@ -546,16 +878,19 @@ Also document backups, restore tests, database recovery, queue recovery, Redis f
 
 ---
 
-# 12. Phase 11 - Pricing, Packaging, Billing, and Profitability
+# 12. Phase 11 - Pricing, Packaging, Billing, Quotas, and Profitability
 
 Goal: create commercially sustainable pricing without exposing the business to uncontrolled provider costs.
 
 Working pricing direction for analysis only:
 
-- Starter: $49
-- Growth: $129
-- Agency: $299
+- Single Business: entry plan
+- Business Pro: advanced visibility/assistant/competitor capabilities
+- Agency: multi-client operations, automation, client reporting
+- Agency Scale: larger usage, API/MCP, advanced automation
 - Enterprise: custom
+
+Earlier working $49 / $129 / $299 figures remain historical hypotheses only. They are not final pricing.
 
 These are not final until cost simulation and competitive validation are complete.
 
@@ -584,7 +919,7 @@ No Pakistan-specific pricing logic.
 
 # 13. Phase 12 - Marketing-Site AI Chatbot and Exact Spend Control
 
-Goal: create a useful marketing chatbot with a server-enforced budget target of **$0.05 API usage per unique visitor**.
+Goal: create a useful marketing chatbot with a server-enforced budget target of **$0.05 API usage per unique visitor**, while keeping the in-product customer AI assistant on plan-specific quotas and the same centralized cost-control architecture.
 
 This is an actual server-side spend control, not a front-end display.
 
@@ -618,7 +953,7 @@ Exact verification includes concurrent budget tests proving two requests cannot 
 
 ---
 
-# 14. Phase 13 - Blog, Knowledge, and Marketing Content System
+# 14. Phase 13 - Knowledge, Content Intelligence, and Marketing Content System
 
 Goal: build substantive content that supports search visibility without thin or repetitive AI content.
 
@@ -657,7 +992,7 @@ Legal content must include the appropriate:
 
 ---
 
-# 15. Phase 14 - Final Marketing Website, SEO/AEO/GEO, Conversion, and Legal
+# 15. Phase 14 - Final Marketing Website, SEO/AEO/GEO, Conversion, Competitive Positioning, and Legal
 
 Goal: build the strongest public-facing website only after the product is mature enough that marketing accurately describes it.
 
@@ -841,7 +1176,7 @@ The marketing site must be built to satisfy people first. Search optimization is
 
 ### Search-engine readiness
 
-Before public launch, establish and verify the relevant official webmaster properties:
+Before public launch, establish and verify the relevant official webmaster properties and search/AI visibility data sources:
 
 - Google Search Console
 - Bing Webmaster Tools
@@ -1192,9 +1527,14 @@ Public production launch only after Phase 16 launch certification.
 # Current status
 
 - Phase 0: COMPLETE and merged.
-- Phase 1: IMPLEMENTED and VERIFIED on `phase1-identity-sessions-super-admin`, awaiting explicit owner merge approval.
-- Phase 2: NEXT after Phase 1 merge.
-- Phases 3-16: planned, not implemented.
+- Phase 1: COMPLETE, merged into main as 152908bc6ca3a368733fc80538e5e5a095e3e8dc.
+- Phase 2: IMPLEMENTED on phase2-provider-operational-control-plane; PR #26 is open and must not be merged without explicit owner approval. Atomic pre-dispatch budget enforcement remains an acceptance gate.
+- Phases 3-16: planned, with Product Strategy V2 governing their implementation.
+- Product direction: AI Search Visibility Operating System, not a low-cost Surfer clone.
+- Primary customer motions: single-business owner/internal team and agency/multi-client.
+- Required access surfaces: dashboard, AI assistant, Chrome extension, API, MCP, coding-agent integrations, and integrations over canonical backend services.
+- Required search/AI coverage: Google Search/Googlebot signals, Google AI Overviews, Google AI Mode, Search Console generative-AI reporting where available, ChatGPT, Perplexity, Gemini, Claude, Copilot, and future engines through adapters.
+- Profitability: provider and infrastructure economics must be measured and controlled before final pricing is approved.
 - Hosted owner testing: scheduled after Phase 15.
 - Public production launch: after Phase 16.
 - Final UI rebuild: intentionally Phase 16, last.
