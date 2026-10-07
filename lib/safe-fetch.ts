@@ -357,8 +357,12 @@ export async function safeFetch(
 
     if (Date.now() > deadline) throw new Error("Request timed out");
 
-    const buffer = await readBodyCapped(res, maxBodyBytes());
-    await dispatcher.close().catch(() => {});
+    let buffer: ArrayBuffer;
+    try {
+      buffer = await readBodyCapped(res, maxBodyBytes());
+    } finally {
+      await dispatcher.close().catch(() => {});
+    }
     if (Date.now() > deadline) throw new Error("Request timed out");
 
     const textOnce = new TextDecoder("utf-8", { fatal: false }).decode(buffer);
