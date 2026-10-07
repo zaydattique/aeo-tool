@@ -24,6 +24,28 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           cp /tmp/baseline/migration.sql prisma/migrations/00000000000000_baseline/migration.sql
+          cat >> prisma/migrations/00000000000000_baseline/migration.sql <<'SQL'
+
+-- Preserve the production concurrency invariant that Prisma schema cannot express.
+CREATE UNIQUE INDEX "Scan_one_active_per_client"
+ON "Scan" ("clientId")
+WHERE "status" IN ('QUEUED', 'RUNNING');
+
+-- Metric observations are historical evidence, not mutable state.
+CREATE OR REPLACE FUNCTION prevent_metric_observation_mutation()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $
+BEGIN
+  RAISE EXCEPTION 'METRIC_OBSERVATION_IMMUTABLE';
+END;
+$;
+
+CREATE TRIGGER metric_observation_immutable
+BEFORE UPDATE OR DELETE ON "MetricObservation"
+FOR EACH ROW
+EXECUTE FUNCTION prevent_metric_observation_mutation();
+SQL
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add prisma/migrations/00000000000000_baseline/migration.sql
