@@ -93,13 +93,13 @@ END;
 $$ LANGUAGE plpgsql;
 
 CREATE TRIGGER ai_response_immutable
-BEFORE UPDATE OR DELETE ON "AIResponse"
+BEFORE UPDATE ON "AIResponse"
 FOR EACH ROW EXECUTE FUNCTION prevent_phase4_evidence_mutation();
 
 CREATE TRIGGER citation_evidence_immutable
-BEFORE UPDATE OR DELETE ON "CitationEvidence"
+BEFORE UPDATE ON "CitationEvidence"
 FOR EACH ROW EXECUTE FUNCTION prevent_phase4_evidence_mutation();
 
 CREATE TRIGGER prompt_engine_observation_immutable
-BEFORE UPDATE OR DELETE ON "PromptEngineObservation"
+BEFORE UPDATE ON "PromptEngineObservation"
 FOR EACH ROW EXECUTE FUNCTION prevent_phase4_evidence_mutation();
