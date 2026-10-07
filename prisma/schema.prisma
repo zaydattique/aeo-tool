@@ -155,7 +155,6 @@ model Agency {
   usageMeters          UsageMeter[]
   visibilityJobs       VisibilityJob[]\n  providerUsageEvents ProviderUsageEvent[]
   metricObservations MetricObservation[]
-  metricObservations MetricObservation[]
   brandProfiles BrandProfile[]
   brandEvidence BrandEvidence[]
 
