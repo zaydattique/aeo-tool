@@ -16,7 +16,13 @@ jobs:
         run: |
           mkdir -p /tmp/baseline
           npx prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script > /tmp/baseline/migration.sql
-      - uses: actions/upload-artifact@v4
-        with:
-          name: phase3-baseline
-          path: /tmp/baseline/migration.sql
+      - name: Commit generated baseline
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp /tmp/baseline/migration.sql prisma/migrations/00000000000000_baseline/migration.sql
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add prisma/migrations/00000000000000_baseline/migration.sql
+          git commit -m "chore: add generated Prisma baseline" || true
+          git push origin HEAD:phase3-canonical-analytics-data-foundation
