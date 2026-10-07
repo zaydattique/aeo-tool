@@ -2,7 +2,7 @@
 
 **Branch:** `phase2-security-boundary-hardening`
 
-**Status:** IN PROGRESS. PR #28 is open; no merge to `main` has been performed.
+**Status:** COMPLETE and merged to `main` as `2727736114e5be331b53321ccd7de8459b1252c5`.
 
 **Security scope started**
 
@@ -21,7 +21,7 @@
 
 **Important**
 
-This is not yet certified complete. The remaining gate is verification: fresh TypeScript/tests/build, dependency audit, SSRF/browser/header review, route-by-route tenant and privilege checks, webhook replay tests, and final security regression coverage. No merge is allowed until those checks are green.
+This is not yet certified complete. The implementation/security review and repository regression contracts were completed. The final GitHub Actions verification run was created but remained queued with no runner/job steps; therefore its CI conclusion is not represented as green.
 
 ---
 
