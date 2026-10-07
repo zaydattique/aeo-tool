@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { randomBytes } from "crypto";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAgency, canManageClients } from "@/lib/session";
@@ -68,23 +67,22 @@ export async function POST(
 
     const { action } = parsed.data;
     let rawPortalToken: string | null = null;
-    let data: {
+    const data: {
       portalEnabled?: boolean;
-      portalToken?: string | null;
+      portalTokenHash?: string | null;
     } = {};
 
     if (action === "enable") {
-      data = {
-        portalEnabled: true,
-        portalTokenHash: hashCapabilityToken((rawPortalToken = generateCapabilityToken(24))),
-      };
+      rawPortalToken = generateCapabilityToken(24);
+      data.portalEnabled = true;
+      data.portalTokenHash = hashCapabilityToken(rawPortalToken);
     } else if (action === "disable") {
-      data = { portalEnabled: false };
-    } else if (action === "rotate") {
-      data = {
-        portalEnabled: true,
-        portalTokenHash: hashCapabilityToken((rawPortalToken = generateCapabilityToken(24))),
-      };
+      data.portalEnabled = false;
+      data.portalTokenHash = null;
+    } else {
+      rawPortalToken = generateCapabilityToken(24);
+      data.portalEnabled = true;
+      data.portalTokenHash = hashCapabilityToken(rawPortalToken);
     }
 
     const client = await prisma.client.update({
@@ -93,7 +91,6 @@ export async function POST(
       select: {
         id: true,
         portalEnabled: true,
-        portalTokenHash: true,
       },
     });
 
@@ -117,7 +114,9 @@ export async function POST(
           : null,
     });
   } catch (err) {
-    if (err instanceof Error && err.message === "REQUEST_BODY_TOO_LARGE") return NextResponse.json({ error: "Request body too large" }, { status: 413 });
+    if (err instanceof Error && err.message === "REQUEST_BODY_TOO_LARGE") {
+      return NextResponse.json({ error: "Request body too large" }, { status: 413 });
+    }
     console.error("Portal toggle error:", err);
     return NextResponse.json(
       { error: "Internal server error" },
