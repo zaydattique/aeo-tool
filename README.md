@@ -197,3 +197,18 @@ The first real owner testing environment is the private production-like staging 
 ## License
 
 UNLICENSED. Private Threezero Agency software.
+
+
+## Phase 3 certification
+
+Phase 3 (canonical analytics and brand intelligence data foundation) is certified on the pre-launch branch after clean PostgreSQL migration deployment, TypeScript validation, the full test suite, and production build all passed.
+
+- 50 canonical analytics metrics with methodology contracts
+- Deterministic calculation and historical pagination contracts
+- Tenant-scoped Brand Profile and Brand Evidence foundation
+- Immutable metric observations
+- Canonical Prisma baseline for fresh environments
+- Clean-database `prisma migrate deploy` verification
+- CI explicitly gates Prisma generate/validate, clean migration deployment, TypeScript, tests, and production build
+
+Certification status: **PASS**. The application remains pre-launch; this certification means the Phase 3 code and database foundation are production-readiness gates, not that the product is already live.
