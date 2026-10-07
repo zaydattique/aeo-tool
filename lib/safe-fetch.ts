@@ -320,8 +320,6 @@ export async function safeFetch(
       clearTimeout(timer);
     }
 
-    await dispatcher.close().catch(() => {});
-
     if ([301, 302, 303, 307, 308].includes(res.status)) {
       const loc = res.headers.get("location");
       if (!loc) throw new Error("Redirect without Location header");
@@ -332,6 +330,8 @@ export async function safeFetch(
         await res.arrayBuffer();
       } catch {
         /* ignore */
+      } finally {
+        await dispatcher.close().catch(() => {});
       }
       continue;
     }
@@ -358,6 +358,7 @@ export async function safeFetch(
     if (Date.now() > deadline) throw new Error("Request timed out");
 
     const buffer = await readBodyCapped(res, maxBodyBytes());
+    await dispatcher.close().catch(() => {});
     if (Date.now() > deadline) throw new Error("Request timed out");
 
     const textOnce = new TextDecoder("utf-8", { fatal: false }).decode(buffer);
