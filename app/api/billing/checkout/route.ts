@@ -109,7 +109,7 @@ export async function POST(req: NextRequest) {
     if (err instanceof Error && err.message === "REQUEST_BODY_TOO_LARGE") return NextResponse.json({ error: "Request body too large" }, { status: 413 });
     console.error("Checkout error:", err);
     return NextResponse.json(
-      { error: err instanceof Error ? err.message : "Checkout failed" },
+      { error: "Checkout failed" },
       { status: 500 }
     );
   }

@@ -32,12 +32,14 @@ export async function recordSecurityEvent(input: SecurityEventInput): Promise<vo
   }
 }
 
-export function requestIp(request: Request): string | null {
-  const forwarded = request.headers.get("x-forwarded-for");
-  if (forwarded) return forwarded.split(",")[0]?.trim() || null;
-  return request.headers.get("x-real-ip");
+export function requestIp(_request: Request): string | null {
+  // Request forwarding headers are not a trusted identity source. IP metadata
+  // must come from the deployment edge/trusted proxy adapter, not user input.
+  return null;
 }
 
-export function requestUserAgent(request: Request): string | null {
-  return request.headers.get("user-agent");
+export function requestUserAgent(_request: Request): string | null {
+  // User-Agent is optional telemetry and is intentionally not trusted or persisted
+  // from arbitrary request headers by the application security layer.
+  return null;
 }

@@ -37,13 +37,22 @@ export async function POST(req: NextRequest) {
 
     const codes = createRecoveryCodes();
     await prisma.$transaction(async (tx) => {
+      const claimed = await tx.user.updateMany({
+        where: {
+          id: user.id,
+          mfaEnabled: false,
+          mfaSetupTokenHash: hash,
+          mfaSetupExpiresAt: { gt: new Date() },
+        },
+        data: { mfaEnabled: true, mfaSetupTokenHash: null, mfaSetupExpiresAt: null },
+      });
+      if (claimed.count !== 1) {
+        throw new Error("MFA_SETUP_ALREADY_COMPLETED");
+      }
+
       await tx.mfaRecoveryCode.deleteMany({ where: { userId: user.id } });
       await tx.mfaRecoveryCode.createMany({
         data: await Promise.all(codes.map(async (code) => ({ userId: user.id, codeHash: await hashRecoveryCode(code) }))),
-      });
-      await tx.user.update({
-        where: { id: user.id },
-        data: { mfaEnabled: true, mfaSetupTokenHash: null, mfaSetupExpiresAt: null },
       });
       await tx.securityEvent.create({
         data: { userId: user.id, agencyId: user.agencyId, eventType: "auth.mfa_enabled", metadata: { recoveryCodeCount: codes.length } },
@@ -52,6 +61,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ enabled: true, recoveryCodes: codes });
   } catch (error) {
+    if (error instanceof Error && error.message === "MFA_SETUP_ALREADY_COMPLETED") {
+      return NextResponse.json({ error: "MFA setup has already been completed" }, { status: 409 });
+    }
     if (error instanceof Error && error.message === "REQUEST_BODY_TOO_LARGE") {
       return NextResponse.json({ error: "Request body too large" }, { status: 413 });
     }

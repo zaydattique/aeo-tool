@@ -34,8 +34,9 @@ export async function POST(req: NextRequest) {
     }
 
     const { token, password } = parsed.data;
+    const tokenHash = createHash("sha256").update(token).digest("hex");
 
-    const tokenKey = createHash("sha256").update(token).digest("hex").slice(0, 32);
+    const tokenKey = tokenHash.slice(0, 32);
     const tokenRl = await rateLimit(`reset-password-token:${tokenKey}`, 10, 60 * 60 * 1000);
     if (!tokenRl.ok) {
       return NextResponse.json(
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
 
     const user = await prisma.user.findFirst({
       where: {
-        passwordResetToken: token,
+        passwordResetToken: tokenHash,
         passwordResetExpires: { gt: new Date() },
         deletedAt: null,
       },
@@ -64,7 +65,7 @@ export async function POST(req: NextRequest) {
     const updated = await prisma.user.updateMany({
       where: {
         id: user.id,
-        passwordResetToken: token,
+        passwordResetToken: tokenHash,
         passwordResetExpires: { gt: new Date() },
       },
       data: {

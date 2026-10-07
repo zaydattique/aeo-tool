@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/session";
+import { requireSuperAdmin } from "@/lib/session";
 import { readJsonBody } from "@/lib/request-security";
 
 const schema = z.object({
@@ -15,12 +15,9 @@ const schema = z.object({
  * session.update(). Logged + intended to be time-boxed on the client (1h).
  */
 export async function POST(req: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireSuperAdmin();
   if (auth.error || !auth.session) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
-  }
-  if (auth.session.user.role !== "SUPER_ADMIN") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const body = await readJsonBody<unknown>(req);
@@ -48,7 +45,7 @@ export async function POST(req: NextRequest) {
 
   const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
   const agency = await prisma.agency.findFirst({
-    where: { id: parsed.data.agencyId, deletedAt: null },
+    where: { id: parsed.data.agencyId, deletedAt: null, status: { in: ["ACTIVE", "TRIAL"] } },
     select: { id: true, name: true, status: true, onboardingCompleted: true },
   });
 

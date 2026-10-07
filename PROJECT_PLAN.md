@@ -119,11 +119,11 @@ Acceptance requires:
 
 # 2. Phase 1 - Identity, Sessions, Authorization, and Super Admin Control Plane
 
-**Status: IN PROGRESS**
+**Status: COMPLETE**
 
 Goal: make identity, sessions, security events, and privileged administration observable and controllable.
 
-Implemented on branch `phase1-identity-sessions-super-admin` and currently awaiting explicit merge approval.
+Implemented and verified on `main` in merge `152908bc6ca3a368733fc80538e5e5a095e3e8dc`.
 
 Scope:
 
@@ -159,17 +159,38 @@ Known non-blocking finding:
 
 - dependency installation currently reports existing dependency-tree vulnerabilities. These require a dedicated dependency/security review and must not be "fixed" blindly with force upgrades.
 
-Merge gate:
+Merge gate: COMPLETE
 
-- owner must explicitly approve merge
-- after merge, verify the merged commit on main
-- only then begin Phase 2
+- Phase 1 was merged to `main` as `152908bc6ca3a368733fc80538e5e5a095e3e8dc`.
+- The merged main branch was verified before Phase 2 work began.
 
 ---
 
 # 3. Phase 2 - Provider, Email, Secrets, Cost, and Operational Control Plane
 
+**Status: IN PROGRESS**
+
 Goal: eliminate scattered provider configuration and make external-service behavior visible and controllable.
+
+## Phase 2 security boundary gate
+
+Before provider and operational-control-plane features are expanded, both the client application boundary and Super Admin boundary must remain secure.
+
+Required security rules:
+
+- Authentication and authorization remain server-side and deny by default.
+- Super Admin API routes return API-safe authorization responses and never redirect API callers into HTML application pages.
+- Tenant-scoped queries must derive agency context from the authenticated server session, never from a client-controlled agency identifier.
+- Revocable session identifiers remain server-only and must not be serialized into the browser session payload.
+- Authentication and audit code must not treat client-supplied forwarding headers as trusted identity data.
+- Request and response body limits must be enforced from actual byte size, not from an untrusted declared length alone.
+- Public capability tokens (client portals, live reports, and team invites) are generated randomly, stored only as SHA-256 hashes, and compared by hash at the public boundary; raw tokens are returned only once when issued.
+- Public token rate limits must key on the hashed capability rather than an untrusted forwarding header; IP limits are optional only when the deployment edge provides a trusted IP primitive.
+- Production security controls must fail closed where distributed enforcement is required.
+- Error boundaries must not expose stack traces, exception messages, database details, provider payloads, or secrets.
+- 404, application error, and global error states must be explicit, accessible, and safe.
+- Client and Super Admin security behavior must have regression tests and a production build gate.
+- No phase is complete until the security gate, feature acceptance criteria, tests, and documentation all pass.
 
 Providers:
 
@@ -1192,8 +1213,8 @@ Public production launch only after Phase 16 launch certification.
 # Current status
 
 - Phase 0: COMPLETE and merged.
-- Phase 1: IMPLEMENTED and VERIFIED on `phase1-identity-sessions-super-admin`, awaiting explicit owner merge approval.
-- Phase 2: NEXT after Phase 1 merge.
+- Phase 1: COMPLETE and merged to `main` as `152908bc6ca3a368733fc80538e5e5a095e3e8dc`.
+- Phase 2: IN PROGRESS on `phase2-security-boundary-hardening`; merge remains blocked until security, feature, documentation, and CI/build gates are green.
 - Phases 3-16: planned, not implemented.
 - Hosted owner testing: scheduled after Phase 15.
 - Public production launch: after Phase 16.

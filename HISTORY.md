@@ -1,8 +1,35 @@
+### 2026-10-07 - Phase 2 security boundary hardening started
+
+**Branch:** `phase2-security-boundary-hardening`
+
+**Status:** IN PROGRESS. PR #28 is open; no merge to `main` has been performed.
+
+**Security scope started**
+
+- Kept the internal session revocation identifier non-enumerable so it cannot be serialized by the browser session endpoint.
+- Made Super Admin API authorization return API-safe JSON instead of redirecting API callers into the dashboard HTML.
+- Added safe accessible 404, application-error, and global-error boundaries that do not expose exception details.
+- Removed application trust in raw forwarding and user-agent headers for authentication and security-event identity metadata.
+- Changed request/response size enforcement to use actual byte size instead of trusting a declared content length.
+- Changed application JSON request/response readers to stream and hard-cap bytes before parsing, preventing oversized-body buffering from becoming an application-layer resource-exhaustion vector.
+- Added SHA-256 hashing for public client-portal, live-report, and team-invite capability tokens; raw capability values are not stored or returned by normal reads.
+- Removed raw capability values from report activity metadata and report list responses.
+- Hardened Stripe webhook body handling with a streamed 1 MiB cap while retaining the Stripe signature header as the intentional cryptographic protocol exception.
+- Scoped public PDF and invite rate limits to capability hashes when a trusted edge IP is unavailable, avoiding a global `unknown` IP bucket that could be abused for denial of service.
+- Added a dedicated Phase 2 security CI gate for Prisma validation, TypeScript, tests, and production build.
+- Updated PROJECT_PLAN.md and docs/FILEMAP.md with the Phase 2 security boundary requirements.
+
+**Important**
+
+This is not yet certified complete. The remaining gate is verification: fresh TypeScript/tests/build, dependency audit, SSRF/browser/header review, route-by-route tenant and privilege checks, webhook replay tests, and final security regression coverage. No merge is allowed until those checks are green.
+
+---
+
 ### 2026-10-05 - Phase 1 identity, sessions, authorization, and Super Admin
 
 **Branch:** `phase1-identity-sessions-super-admin`
 
-**Status:** Verification complete on the Phase 1 CI gate. PR #25 remains unmerged pending explicit owner approval.
+**Status:** COMPLETE and merged to `main` as `152908bc6ca3a368733fc80538e5e5a095e3e8dc`.
 
 **Implemented**
 
@@ -31,7 +58,7 @@
 
 **Merge rule**
 
-Do not merge PR #25 until the owner explicitly requests the merge after reviewing this report.
+Phase 1 was merged only after its verification gate passed and the owner moved the project into Phase 2.
 
 ---
 

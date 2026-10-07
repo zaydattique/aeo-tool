@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/session";
+import { requireSuperAdmin } from "@/lib/session";
 import { readJsonBody } from "@/lib/request-security";
 
 function slugify(text: string): string {
@@ -14,14 +14,10 @@ function slugify(text: string): string {
 }
 
 export async function GET(req: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireSuperAdmin();
   if (auth.error || !auth.session) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
-  if (auth.session.user.role !== "SUPER_ADMIN") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
   const rawLimit = Number(req.nextUrl.searchParams.get("limit") ?? 50);
   const limit = Number.isFinite(rawLimit) ? Math.min(100, Math.max(1, Math.floor(rawLimit))) : 50;
   const rawOffset = Number(req.nextUrl.searchParams.get("offset") ?? 0);
@@ -61,12 +57,9 @@ const createSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireSuperAdmin();
   if (auth.error || !auth.session) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
-  }
-  if (auth.session.user.role !== "SUPER_ADMIN") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   try {

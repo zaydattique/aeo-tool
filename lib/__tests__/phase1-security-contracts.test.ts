@@ -16,6 +16,77 @@ describe("Phase 1 security response contracts", () => {
     expect(adminSessions).not.toContain("tokenId: true");
   });
 
+  it("keeps the internal session revocation identifier non-enumerable", () => {
+    const auth = readFileSync("lib/auth.ts", "utf8");
+    expect(auth).toContain('Object.defineProperty(session.user, "sessionId"');
+    expect(auth).toContain("enumerable: false");
+  });
+
+  it("has safe application error boundaries", () => {
+    const error = readFileSync("app/error.tsx", "utf8");
+    const notFound = readFileSync("app/not-found.tsx", "utf8");
+    const globalError = readFileSync("app/global-error.tsx", "utf8");
+    expect(error).toContain("No sensitive error details");
+    expect(notFound).toContain("Page not found");
+    expect(globalError).toContain("Detailed server errors are not exposed");
+  });
+
+  it("does not redirect unauthorized Super Admin API requests to an HTML page", () => {
+    const middleware = readFileSync("middleware.ts", "utf8");
+    expect(middleware).toContain('path.startsWith("/api/admin")');
+    expect(middleware).toContain('NextResponse.json({ error: "Forbidden" }, { status: 403 })');
+  });
+
+  it("does not trust raw forwarding or user-agent headers for security identity", () => {
+    const auth = readFileSync("lib/auth.ts", "utf8");
+    const events = readFileSync("lib/security-events.ts", "utf8");
+    const requestSecurity = readFileSync("lib/request-security.ts", "utf8");
+    expect(auth).not.toContain("req.headers");
+    expect(events).not.toContain("request.headers.get");
+    expect(requestSecurity).not.toContain("req.headers.get");
+    expect(requestSecurity).not.toContain("res.headers.get");
+  });
+
+  it("stores password reset tokens only as hashes", () => {
+    const forgot = readFileSync("app/api/auth/forgot-password/route.ts", "utf8");
+    const reset = readFileSync("app/api/auth/reset-password/route.ts", "utf8");
+    expect(forgot).toContain("tokenHash");
+    expect(forgot).toContain("passwordResetToken: tokenHash");
+    expect(forgot).not.toContain('console.log("[DEV] Password reset link:"');
+    expect(reset).toContain("tokenHash");
+    expect(reset).toContain("passwordResetToken: tokenHash");
+  });
+
+  it("hashes public capability tokens instead of storing raw values", () => {
+    const schema = readFileSync("prisma/schema.prisma", "utf8");
+    const portal = readFileSync("app/p/[token]/page.tsx", "utf8");
+    const report = readFileSync("app/r/[token]/page.tsx", "utf8");
+    const invites = readFileSync("app/api/team/invites/route.ts", "utf8");
+    expect(schema).toContain("portalTokenHash");
+    expect(schema).toContain("liveLinkTokenHash");
+    expect(schema).toContain("tokenHash");
+    expect(portal).toContain("hashCapabilityToken");
+    expect(report).toContain("hashCapabilityToken");
+    expect(invites).toContain("hashCapabilityToken");
+    expect(invites).not.toContain("data: { token:");
+  });
+
+  it("bounds request and response bodies by streamed byte count", () => {
+    const requestSecurity = readFileSync("lib/request-security.ts", "utf8");
+    const webhook = readFileSync("app/api/billing/webhook/route.ts", "utf8");
+    expect(requestSecurity).toContain("getReader()");
+    expect(requestSecurity).toContain("REQUEST_BODY_TOO_LARGE");
+    expect(requestSecurity).toContain("RESPONSE_BODY_TOO_LARGE");
+    expect(webhook).toContain("MAX_BODY_BYTES");
+    expect(webhook).toContain("value.byteLength");
+  });
+
+  it("keeps public capability values out of report audit metadata", () => {
+    const reports = readFileSync("app/api/clients/[id]/reports/route.ts", "utf8");
+    expect(reports).toContain("liveLinkTokenHash");
+    expect(reports).not.toContain("metadata: { clientId, token }");
+  });
+
   it("has persistent impersonation visibility in the root shell", () => {
     const layout = readFileSync("app/layout.tsx", "utf8");
     const banner = readFileSync("components/impersonation-banner.tsx", "utf8");

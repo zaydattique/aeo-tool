@@ -50,6 +50,9 @@ This is an index of important paths. It is not a second roadmap. The ordered wor
 ## Product UI
 
 - app/layout.tsx: application shell and persistent impersonation banner.
+- app/not-found.tsx: safe accessible 404 boundary.
+- app/error.tsx: safe application error boundary.
+- app/global-error.tsx: safe global error boundary.
 - app/settings/page.tsx: user settings and session controls.
 - app/admin/page.tsx: Super Admin control plane.
 - components/impersonation-banner.tsx: visible impersonation state.
@@ -67,6 +70,7 @@ Existing product UI includes the dashboard, Action Center, visibility reports, c
 ## Workflows
 
 - .github/workflows/phase1-identity-admin.yml
+- .github/workflows/phase2-security-boundary.yml
 - .github/workflows/p0c-provider-concurrency.yml
 - .github/workflows/p0e-queue-admission.yml
 - related P0 security workflows
@@ -93,3 +97,11 @@ Existing product UI includes the dashboard, Action Center, visibility reports, c
 Future analytics, provider, crawler, action, notification, reporting, marketing CMS, media, chatbot, and Super Admin additions must be indexed here when they become real code.
 
 Do not add placeholder paths for features that have not been implemented.
+
+
+## Phase 2 security additions
+
+- `lib/capability-tokens.ts` - random generation and SHA-256 hashing for public capability tokens.
+- `prisma/migrations/20261007010000_hash_public_capability_tokens/migration.sql` - hashes existing portal, report, and invite capability tokens during schema migration.
+- `app/not-found.tsx`, `app/error.tsx`, `app/global-error.tsx` - safe accessible error boundaries.
+- `.github/workflows/phase2-security-boundary.yml` - Phase 2 security verification gate.

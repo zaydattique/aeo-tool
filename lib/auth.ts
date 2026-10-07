@@ -25,7 +25,7 @@ export const authOptions: NextAuthOptions = {
         totpCode: { label: "Authenticator code", type: "text" },
         recoveryCode: { label: "Recovery code", type: "text" },
       },
-      async authorize(credentials, req) {
+      async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
           return null;
         }
@@ -70,8 +70,8 @@ export const authOptions: NextAuthOptions = {
             agencyId: user.agencyId,
             eventType: "auth.login_failed",
             severity: "WARNING",
-            ip: req.headers?.["x-forwarded-for"]?.split(",")[0]?.trim() ?? null,
-            userAgent: req.headers?.["user-agent"] ?? null,
+            ip: null,
+            userAgent: null,
           });
           return null;
         }
@@ -105,9 +105,14 @@ export const authOptions: NextAuthOptions = {
             });
             const recoveryId = await consumeRecoveryCode(records, String(credentials.recoveryCode));
             if (recoveryId) {
-              await prisma.mfaRecoveryCode.update({ where: { id: recoveryId }, data: { usedAt: new Date() } });
-              mfaValid = true;
-              await recordSecurityEvent({ userId: user.id, agencyId: user.agencyId, eventType: "auth.recovery_code_used", severity: "WARNING" });
+              const claimed = await prisma.mfaRecoveryCode.updateMany({
+                where: { id: recoveryId, usedAt: null },
+                data: { usedAt: new Date() },
+              });
+              if (claimed.count === 1) {
+                mfaValid = true;
+                await recordSecurityEvent({ userId: user.id, agencyId: user.agencyId, eventType: "auth.recovery_code_used", severity: "WARNING" });
+              }
             }
           }
           if (!mfaValid) {
@@ -126,8 +131,8 @@ export const authOptions: NextAuthOptions = {
             tokenId,
             issuedAt: now,
             expiresAt,
-            ip: req.headers?.["x-forwarded-for"]?.split(",")[0]?.trim() ?? null,
-            userAgent: req.headers?.["user-agent"] ?? null,
+            ip: null,
+            userAgent: null,
           },
         });
 
@@ -135,8 +140,8 @@ export const authOptions: NextAuthOptions = {
           userId: user.id,
           agencyId: user.agencyId,
           eventType: "auth.login_success",
-          ip: req.headers?.["x-forwarded-for"]?.split(",")[0]?.trim() ?? null,
-          userAgent: req.headers?.["user-agent"] ?? null,
+          ip: null,
+          userAgent: null,
         });
 
         await prisma.user.update({
@@ -216,7 +221,13 @@ export const authOptions: NextAuthOptions = {
         session.user.impersonationExpiresAt = impersonationExpired
           ? null
           : token.impersonationExpiresAt;
-        session.user.sessionId = token.sessionId;
+        // Keep the revocation identifier server-only. It is deliberately non-enumerable so the NextAuth session endpoint cannot serialize it to the browser.
+        Object.defineProperty(session.user, "sessionId", {
+          value: token.sessionId,
+          enumerable: false,
+          configurable: false,
+          writable: false,
+        });
       }
       return session;
     },

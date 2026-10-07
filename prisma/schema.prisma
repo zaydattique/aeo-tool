@@ -214,7 +214,7 @@ model Client {
   rescanEnabled          Boolean      @default(false)
   rescanIntervalDays     Int          @default(7)
   nextRescanAt           DateTime?
-  portalToken            String?      @unique
+  portalTokenHash        String?      @unique
   portalEnabled          Boolean      @default(false)
   createdAt              DateTime     @default(now())
   updatedAt              DateTime     @updatedAt
@@ -234,7 +234,7 @@ model Client {
   @@index([status])
   @@index([lastScannedAt])
   @@index([rescanEnabled, nextRescanAt])
-  @@index([portalToken])
+  @@index([portalTokenHash])
 }
 
 model Scan {
@@ -396,7 +396,7 @@ model Report {
   generatedById   String?
   config          Json?
   pdfUrl          String?
-  liveLinkToken   String?  @unique
+  liveLinkTokenHash String?  @unique
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   deletedAt       DateTime?
@@ -408,7 +408,7 @@ model Report {
   @@index([agencyId])
   @@index([agencyId, deletedAt, createdAt])
   @@index([clientId])
-  @@index([liveLinkToken])
+  @@index([liveLinkTokenHash])
   @@index([deletedAt])
 }
 
@@ -417,7 +417,7 @@ model TeamInvite {
   agencyId    String
   email       String
   role        UserRole  @default(AGENCY_MEMBER)
-  token       String    @unique
+  tokenHash    String    @unique
   invitedById String?
   expiresAt   DateTime
   acceptedAt  DateTime?
@@ -427,7 +427,7 @@ model TeamInvite {
   invitedBy   User?     @relation("InviteSender", fields: [invitedById], references: [id])
 
   @@index([agencyId])
-  @@index([token])
+  @@index([tokenHash])
   @@index([email])
   @@unique([agencyId, email])
 }
