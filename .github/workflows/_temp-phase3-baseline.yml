@@ -1,0 +1,23 @@
+name: Temporary Phase 3 baseline generator
+on:
+  push:
+    branches: [phase3-canonical-analytics-data-foundation]
+jobs:
+  baseline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm install --ignore-scripts
+      - run: npx prisma generate
+      - name: Generate baseline SQL
+        run: |
+          mkdir -p /tmp/baseline
+          npx prisma migrate diff --from-empty --to-schema-datamodel prisma/schema.prisma --script > /tmp/baseline/migration.sql
+      - uses: actions/upload-artifact@v4
+        with:
+          name: phase3-baseline
+          path: /tmp/baseline/migration.sql
