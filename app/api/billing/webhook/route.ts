@@ -3,8 +3,40 @@ import { prisma } from "@/lib/prisma";
 import { getStripe } from "@/lib/stripe";
 import Stripe from "stripe";
 
+const MAX_BODY_BYTES = 1024 * 1024;
+
 export async function POST(req: NextRequest) {
-  const contentLength = Number(req.headers.get("content-length") ?? "0");\n  if (Number.isFinite(contentLength) && contentLength > 1024 * 1024) {\n    return NextResponse.json({ error: "Request body too large" }, { status: 413 });\n  }\n\n  const reader = req.body?.getReader();\n  if (!reader) return NextResponse.json({ error: "Invalid request body" }, { status: 400 });\n  const chunks: Uint8Array[] = [];\n  let total = 0;\n  while (true) {\n    const { done, value } = await reader.read();\n    if (done) break;\n    total += value.byteLength;\n    if (total > 1024 * 1024) { reader.cancel().catch(() => {}); return NextResponse.json({ error: "Request body too large" }, { status: 413 }); }\n    chunks.push(value);\n  }\n  const bytes = new Uint8Array(total);\n  let offset = 0;\n  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }\n  const body = new TextDecoder().decode(bytes);
+  const reader = req.body?.getReader();
+  if (!reader) {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > MAX_BODY_BYTES) {
+        await reader.cancel().catch(() => {});
+        return NextResponse.json({ error: "Request body too large" }, { status: 413 });
+      }
+      chunks.push(value);
+    }
+  } catch {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+  }
+
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+
+  const body = new TextDecoder().decode(bytes);
   const sig = req.headers.get("stripe-signature");
 
   if (!process.env.STRIPE_WEBHOOK_SECRET || !sig) {
@@ -28,21 +60,26 @@ export async function POST(req: NextRequest) {
     where: { eventId: event.id },
     select: { processedAt: true },
   });
+
   if (existingEvent?.processedAt) {
     return NextResponse.json({ received: true, duplicate: true });
   }
 
   if (!existingEvent) {
-    await prisma.stripeEvent.create({
-      data: { eventId: event.id, eventType: event.type },
-    }).catch(async (err) => {
+    try {
+      await prisma.stripeEvent.create({
+        data: { eventId: event.id, eventType: event.type },
+      });
+    } catch {
       const duplicate = await prisma.stripeEvent.findUnique({
         where: { eventId: event.id },
         select: { processedAt: true },
       });
-      if (duplicate?.processedAt) return;
-      throw err;
-    });
+      if (duplicate?.processedAt) {
+        return NextResponse.json({ received: true, duplicate: true });
+      }
+      throw new Error("Unable to record webhook event");
+    }
   }
 
   try {
@@ -51,7 +88,13 @@ export async function POST(req: NextRequest) {
         const session = event.data.object as Stripe.Checkout.Session;
         const agencyId = session.metadata?.agencyId;
         const planId = session.metadata?.planId;
+
         if (agencyId && planId && session.subscription) {
+          const stripeSubscriptionId =
+            typeof session.subscription === "string"
+              ? session.subscription
+              : session.subscription.id;
+
           await prisma.agency.update({
             where: { id: agencyId },
             data: {
@@ -65,19 +108,11 @@ export async function POST(req: NextRequest) {
           });
 
           await prisma.subscription.upsert({
-            where: {
-              stripeSubscriptionId:
-                typeof session.subscription === "string"
-                  ? session.subscription
-                  : session.subscription.id,
-            },
+            where: { stripeSubscriptionId },
             create: {
               agencyId,
               planId,
-              stripeSubscriptionId:
-                typeof session.subscription === "string"
-                  ? session.subscription
-                  : session.subscription.id,
+              stripeSubscriptionId,
               status: "ACTIVE",
             },
             update: {
@@ -103,7 +138,10 @@ export async function POST(req: NextRequest) {
         const sub = event.data.object as Stripe.Subscription;
         const agencyId = sub.metadata?.agencyId;
 
-        const statusMap: Record<string, "ACTIVE" | "PAST_DUE" | "CANCELLED" | "TRIALING" | "INCOMPLETE"> = {
+        const statusMap: Record<
+          string,
+          "ACTIVE" | "PAST_DUE" | "CANCELLED" | "TRIALING" | "INCOMPLETE"
+        > = {
           active: "ACTIVE",
           past_due: "PAST_DUE",
           canceled: "CANCELLED",
