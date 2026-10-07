@@ -153,7 +153,7 @@ export default function AdminPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-6xl px-4 py-8 space-y-8">
+      <main className="mx-auto max-w-6xl px-4 py-8 space-y-8">\n        <div><a href="/admin/providers" className="text-sm underline">Open Provider Control Plane</a></div>
         {error && (
           <div className="rounded-md bg-red-50 p-3 text-sm text-red-700">
             {error}
