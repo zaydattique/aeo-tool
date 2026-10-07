@@ -367,7 +367,6 @@ model VisibilitySnapshot {
   @@index([agencyId, clientId, recordedAt, id])
   aiResponses AIResponse[]
   promptEngineObservations PromptEngineObservation[]
-  citationEvidence CitationEvidence[]
 }
 
 model VisibilityJob {
@@ -874,6 +873,8 @@ model PromptEngineObservation {
   prompt            TrackedPrompt @relation(fields: [promptId], references: [id], onDelete: Restrict)
   snapshot          VisibilitySnapshot @relation(fields: [snapshotId], references: [id], onDelete: Restrict)
   response          AIResponse? @relation(fields: [responseId], references: [id], onDelete: SetNull)
+
+  @@unique([responseId])
 
   @@unique([snapshotId, engine])
   @@index([agencyId, clientId, observedAt, id])
