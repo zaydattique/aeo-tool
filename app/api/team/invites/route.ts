@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomBytes } from "crypto";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAgency, canManageClients } from "@/lib/session";
+import { requireAgency } from "@/lib/session";
 import { getUsageSummary } from "@/lib/usage";
 import { readJsonBody } from "@/lib/request-security";
 import { rateLimit } from "@/lib/rate-limit";
