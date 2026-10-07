@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const metadata: Metadata = {
   title: "AEO Report",
@@ -73,6 +74,8 @@ export default async function LiveReportPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
+  const rl = await rateLimit(`public-report:${token}`, 60, 60_000);
+  if (!rl.ok) notFound();
 
   const report = await prisma.report.findFirst({
     where: { liveLinkToken: token, deletedAt: null },
