@@ -70,7 +70,10 @@ export function assertCanonicalMetricRegistry(): void {
   if (CANONICAL_METRICS.length < 50) throw new Error("METRIC_REGISTRY_TOO_SMALL");
   const slugs = new Set(CANONICAL_METRICS.map(m => m.slug));
   if (slugs.size !== CANONICAL_METRICS.length) throw new Error("DUPLICATE_METRIC_SLUG");
+  const formulas = new Set<string>();
   for (const m of CANONICAL_METRICS) {
     if (!m.formula || !m.source || !m.requiredInputs.length) throw new Error(`INCOMPLETE_METRIC:${m.slug}`);
+    if (formulas.has(m.formula)) throw new Error(`DUPLICATE_METRIC_FORMULA:${m.formula}`);
+    formulas.add(m.formula);
   }
 }
