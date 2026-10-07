@@ -63,12 +63,12 @@ export async function POST(req: NextRequest) {
     });
 
     const resetUrl = `${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/reset-password?token=${token}`;
-    console.log("[DEV] Password reset link:", resetUrl);
+
 
     return NextResponse.json({
       success: true,
       message: "If an account exists, a reset link has been sent.",
-      ...(process.env.NODE_ENV === "development" ? { devResetUrl: resetUrl } : {}),
+
     });
   } catch (err) {
     if (err instanceof Error && err.message === "REQUEST_BODY_TOO_LARGE") return NextResponse.json({ error: "Request body too large" }, { status: 413 });
