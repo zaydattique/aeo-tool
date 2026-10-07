@@ -101,6 +101,19 @@ export async function requireAgency() {
     };
   }
 
+  const agency = await prisma.agency.findFirst({
+    where: { id: session.user.agencyId, deletedAt: null },
+    select: { status: true },
+  });
+  if (!agency || agency.status === "SUSPENDED" || agency.status === "CANCELLED") {
+    return {
+      error: "Agency is unavailable" as const,
+      status: 403 as const,
+      session,
+      agencyId: null,
+    };
+  }
+
   return {
     error: null,
     status: 200 as const,
