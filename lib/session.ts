@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "./auth";
 import { UserRole } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { rateLimit } from "@/lib/rate-limit";
 
 export async function requireAuth() {
   const session = await getServerSession(authOptions);
@@ -128,4 +129,29 @@ export function canManageClients(role: UserRole) {
     role === "AGENCY_MEMBER" ||
     role === "SUPER_ADMIN"
   );
+}
+
+
+export async function requireSuperAdmin() {
+  const result = await requireAuth();
+  if (result.error || !result.session) return result;
+
+  if (result.session.user.role !== "SUPER_ADMIN") {
+    return {
+      error: "Forbidden" as const,
+      status: 403 as const,
+      session: null,
+    };
+  }
+
+  const rl = await rateLimit(`super-admin:${result.session.user.id}`, 120, 60 * 1000);
+  if (!rl.ok) {
+    return {
+      error: "Too many administrative requests" as const,
+      status: 429 as const,
+      session: null,
+    };
+  }
+
+  return result;
 }
