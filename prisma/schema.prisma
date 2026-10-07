@@ -237,6 +237,7 @@ model Client {
   metricObservations     MetricObservation[]
   brandProfiles          BrandProfile[]
   brandEvidence          BrandEvidence[]
+  providerUsageEvents    ProviderUsageEvent[]
 
   @@index([agencyId])
   @@index([agencyId, deletedAt])
@@ -566,8 +567,6 @@ model UsageMeter {
 
   agency            Agency           @relation(fields: [agencyId], references: [id])
   visibilityJobs    VisibilityJob[]
-  providerUsageEvents ProviderUsageEvent[]
-
   @@unique([agencyId, periodStart])
   @@index([agencyId])
   @@index([periodStart])
