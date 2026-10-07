@@ -11,7 +11,6 @@ on:
       - "types/**"
       - "next.config.ts"
       - "package.json"
-      - "package-lock.json"
       - ".github/workflows/phase2-security-boundary.yml"
   push:
     branches:
@@ -31,8 +30,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
-      - run: npm ci
+      - run: npm install
       - run: npx prisma generate
       - run: npx prisma validate
       - run: npx tsc --noEmit
