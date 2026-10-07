@@ -8,7 +8,7 @@ import { getClientIp, readJsonBody } from "@/lib/request-security";
 
 const schema = z.object({
   token: z.string().min(1),
-  password: z.string().min(8).max(128),
+  password: z.string().min(12).max(128),
   fullName: z.string().min(1).max(120),
 });
 
