@@ -15,6 +15,7 @@ import { readJsonResponse } from "@/lib/request-security";
 import { withProviderCache } from "./visibility-cache";
 import { withVisibilityProviderConcurrency } from "./visibility-concurrency";
 import { visibilityProviderTimeoutMs } from "./visibility-config";
+import { getProviderRuntime, recordProviderUsage } from "./provider-control";
 
 export type EngineResult = {
   engine: string;
@@ -191,8 +192,9 @@ async function checkPerplexityLiveUncached(
   brandName: string,
   competitorName?: string | null
 ): Promise<EngineResult | null> {
-  const key = process.env.PERPLEXITY_API_KEY;
-  if (!key) return null;
+  const runtime = await getProviderRuntime("perplexity");
+  if (!runtime) return null;
+  const key = runtime.credential;
 
   try {
     const res = await fetch("https://api.perplexity.ai/chat/completions", {
@@ -212,7 +214,7 @@ async function checkPerplexityLiveUncached(
         max_tokens: 400,
         temperature: 0.2,
       }),
-      signal: AbortSignal.timeout(visibilityProviderTimeoutMs()),
+      signal: AbortSignal.timeout(runtime.timeoutMs || visibilityProviderTimeoutMs()),
     });
 
     if (!res.ok) {
@@ -256,6 +258,7 @@ async function checkPerplexityLive(
       )
   );
   if (!cached.value) return null;
+  await recordProviderUsage({ provider: "perplexity", agencyId, clientId, feature: "visibility", model, status: "SUCCESS" });
   return { ...cached.value, cacheHit: cached.cacheHit, cachedAt: cached.cachedAt };
 }
 
@@ -264,8 +267,9 @@ async function checkOpenAiLiveUncached(
   brandName: string,
   competitorName?: string | null
 ): Promise<EngineResult | null> {
-  const key = process.env.OPENAI_API_KEY;
-  if (!key) return null;
+  const runtime = await getProviderRuntime("openai");
+  if (!runtime) return null;
+  const key = runtime.credential;
 
   try {
     const res = await fetch("https://api.openai.com/v1/chat/completions", {
@@ -275,7 +279,7 @@ async function checkOpenAiLiveUncached(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: process.env.OPENAI_VISIBILITY_MODEL || "gpt-4o-mini",
+        model: runtime.model || process.env.OPENAI_VISIBILITY_MODEL || "gpt-4o-mini",
         messages: [
           {
             role: "user",
@@ -322,6 +326,7 @@ async function checkOpenAiLive(
       )
   );
   if (!cached.value) return null;
+  await recordProviderUsage({ provider: "openai", agencyId, clientId, feature: "visibility", model, status: "SUCCESS" });
   return { ...cached.value, cacheHit: cached.cacheHit, cachedAt: cached.cachedAt };
 }
 
@@ -330,11 +335,11 @@ async function checkGeminiLiveUncached(
   brandName: string,
   competitorName?: string | null
 ): Promise<EngineResult | null> {
-  const key =
-    process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY;
-  if (!key) return null;
+  const runtime = await getProviderRuntime("gemini");
+  if (!runtime) return null;
+  const key = runtime.credential;
 
-  const model = process.env.GEMINI_VISIBILITY_MODEL || "gemini-2.0-flash";
+  const model = runtime.model || process.env.GEMINI_VISIBILITY_MODEL || "gemini-2.0-flash";
 
   try {
     const res = await fetch(
@@ -394,6 +399,7 @@ async function checkGeminiLive(
       )
   );
   if (!cached.value) return null;
+  await recordProviderUsage({ provider: "gemini", agencyId, clientId, feature: "visibility", model, status: "SUCCESS" });
   return { ...cached.value, cacheHit: cached.cacheHit, cachedAt: cached.cachedAt };
 }
 
@@ -402,8 +408,9 @@ async function checkClaudeLiveUncached(
   brandName: string,
   competitorName?: string | null
 ): Promise<EngineResult | null> {
-  const key = process.env.ANTHROPIC_API_KEY;
-  if (!key) return null;
+  const runtime = await getProviderRuntime("anthropic");
+  if (!runtime) return null;
+  const key = runtime.credential;
 
   try {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
@@ -414,7 +421,7 @@ async function checkClaudeLiveUncached(
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: process.env.ANTHROPIC_VISIBILITY_MODEL || "claude-3-5-haiku-latest",
+        model: runtime.model || process.env.ANTHROPIC_VISIBILITY_MODEL || "claude-3-5-haiku-latest",
         max_tokens: 300,
         messages: [
           {
@@ -462,6 +469,7 @@ async function checkClaudeLive(
       )
   );
   if (!cached.value) return null;
+  await recordProviderUsage({ provider: "anthropic", agencyId, clientId, feature: "visibility", model, status: "SUCCESS" });
   return { ...cached.value, cacheHit: cached.cacheHit, cachedAt: cached.cachedAt };
 }
 
