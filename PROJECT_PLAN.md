@@ -498,7 +498,7 @@ Merge gate:
 
 # 3. Phase 2 - Provider, Email, Secrets, Cost, and Operational Control Plane
 
-**Status: IMPLEMENTED on phase2-provider-operational-control-plane; PR #26 open and awaiting explicit owner merge approval.**
+**Status: COMPLETE and merged to main.**
 
 Goal: eliminate scattered provider configuration and make external-service behavior visible and controllable.
 
@@ -573,6 +573,8 @@ Exact verification:
 ---
 
 # 4. Phase 3 - Canonical Analytics, Brand Intelligence, and Data Foundation
+
+Status: IN IMPLEMENTATION on `phase3-canonical-analytics-data-foundation`.
 
 Goal: support 50+ analytics from one metric architecture instead of unrelated dashboard calculations, while establishing the canonical Brand Intelligence Vault and evidence graph used by the dashboard, assistant, extension, API, and agents.
 
