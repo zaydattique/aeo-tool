@@ -221,7 +221,13 @@ export const authOptions: NextAuthOptions = {
         session.user.impersonationExpiresAt = impersonationExpired
           ? null
           : token.impersonationExpiresAt;
-        // Keep the revocation identifier server-only. It is deliberately non-enumerable so the NextAuth session endpoint cannot serialize it to the browser.\n        Object.defineProperty(session.user, "sessionId", {\n          value: token.sessionId,\n          enumerable: false,\n          configurable: false,\n          writable: false,\n        });
+        // Keep the revocation identifier server-only. It is deliberately non-enumerable so the NextAuth session endpoint cannot serialize it to the browser.
+        Object.defineProperty(session.user, "sessionId", {
+          value: token.sessionId,
+          enumerable: false,
+          configurable: false,
+          writable: false,
+        });
       }
       return session;
     },
