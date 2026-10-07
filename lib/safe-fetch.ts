@@ -5,6 +5,7 @@
 
 import { promises as dns } from "dns";
 import { isIP } from "net";
+import { Agent } from "undici";
 
 const MAX_REDIRECTS = 5;
 const CONNECT_TIMEOUT_MS = 10_000;
@@ -126,8 +127,45 @@ function expandIpv6(addr: string): string {
   return groups.map((g) => g.padStart(4, "0")).join("").toLowerCase();
 }
 
+async function resolvePublicAddresses(hostname: string): Promise<{ address: string; family: number }[]> {
+  const host = hostname.toLowerCase().replace(/^\[|\]$/g, "");
+
+  if (isIP(host) !== 0) {
+    if (isBlockedIp(host)) throw new Error("Blocked address (private/reserved IP)");
+    return [{ address: host, family: isIP(host) }];
+  }
+
+  let addresses: { address: string; family: number }[];
+  try {
+    addresses = await dns.lookup(host, { all: true });
+  } catch {
+    throw new Error("DNS lookup failed for " + host);
+  }
+
+  if (!addresses.length) throw new Error("No addresses resolved for " + host);
+  for (const { address } of addresses) {
+    if (isBlockedIp(address)) throw new Error("Resolved to blocked address: " + address);
+  }
+  return addresses;
+}
+
+function createPinnedAgent(addresses: { address: string; family: number }[]): Agent {
+  return new Agent({
+    connect: {
+      lookup(_hostname, options, callback) {
+        const matches = addresses.filter((entry) => !options.family || entry.family === options.family);
+        if (!matches.length) return callback(new Error("Pinned DNS address unavailable"), "");
+        if (options.all) return callback(null, matches);
+        return callback(null, matches[0]);
+      },
+    },
+  });
+}
+
 /** Resolve hostname and reject if ANY address is blocked. */
 export async function assertPublicHostname(hostname: string): Promise<void> {
+  await resolvePublicAddresses(hostname);
+}
   const host = hostname.toLowerCase().replace(/^\[|\]$/g, "");
 
   if (isIP(host) !== 0) {
@@ -248,7 +286,8 @@ export async function safeFetch(
     const remaining = deadline - Date.now();
     if (remaining <= 0) throw new Error("Request timed out");
 
-    await assertPublicHostname(current.hostname);
+    const resolvedAddresses = await resolvePublicAddresses(current.hostname);
+    const dispatcher = createPinnedAgent(resolvedAddresses);
 
     const controller = new AbortController();
     const timer = setTimeout(
@@ -269,7 +308,8 @@ export async function safeFetch(
         body: opts.body as unknown as BodyInit | undefined,
         redirect: "manual",
         signal: controller.signal,
-      });
+        dispatcher,
+      } as RequestInit & { dispatcher: Agent });
     } catch (err) {
       clearTimeout(timer);
       if (err instanceof Error && err.name === "AbortError") {
@@ -279,6 +319,8 @@ export async function safeFetch(
     } finally {
       clearTimeout(timer);
     }
+
+    await dispatcher.close().catch(() => {});
 
     if ([301, 302, 303, 307, 308].includes(res.status)) {
       const loc = res.headers.get("location");
