@@ -81,6 +81,7 @@ CREATE INDEX "CitationEvidence_clientId_engine_domain_observedAt_idx" ON "Citati
 CREATE INDEX "CitationEvidence_domain_observedAt_idx" ON "CitationEvidence"("domain","observedAt");
 
 CREATE UNIQUE INDEX "PromptEngineObservation_snapshotId_engine_key" ON "PromptEngineObservation"("snapshotId","engine");
+CREATE UNIQUE INDEX "PromptEngineObservation_responseId_key" ON "PromptEngineObservation"("responseId");
 CREATE INDEX "PromptEngineObservation_agencyId_clientId_observedAt_id_idx" ON "PromptEngineObservation"("agencyId","clientId","observedAt","id");
 CREATE INDEX "PromptEngineObservation_clientId_promptId_engine_observedAt_idx" ON "PromptEngineObservation"("clientId","promptId","engine","observedAt");
 CREATE INDEX "PromptEngineObservation_engine_observedAt_idx" ON "PromptEngineObservation"("engine","observedAt");
