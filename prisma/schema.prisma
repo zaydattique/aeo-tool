@@ -153,7 +153,7 @@ model Agency {
   securityEvents       SecurityEvent[]
   subscriptions        Subscription[]
   usageMeters          UsageMeter[]
-  visibilityJobs       VisibilityJob[]
+  visibilityJobs       VisibilityJob[]\n  providerUsageEvents ProviderUsageEvent[]
 
   @@index([status])
   @@index([deletedAt])
@@ -191,7 +191,7 @@ model User {
   sessions              UserSession[]
   securityEvents        SecurityEvent[]
   mfaRecoveryCodes      MfaRecoveryCode[]
-  teamInvitesSent       TeamInvite[] @relation("InviteSender")
+  teamInvitesSent       TeamInvite[] @relation("InviteSender")\n  providerCredentialRotations ProviderCredentialRotation[] @relation("ProviderCredentialRotations")\n  emailTemplatesEdited EmailTemplate[] @relation("EmailTemplateEditor")
 
   @@index([agencyId])
   @@index([deletedAt])
@@ -555,9 +555,108 @@ model UsageMeter {
   updatedAt              DateTime @updatedAt
 
   agency            Agency           @relation(fields: [agencyId], references: [id])
-  visibilityJobs    VisibilityJob[]
+  visibilityJobs    VisibilityJob[]\n  providerUsageEvents ProviderUsageEvent[]
 
   @@unique([agencyId, periodStart])
   @@index([agencyId])
   @@index([periodStart])
 }
+
+
+enum ProviderStatus {
+  ENABLED
+  DISABLED
+}
+
+model ProviderConfig {
+  id String @id @default(cuid())
+  provider String @unique
+  status ProviderStatus @default(DISABLED)
+  model String?
+  timeoutMs Int @default(30000)
+  concurrencyLimit Int @default(4)
+  rateLimitPerMinute Int @default(60)
+  monthlyBudgetCents Int?
+  encryptedCredential String?
+  credentialFingerprint String?
+  lastTestAt DateTime?
+  lastTestStatus String?
+  lastError String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  rotations ProviderCredentialRotation[]
+  usageEvents ProviderUsageEvent[]
+  @@index([status])
+  @@index([lastTestStatus, lastTestAt])
+}
+
+model ProviderCredentialRotation {
+  id String @id @default(cuid())
+  providerId String
+  fingerprint String
+  rotatedById String?
+  createdAt DateTime @default(now())
+  retiredAt DateTime?
+  provider ProviderConfig @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  rotatedBy User? @relation("ProviderCredentialRotations", fields: [rotatedById], references: [id], onDelete: SetNull)
+  @@index([providerId, createdAt])
+  @@index([rotatedById, createdAt])
+}
+
+model ProviderUsageEvent {
+  id String @id @default(cuid())
+  providerId String
+  agencyId String?
+  clientId String?
+  feature String
+  model String?
+  requestCount Int @default(1)
+  inputTokens Int @default(0)
+  outputTokens Int @default(0)
+  estimatedCostCents Int @default(0)
+  status String @default("SUCCESS")
+  latencyMs Int?
+  createdAt DateTime @default(now())
+  provider ProviderConfig @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  agency Agency? @relation(fields: [agencyId], references: [id], onDelete: SetNull)
+  client Client? @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  @@index([providerId, createdAt])
+  @@index([agencyId, createdAt])
+  @@index([clientId, createdAt])
+  @@index([feature, createdAt])
+}
+
+model EmailTemplate {
+  id String @id @default(cuid())
+  slug String @unique
+  name String
+  subject String
+  html String
+  text String?
+  isActive Boolean @default(true)
+  updatedById String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  updatedBy User? @relation("EmailTemplateEditor", fields: [updatedById], references: [id], onDelete: SetNull)
+  deliveries EmailDelivery[]
+  @@index([isActive])
+}
+
+model EmailDelivery {
+  id String @id @default(cuid())
+  templateId String?
+  provider String
+  toAddress String
+  fromAddress String?
+  subject String
+  status String @default("QUEUED")
+  providerId String?
+  error String?
+  sentAt DateTime?
+  createdAt DateTime @default(now())
+  template EmailTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  @@index([status, createdAt])
+  @@index([toAddress, createdAt])
+  @@index([provider, createdAt])
+}
+
