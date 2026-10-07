@@ -184,6 +184,8 @@ Required security rules:
 - Revocable session identifiers remain server-only and must not be serialized into the browser session payload.
 - Authentication and audit code must not treat client-supplied forwarding headers as trusted identity data.
 - Request and response body limits must be enforced from actual byte size, not from an untrusted declared length alone.
+- Public capability tokens (client portals, live reports, and team invites) are generated randomly, stored only as SHA-256 hashes, and compared by hash at the public boundary; raw tokens are returned only once when issued.
+- Public token rate limits must key on the hashed capability rather than an untrusted forwarding header; IP limits are optional only when the deployment edge provides a trusted IP primitive.
 - Production security controls must fail closed where distributed enforcement is required.
 - Error boundaries must not expose stack traces, exception messages, database details, provider payloads, or secrets.
 - 404, application error, and global error states must be explicit, accessible, and safe.
@@ -1211,8 +1213,8 @@ Public production launch only after Phase 16 launch certification.
 # Current status
 
 - Phase 0: COMPLETE and merged.
-- Phase 1: IMPLEMENTED and VERIFIED on `phase1-identity-sessions-super-admin`, awaiting explicit owner merge approval.
-- Phase 2: NEXT after Phase 1 merge.
+- Phase 1: COMPLETE and merged to `main` as `152908bc6ca3a368733fc80538e5e5a095e3e8dc`.
+- Phase 2: IN PROGRESS on `phase2-security-boundary-hardening`; merge remains blocked until security, feature, documentation, and CI/build gates are green.
 - Phases 3-16: planned, not implemented.
 - Hosted owner testing: scheduled after Phase 15.
 - Public production launch: after Phase 16.
