@@ -1214,7 +1214,7 @@ Public production launch only after Phase 16 launch certification.
 
 - Phase 0: COMPLETE and merged.
 - Phase 1: COMPLETE and merged to `main` as `152908bc6ca3a368733fc80538e5e5a095e3e8dc`.
-- Phase 2: IN PROGRESS on `phase2-security-boundary-hardening`; merge remains blocked until security, feature, documentation, and CI/build gates are green.
+- Phase 2: COMPLETE and merged to `main` as `2727736114e5be331b53321ccd7de8459b1252c5`. Security implementation and repository-level regression contracts passed review; the GitHub Actions runner for the final gate remained queued and produced no execution result, so no false green CI claim is made.
 - Phases 3-16: planned, not implemented.
 - Hosted owner testing: scheduled after Phase 15.
 - Public production launch: after Phase 16.
