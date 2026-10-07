@@ -97,3 +97,11 @@ Existing product UI includes the dashboard, Action Center, visibility reports, c
 Future analytics, provider, crawler, action, notification, reporting, marketing CMS, media, chatbot, and Super Admin additions must be indexed here when they become real code.
 
 Do not add placeholder paths for features that have not been implemented.
+
+
+## Phase 2 security additions
+
+- `lib/capability-tokens.ts` - random generation and SHA-256 hashing for public capability tokens.
+- `prisma/migrations/20261007010000_hash_public_capability_tokens/migration.sql` - hashes existing portal, report, and invite capability tokens during schema migration.
+- `app/not-found.tsx`, `app/error.tsx`, `app/global-error.tsx` - safe accessible error boundaries.
+- `.github/workflows/phase2-security-boundary.yml` - Phase 2 security verification gate.
