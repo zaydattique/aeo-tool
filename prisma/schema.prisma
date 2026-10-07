@@ -154,6 +154,10 @@ model Agency {
   subscriptions        Subscription[]
   usageMeters          UsageMeter[]
   visibilityJobs       VisibilityJob[]\n  providerUsageEvents ProviderUsageEvent[]
+  metricObservations MetricObservation[]
+  metricObservations MetricObservation[]
+  brandProfiles BrandProfile[]
+  brandEvidence BrandEvidence[]
 
   @@index([status])
   @@index([deletedAt])
@@ -192,6 +196,7 @@ model User {
   securityEvents        SecurityEvent[]
   mfaRecoveryCodes      MfaRecoveryCode[]
   teamInvitesSent       TeamInvite[] @relation("InviteSender")\n  providerCredentialRotations ProviderCredentialRotation[] @relation("ProviderCredentialRotations")\n  emailTemplatesEdited EmailTemplate[] @relation("EmailTemplateEditor")
+  metricObservations MetricObservation[]
 
   @@index([agencyId])
   @@index([deletedAt])
@@ -227,6 +232,9 @@ model Client {
   visibilitySnapshots    VisibilitySnapshot[]
   visibilityJobs         VisibilityJob[]
   reports                Report[]
+  metricObservations     MetricObservation[]
+  brandProfiles          BrandProfile[]
+  brandEvidence          BrandEvidence[]
 
   @@index([agencyId])
   @@index([agencyId, deletedAt])
@@ -660,3 +668,115 @@ model EmailDelivery {
   @@index([provider, createdAt])
 }
 
+
+
+enum MetricState {
+  LIVE
+  CACHED
+  ESTIMATED
+}
+
+enum MetricConfidence {
+  HIGH
+  MEDIUM
+  LOW
+}
+
+enum EvidenceType {
+  WEBSITE
+  AI_RESPONSE
+  CITATION
+  SEARCH_RESULT
+  BUSINESS_PROFILE
+  DOCUMENT
+  MANUAL
+}
+
+model MetricDefinition {
+  id                String   @id @default(cuid())
+  slug              String   @unique
+  category          String
+  formula           String
+  source             String
+  aggregation       String
+  timeWindow        String
+  confidenceMethod  String
+  displayFormat     String
+  methodologyVersion String  @default("1.0")
+  engineApplicability Json?
+  requiredInputs     Json
+  isActive           Boolean  @default(true)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  observations       MetricObservation[]
+  @@index([category, isActive])
+}
+
+model MetricObservation {
+  id              String          @id @default(cuid())
+  metricId        String
+  agencyId        String
+  clientId        String
+  value           Decimal         @db.Decimal(18, 6)
+  state           MetricState     @default(LIVE)
+  confidence      MetricConfidence @default(MEDIUM)
+  engine          String?
+  country         String?
+  language        String?
+  periodStart     DateTime?
+  periodEnd       DateTime?
+  sourceSnapshotId String?
+  methodologyVersion String
+  inputsHash      String
+  observedAt      DateTime        @default(now())
+  metric          MetricDefinition @relation(fields: [metricId], references: [id], onDelete: Restrict)
+  agency          Agency          @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  client          Client          @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  recordedById    String?
+  recordedBy      User?           @relation(fields: [recordedById], references: [id], onDelete: SetNull)
+  @@index([agencyId, clientId, observedAt, id])
+  @@index([clientId, metricId, observedAt])
+  @@index([metricId, observedAt])
+  @@index([sourceSnapshotId])
+}
+
+model BrandProfile {
+  id                 String   @id @default(cuid())
+  agencyId           String
+  clientId           String   @unique
+  canonicalName      String
+  aliases            Json
+  description        String?
+  products           Json
+  services           Json
+  locations           Json
+  competitors        Json
+  approvedFacts      Json
+  disallowedClaims   Json
+  sourceUrls         Json
+  methodologyVersion String @default("1.0")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  agency             Agency  @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  client             Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  @@index([agencyId])
+}
+
+model BrandEvidence {
+  id                 String       @id @default(cuid())
+  agencyId           String
+  clientId           String
+  type               EvidenceType
+  sourceUrl          String?
+  title              String?
+  contentHash        String
+  extractedFacts     Json
+  confidence         MetricConfidence @default(MEDIUM)
+  observedAt         DateTime     @default(now())
+  methodologyVersion String
+  agency             Agency       @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  client             Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  @@unique([clientId, contentHash])
+  @@index([agencyId, clientId, observedAt])
+  @@index([clientId, type, observedAt])
+}
