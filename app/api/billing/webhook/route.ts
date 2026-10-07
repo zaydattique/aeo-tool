@@ -4,7 +4,7 @@ import { getStripe } from "@/lib/stripe";
 import Stripe from "stripe";
 
 export async function POST(req: NextRequest) {
-  const body = await req.text();
+  const contentLength = Number(req.headers.get("content-length") ?? "0");\n  if (Number.isFinite(contentLength) && contentLength > 1024 * 1024) {\n    return NextResponse.json({ error: "Request body too large" }, { status: 413 });\n  }\n\n  const reader = req.body?.getReader();\n  if (!reader) return NextResponse.json({ error: "Invalid request body" }, { status: 400 });\n  const chunks: Uint8Array[] = [];\n  let total = 0;\n  while (true) {\n    const { done, value } = await reader.read();\n    if (done) break;\n    total += value.byteLength;\n    if (total > 1024 * 1024) { reader.cancel().catch(() => {}); return NextResponse.json({ error: "Request body too large" }, { status: 413 }); }\n    chunks.push(value);\n  }\n  const bytes = new Uint8Array(total);\n  let offset = 0;\n  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }\n  const body = new TextDecoder().decode(bytes);
   const sig = req.headers.get("stripe-signature");
 
   if (!process.env.STRIPE_WEBHOOK_SECRET || !sig) {
@@ -148,7 +148,7 @@ export async function POST(req: NextRequest) {
   } catch (err) {
     await prisma.stripeEvent.update({
       where: { eventId: event.id },
-      data: { error: err instanceof Error ? err.message.slice(0, 1000) : "Handler failed" },
+      data: { error: "Handler failed" },
     }).catch(() => {});
     console.error("Webhook handler error:", err);
     return NextResponse.json({ error: "Handler failed" }, { status: 500 });
