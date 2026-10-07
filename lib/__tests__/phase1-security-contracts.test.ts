@@ -57,6 +57,36 @@ describe("Phase 1 security response contracts", () => {
     expect(reset).toContain("passwordResetToken: tokenHash");
   });
 
+  it("hashes public capability tokens instead of storing raw values", () => {
+    const schema = readFileSync("prisma/schema.prisma", "utf8");
+    const portal = readFileSync("app/p/[token]/page.tsx", "utf8");
+    const report = readFileSync("app/r/[token]/page.tsx", "utf8");
+    const invites = readFileSync("app/api/team/invites/route.ts", "utf8");
+    expect(schema).toContain("portalTokenHash");
+    expect(schema).toContain("liveLinkTokenHash");
+    expect(schema).toContain("tokenHash");
+    expect(portal).toContain("hashCapabilityToken");
+    expect(report).toContain("hashCapabilityToken");
+    expect(invites).toContain("hashCapabilityToken");
+    expect(invites).not.toContain("data: { token:");
+  });
+
+  it("bounds request and response bodies by streamed byte count", () => {
+    const requestSecurity = readFileSync("lib/request-security.ts", "utf8");
+    const webhook = readFileSync("app/api/billing/webhook/route.ts", "utf8");
+    expect(requestSecurity).toContain("getReader()");
+    expect(requestSecurity).toContain("REQUEST_BODY_TOO_LARGE");
+    expect(requestSecurity).toContain("RESPONSE_BODY_TOO_LARGE");
+    expect(webhook).toContain("MAX_BODY_BYTES");
+    expect(webhook).toContain("value.byteLength");
+  });
+
+  it("keeps public capability values out of report audit metadata", () => {
+    const reports = readFileSync("app/api/clients/[id]/reports/route.ts", "utf8");
+    expect(reports).toContain("liveLinkTokenHash");
+    expect(reports).not.toContain("metadata: { clientId, token }");
+  });
+
   it("has persistent impersonation visibility in the root shell", () => {
     const layout = readFileSync("app/layout.tsx", "utf8");
     const banner = readFileSync("components/impersonation-banner.tsx", "utf8");
