@@ -16,6 +16,27 @@ describe("Phase 1 security response contracts", () => {
     expect(adminSessions).not.toContain("tokenId: true");
   });
 
+  it("keeps the internal session revocation identifier non-enumerable", () => {
+    const auth = readFileSync("lib/auth.ts", "utf8");
+    expect(auth).toContain('Object.defineProperty(session.user, "sessionId"');
+    expect(auth).toContain("enumerable: false");
+  });
+
+  it("has safe application error boundaries", () => {
+    const error = readFileSync("app/error.tsx", "utf8");
+    const notFound = readFileSync("app/not-found.tsx", "utf8");
+    const globalError = readFileSync("app/global-error.tsx", "utf8");
+    expect(error).toContain("No sensitive error details");
+    expect(notFound).toContain("Page not found");
+    expect(globalError).toContain("Detailed server errors are not exposed");
+  });
+
+  it("does not redirect unauthorized Super Admin API requests to an HTML page", () => {
+    const middleware = readFileSync("middleware.ts", "utf8");
+    expect(middleware).toContain('path.startsWith("/api/admin")');
+    expect(middleware).toContain('NextResponse.json({ error: "Forbidden" }, { status: 403 })');
+  });
+
   it("has persistent impersonation visibility in the root shell", () => {
     const layout = readFileSync("app/layout.tsx", "utf8");
     const banner = readFileSync("components/impersonation-banner.tsx", "utf8");
