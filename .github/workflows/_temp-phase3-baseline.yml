@@ -1,4 +1,7 @@
 name: Temporary Phase 3 baseline generator
+permissions:
+  contents: write
+
 on:
   push:
     branches: [phase3-canonical-analytics-data-foundation]
