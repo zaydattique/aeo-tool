@@ -41,6 +41,7 @@ export async function GET() {
       },
       orderBy: { createdAt: "desc" },
       take: 100,
+      select: { id: true, email: true, role: true, expiresAt: true, acceptedAt: true, createdAt: true },
     }),
   ]);
 
@@ -144,12 +145,9 @@ export async function POST(req: NextRequest) {
 
     const inviteUrl = `${process.env.NEXTAUTH_URL || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"}/invite/${token}`;
 
-    console.log("[DEV] Team invite link:", inviteUrl);
-
     return NextResponse.json({
-      invite,
+      invite: { id: invite.id, email: invite.email, role: invite.role, expiresAt: invite.expiresAt },
       inviteUrl,
-      ...(process.env.NODE_ENV === "development" ? { devInviteUrl: inviteUrl } : {}),
     });
   } catch (err) {
     if (err instanceof Error && err.message === "REQUEST_BODY_TOO_LARGE") return NextResponse.json({ error: "Request body too large" }, { status: 413 });
