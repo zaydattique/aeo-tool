@@ -37,6 +37,26 @@ describe("Phase 1 security response contracts", () => {
     expect(middleware).toContain('NextResponse.json({ error: "Forbidden" }, { status: 403 })');
   });
 
+  it("does not trust raw forwarding or user-agent headers for security identity", () => {
+    const auth = readFileSync("lib/auth.ts", "utf8");
+    const events = readFileSync("lib/security-events.ts", "utf8");
+    const requestSecurity = readFileSync("lib/request-security.ts", "utf8");
+    expect(auth).not.toContain("req.headers");
+    expect(events).not.toContain("request.headers.get");
+    expect(requestSecurity).not.toContain("req.headers.get");
+    expect(requestSecurity).not.toContain("res.headers.get");
+  });
+
+  it("stores password reset tokens only as hashes", () => {
+    const forgot = readFileSync("app/api/auth/forgot-password/route.ts", "utf8");
+    const reset = readFileSync("app/api/auth/reset-password/route.ts", "utf8");
+    expect(forgot).toContain("tokenHash");
+    expect(forgot).toContain("passwordResetToken: tokenHash");
+    expect(forgot).not.toContain('console.log("[DEV] Password reset link:"');
+    expect(reset).toContain("tokenHash");
+    expect(reset).toContain("passwordResetToken: tokenHash");
+  });
+
   it("has persistent impersonation visibility in the root shell", () => {
     const layout = readFileSync("app/layout.tsx", "utf8");
     const banner = readFileSync("components/impersonation-banner.tsx", "utf8");
