@@ -24,7 +24,6 @@ export async function GET(
     select: {
       id: true,
       portalEnabled: true,
-      portalToken: true,
     },
   });
 
@@ -34,11 +33,7 @@ export async function GET(
 
   return NextResponse.json({
     portalEnabled: client.portalEnabled,
-    portalToken: client.portalToken,
-    portalPath:
-      client.portalEnabled && client.portalToken
-        ? `/p/${client.portalToken}`
-        : null,
+    portalPath: null,
   });
 }
 
