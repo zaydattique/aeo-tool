@@ -4,6 +4,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireAgency, canManageClients } from "@/lib/session";
 import { readJsonBody } from "@/lib/request-security";
+import { generateCapabilityToken, hashCapabilityToken } from "@/lib/capability-tokens";
 
 const bodySchema = z.object({
   action: z.enum(["enable", "disable", "rotate"]),
@@ -66,6 +67,7 @@ export async function POST(
     }
 
     const { action } = parsed.data;
+    let rawPortalToken: string | null = null;
     let data: {
       portalEnabled?: boolean;
       portalToken?: string | null;
@@ -74,14 +76,14 @@ export async function POST(
     if (action === "enable") {
       data = {
         portalEnabled: true,
-        portalToken: existing.portalToken || randomBytes(24).toString("hex"),
+        portalTokenHash: hashCapabilityToken((rawPortalToken = generateCapabilityToken(24))),
       };
     } else if (action === "disable") {
       data = { portalEnabled: false };
     } else if (action === "rotate") {
       data = {
         portalEnabled: true,
-        portalToken: randomBytes(24).toString("hex"),
+        portalTokenHash: hashCapabilityToken((rawPortalToken = generateCapabilityToken(24))),
       };
     }
 
@@ -91,7 +93,7 @@ export async function POST(
       select: {
         id: true,
         portalEnabled: true,
-        portalToken: true,
+        portalTokenHash: true,
       },
     });
 
@@ -108,10 +110,10 @@ export async function POST(
 
     return NextResponse.json({
       portalEnabled: client.portalEnabled,
-      portalToken: client.portalToken,
+      portalToken: rawPortalToken,
       portalPath:
-        client.portalEnabled && client.portalToken
-          ? `/p/${client.portalToken}`
+        client.portalEnabled && rawPortalToken
+          ? `/p/${rawPortalToken}`
           : null,
     });
   } catch (err) {
