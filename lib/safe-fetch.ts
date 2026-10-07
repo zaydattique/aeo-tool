@@ -156,7 +156,7 @@ function createPinnedAgent(addresses: { address: string; family: number }[]): Ag
         const matches = addresses.filter((entry) => !options.family || entry.family === options.family);
         if (!matches.length) return callback(new Error("Pinned DNS address unavailable"), "");
         if (options.all) return callback(null, matches);
-        return callback(null, matches[0]);
+        return callback(null, matches[0].address, matches[0].family);
       },
     },
   });
