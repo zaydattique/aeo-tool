@@ -105,9 +105,14 @@ export const authOptions: NextAuthOptions = {
             });
             const recoveryId = await consumeRecoveryCode(records, String(credentials.recoveryCode));
             if (recoveryId) {
-              await prisma.mfaRecoveryCode.update({ where: { id: recoveryId }, data: { usedAt: new Date() } });
-              mfaValid = true;
-              await recordSecurityEvent({ userId: user.id, agencyId: user.agencyId, eventType: "auth.recovery_code_used", severity: "WARNING" });
+              const claimed = await prisma.mfaRecoveryCode.updateMany({
+                where: { id: recoveryId, usedAt: null },
+                data: { usedAt: new Date() },
+              });
+              if (claimed.count === 1) {
+                mfaValid = true;
+                await recordSecurityEvent({ userId: user.id, agencyId: user.agencyId, eventType: "auth.recovery_code_used", severity: "WARNING" });
+              }
             }
           }
           if (!mfaValid) {
