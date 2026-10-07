@@ -17,7 +17,7 @@ The repository follows the 16-phase master plan in [PROJECT_PLAN.md](./PROJECT_P
 
 - Phase 0: security and production hardening, complete and merged
 - Phase 1: identity, sessions, authorization, and Super Admin control plane, complete and merged to `main` as `152908bc6ca3a368733fc80538e5e5a095e3e8dc`
-- Phase 2: security boundary hardening is in progress on `phase2-security-boundary-hardening`; merge is blocked until all security, feature, documentation, and CI/build gates are green
+- Phase 2: security boundary hardening is complete and merged to `main` as `2727736114e5be331b53321ccd7de8459b1252c5`
 - Phases 3-16: planned
 - Hosted owner testing: after Phase 15
 - Public production launch: after Phase 16
