@@ -70,8 +70,8 @@ export const authOptions: NextAuthOptions = {
             agencyId: user.agencyId,
             eventType: "auth.login_failed",
             severity: "WARNING",
-            ip: req.headers?.["x-forwarded-for"]?.split(",")[0]?.trim() ?? null,
-            userAgent: req.headers?.["user-agent"] ?? null,
+            ip: null,
+            userAgent: null,
           });
           return null;
         }
@@ -131,8 +131,8 @@ export const authOptions: NextAuthOptions = {
             tokenId,
             issuedAt: now,
             expiresAt,
-            ip: req.headers?.["x-forwarded-for"]?.split(",")[0]?.trim() ?? null,
-            userAgent: req.headers?.["user-agent"] ?? null,
+            ip: null,
+            userAgent: null,
           },
         });
 
@@ -140,8 +140,8 @@ export const authOptions: NextAuthOptions = {
           userId: user.id,
           agencyId: user.agencyId,
           eventType: "auth.login_success",
-          ip: req.headers?.["x-forwarded-for"]?.split(",")[0]?.trim() ?? null,
-          userAgent: req.headers?.["user-agent"] ?? null,
+          ip: null,
+          userAgent: null,
         });
 
         await prisma.user.update({
