@@ -57,12 +57,9 @@ const createSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireSuperAdmin();
   if (auth.error || !auth.session) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
-  }
-  if (auth.session.user.role !== "SUPER_ADMIN") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   try {
