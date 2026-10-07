@@ -158,6 +158,9 @@ model Agency {
   metricObservations MetricObservation[]
   brandProfiles BrandProfile[]
   brandEvidence BrandEvidence[]
+  aiResponses AIResponse[]
+  citationEvidence CitationEvidence[]
+  promptEngineObservations PromptEngineObservation[]
 
   @@index([status])
   @@index([deletedAt])
@@ -238,6 +241,9 @@ model Client {
   brandProfiles          BrandProfile[]
   brandEvidence          BrandEvidence[]
   providerUsageEvents    ProviderUsageEvent[]
+  aiResponses            AIResponse[]
+  citationEvidence       CitationEvidence[]
+  promptEngineObservations PromptEngineObservation[]
 
   @@index([agencyId])
   @@index([agencyId, deletedAt])
@@ -327,6 +333,9 @@ model TrackedPrompt {
   agency         Agency   @relation(fields: [agencyId], references: [id])
   client         Client   @relation(fields: [clientId], references: [id])
   snapshots      VisibilitySnapshot[]
+  aiResponses    AIResponse[]
+  citationEvidence CitationEvidence[]
+  promptEngineObservations PromptEngineObservation[]
 
   @@index([agencyId])
   @@index([clientId])
