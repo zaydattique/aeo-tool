@@ -356,6 +356,9 @@ model VisibilitySnapshot {
   @@index([promptId])
   @@index([jobId])
   @@index([agencyId, clientId, recordedAt, id])
+  aiResponses AIResponse[]
+  promptEngineObservations PromptEngineObservation[]
+  citationEvidence CitationEvidence[]
 }
 
 model VisibilityJob {
@@ -782,3 +785,90 @@ model BrandEvidence {
   @@index([agencyId, clientId, observedAt])
   @@index([clientId, type, observedAt])
 }
+
+
+// Phase 4: normalized AI visibility evidence and immutable engine observations.
+model AIResponse {
+  id                 String       @id @default(cuid())
+  agencyId           String
+  clientId           String
+  promptId           String
+  snapshotId         String
+  engine             String
+  model              String?
+  state              MetricState  @default(LIVE)
+  confidence         MetricConfidence @default(MEDIUM)
+  country            String?
+  language           String?
+  answerText         String
+  answerHash         String
+  citationsExtracted Int          @default(0)
+  observedAt         DateTime     @default(now())
+  methodologyVersion String
+  agency             Agency       @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  client             Client       @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  prompt             TrackedPrompt @relation(fields: [promptId], references: [id], onDelete: Restrict)
+  snapshot           VisibilitySnapshot @relation(fields: [snapshotId], references: [id], onDelete: Restrict)
+  citations          CitationEvidence[]
+  observation        PromptEngineObservation?
+
+  @@unique([snapshotId, engine])
+  @@index([agencyId, clientId, observedAt, id])
+  @@index([clientId, promptId, engine, observedAt])
+  @@index([engine, observedAt])
+  @@index([answerHash])
+}
+
+model CitationEvidence {
+  id             String      @id @default(cuid())
+  agencyId       String
+  clientId       String
+  promptId       String
+  responseId     String
+  engine         String
+  url            String
+  domain         String
+  position       Int?
+  title          String?
+  observedAt     DateTime    @default(now())
+  contentHash    String
+  agency         Agency      @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  client         Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  prompt         TrackedPrompt @relation(fields: [promptId], references: [id], onDelete: Restrict)
+  response       AIResponse  @relation(fields: [responseId], references: [id], onDelete: Cascade)
+
+  @@unique([responseId, url])
+  @@index([agencyId, clientId, observedAt, id])
+  @@index([clientId, engine, domain, observedAt])
+  @@index([domain, observedAt])
+}
+
+model PromptEngineObservation {
+  id                String      @id @default(cuid())
+  agencyId          String
+  clientId          String
+  promptId          String
+  snapshotId        String
+  responseId        String?
+  engine            String
+  state             MetricState @default(LIVE)
+  confidence        MetricConfidence @default(MEDIUM)
+  score             Decimal     @db.Decimal(5,2)
+  mentioned         Boolean     @default(false)
+  recommended       Boolean     @default(false)
+  competitorMentioned Boolean   @default(false)
+  answerPosition    Int?
+  observedAt        DateTime    @default(now())
+  methodologyVersion String
+  agency            Agency      @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  client            Client      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  prompt            TrackedPrompt @relation(fields: [promptId], references: [id], onDelete: Restrict)
+  snapshot          VisibilitySnapshot @relation(fields: [snapshotId], references: [id], onDelete: Restrict)
+  response          AIResponse? @relation(fields: [responseId], references: [id], onDelete: SetNull)
+
+  @@unique([snapshotId, engine])
+  @@index([agencyId, clientId, observedAt, id])
+  @@index([clientId, promptId, engine, observedAt])
+  @@index([engine, observedAt])
+}
+
