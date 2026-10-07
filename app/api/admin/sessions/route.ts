@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/session";
+import { requireSuperAdmin } from "@/lib/session";
 
 export async function GET(req: NextRequest) {
-  const auth = await requireAuth();
+  const auth = await requireSuperAdmin();
   if (auth.error || !auth.session) return NextResponse.json({ error: auth.error }, { status: auth.status });
   if (auth.session.user.role !== "SUPER_ADMIN") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
