@@ -1,3 +1,25 @@
+### 2026-10-07 - Phase 2 security boundary hardening started
+
+**Branch:** `phase2-security-boundary-hardening`
+
+**Status:** IN PROGRESS. No merge to `main` has been performed.
+
+**Security scope started**
+
+- Kept the internal session revocation identifier non-enumerable so it cannot be serialized by the browser session endpoint.
+- Made Super Admin API authorization return API-safe JSON instead of redirecting API callers into the dashboard HTML.
+- Added safe accessible 404, application-error, and global-error boundaries that do not expose exception details.
+- Removed application trust in raw forwarding and user-agent headers for authentication and security-event identity metadata.
+- Changed request/response size enforcement to use actual byte size instead of trusting a declared content length.
+- Added a dedicated Phase 2 security CI gate for Prisma validation, TypeScript, tests, and production build.
+- Updated PROJECT_PLAN.md and docs/FILEMAP.md with the Phase 2 security boundary requirements.
+
+**Important**
+
+This is not yet certified complete. Full client and Super Admin route authorization, tenant-isolation, CSRF, abuse-control, secret-leakage, dependency, SSRF, webhook, billing, file/upload, and browser security regression coverage still has to be audited and verified before this phase can be called complete.
+
+---
+
 ### 2026-10-05 - Phase 1 identity, sessions, authorization, and Super Admin
 
 **Branch:** `phase1-identity-sessions-super-admin`
