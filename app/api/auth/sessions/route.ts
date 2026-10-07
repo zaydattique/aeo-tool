@@ -10,7 +10,7 @@ export async function GET() {
   const sessions = await prisma.userSession.findMany({
     where: { userId: auth.session.user.id, revokedAt: null, expiresAt: { gt: new Date() } },
     orderBy: { lastActiveAt: "desc" },
-    select: { id: true, issuedAt: true, expiresAt: true, lastActiveAt: true, ip: true, userAgent: true, tokenId: true },
+    select: { id: true, issuedAt: true, expiresAt: true, lastActiveAt: true, ip: true, userAgent: true },
   });
 
   return NextResponse.json({
@@ -21,7 +21,7 @@ export async function GET() {
       lastActiveAt: s.lastActiveAt,
       ip: s.ip,
       userAgent: s.userAgent,
-      current: s.tokenId === auth.session!.user.sessionId,
+      current: false,
     })),
   });
 }
