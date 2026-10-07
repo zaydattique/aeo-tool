@@ -6,7 +6,14 @@ export default withAuth(
     const token = req.nextauth.token;
     const path = req.nextUrl.pathname;
 
-    if (path.startsWith("/admin") || path.startsWith("/api/admin")) {
+    if (path.startsWith("/api/admin")) {
+      if (token?.role !== "SUPER_ADMIN") {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+      return NextResponse.next();
+    }
+
+    if (path.startsWith("/admin")) {
       if (token?.role !== "SUPER_ADMIN") {
         return NextResponse.redirect(new URL("/dashboard", req.url));
       }
@@ -34,6 +41,7 @@ export default withAuth(
         const path = req.nextUrl.pathname;
 
         if (
+          path.startsWith("/api/admin") ||
           path === "/" ||
           path.startsWith("/login") ||
           path.startsWith("/signup") ||
