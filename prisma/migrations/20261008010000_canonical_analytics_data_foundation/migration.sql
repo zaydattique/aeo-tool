@@ -96,3 +96,19 @@ ALTER TABLE "BrandProfile" ADD CONSTRAINT "BrandProfile_agencyId_fkey" FOREIGN K
 ALTER TABLE "BrandProfile" ADD CONSTRAINT "BrandProfile_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES "Client"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "BrandEvidence" ADD CONSTRAINT "BrandEvidence_agencyId_fkey" FOREIGN KEY ("agencyId") REFERENCES "Agency"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "BrandEvidence" ADD CONSTRAINT "BrandEvidence_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES "Client"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+
+-- Metric observations are historical evidence, not mutable state.
+CREATE OR REPLACE FUNCTION prevent_metric_observation_mutation()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RAISE EXCEPTION 'METRIC_OBSERVATION_IMMUTABLE';
+END;
+$$;
+
+CREATE TRIGGER metric_observation_immutable
+BEFORE UPDATE OR DELETE ON "MetricObservation"
+FOR EACH ROW
+EXECUTE FUNCTION prevent_metric_observation_mutation();
