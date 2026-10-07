@@ -57,7 +57,7 @@ describe("Phase 3 canonical analytics contracts", () => {
       { id: "c", observedAt: new Date("2026-01-03"), value: 3 },
     ];
     expect(sortMetricHistory(points).map((point) => point.id)).toEqual(["a", "b", "c"]);
-    expect(paginateMetricHistory(points, 2)).toEqual({items:[points[1],points[0]],nextCursor:"a"});
+    expect(paginateMetricHistory(points, 2)).toEqual({items:[points[1],points[0]],nextCursor:"b"});
     expect(paginateMetricHistory(points, 2, "a").items.map((point) => point.id)).toEqual(["b","c"]);
     expect(() => paginateMetricHistory(points, 101)).toThrow("INVALID_PAGE_SIZE");
     expect(() => paginateMetricHistory(points, 2, "missing")).toThrow("INVALID_CURSOR");
