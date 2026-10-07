@@ -25,7 +25,7 @@ export const authOptions: NextAuthOptions = {
         totpCode: { label: "Authenticator code", type: "text" },
         recoveryCode: { label: "Recovery code", type: "text" },
       },
-      async authorize(credentials, req) {
+      async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
           return null;
         }
