@@ -15,6 +15,7 @@ import {
 } from "./visibility-usage";
 import { visibilityPromptConcurrency } from "./visibility-config";
 import { isInngestConfigured } from "./inngest/client";
+import { normalizeEngineResult, classifyPrompt } from "./visibility-normalization";
 import type { VisibilityJobStatus } from "@prisma/client";
 
 export function countExpectedOps(promptCount: number): number {
@@ -551,44 +552,94 @@ export async function runVisibilityJob(jobId: string): Promise<void> {
       );
       opsEarnedThisRun += ops;
 
-      await prisma.visibilitySnapshot.upsert({
-        where: {
-          jobId_promptId: { jobId, promptId: prompt.id },
-        },
-        create: {
-          agencyId: job.agencyId,
-          clientId: job.clientId,
-          promptId: prompt.id,
-          jobId,
-          score: check.score,
-          sources: {
-            method: check.method,
-            engines: check.engines,
-            liveEngineCount: check.liveEngineCount,
-            freshLiveEngineCount: check.freshLiveEngineCount,
-            baseScore: base,
-            brandMentioned: check.brandMentioned,
-            competitorMentioned: check.competitorMentioned,
-            kind: prompt.kind,
-            targetName: prompt.targetName,
-            recordedAt: new Date().toISOString(),
+      const normalized = check.engines.map((engine) =>
+        normalizeEngineResult(
+          engine,
+          brand,
+          prompt.targetName || null
+        )
+      );
+
+      await prisma.$transaction(async (tx) => {
+        const snapshot = await tx.visibilitySnapshot.create({
+          data: {
+            agencyId: job.agencyId,
+            clientId: job.clientId,
+            promptId: prompt.id,
+            jobId,
+            score: check.score,
+            sources: {
+              method: check.method,
+              promptCategory: classifyPrompt(prompt.promptText),
+              liveEngineCount: check.liveEngineCount,
+              freshLiveEngineCount: check.freshLiveEngineCount,
+              baseScore: base,
+              brandMentioned: check.brandMentioned,
+              competitorMentioned: check.competitorMentioned,
+              kind: prompt.kind,
+              targetName: prompt.targetName,
+              recordedAt: new Date().toISOString(),
+              methodologyVersion: "4.0",
+            },
           },
-        },
-        update: {
-          score: check.score,
-          sources: {
-            method: check.method,
-            engines: check.engines,
-            liveEngineCount: check.liveEngineCount,
-            freshLiveEngineCount: check.freshLiveEngineCount,
-            baseScore: base,
-            brandMentioned: check.brandMentioned,
-            competitorMentioned: check.competitorMentioned,
-            kind: prompt.kind,
-            targetName: prompt.targetName,
-            recordedAt: new Date().toISOString(),
-          },
-        },
+        });
+
+        for (const answer of normalized) {
+          const response = await tx.aIResponse.create({
+            data: {
+              agencyId: job.agencyId,
+              clientId: job.clientId,
+              promptId: prompt.id,
+              snapshotId: snapshot.id,
+              engine: answer.engine,
+              model: answer.model,
+              state: answer.state,
+              confidence: answer.confidence,
+              answerText: answer.answerText,
+              answerHash: answer.answerHash,
+              citationsExtracted: answer.citations.length,
+              observedAt: new Date(),
+              methodologyVersion: answer.methodologyVersion,
+            },
+          });
+
+          await tx.promptEngineObservation.create({
+            data: {
+              agencyId: job.agencyId,
+              clientId: job.clientId,
+              promptId: prompt.id,
+              snapshotId: snapshot.id,
+              responseId: response.id,
+              engine: answer.engine,
+              state: answer.state,
+              confidence: answer.confidence,
+              score: check.engines.find((e) => e.engine === answer.engine)?.score ?? 0,
+              mentioned: answer.mentioned,
+              recommended: answer.recommended,
+              competitorMentioned: answer.competitorMentioned,
+              answerPosition: answer.answerPosition,
+              methodologyVersion: answer.methodologyVersion,
+            },
+          });
+
+          if (answer.citations.length) {
+            await tx.citationEvidence.createMany({
+              data: answer.citations.map((citation) => ({
+                agencyId: job.agencyId,
+                clientId: job.clientId,
+                promptId: prompt.id,
+                responseId: response.id,
+                engine: answer.engine,
+                url: citation.url,
+                domain: citation.domain,
+                position: citation.position,
+                title: citation.title || null,
+                contentHash: require("node:crypto").createHash("sha256").update(citation.url).digest("hex"),
+              })),
+              skipDuplicates: true,
+            });
+          }
+        }
       });
 
       successCount += 1;
