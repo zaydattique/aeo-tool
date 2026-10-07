@@ -8,6 +8,7 @@
 
 import { PrismaClient, BillingRegion } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import { CANONICAL_METRICS } from "../lib/analytics/registry";
 
 const prisma = new PrismaClient();
 
@@ -193,6 +194,16 @@ async function main() {
     });
     console.log(`  ✓ ${result.slug} (${result.currency} ${result.priceMonthly})`);
   }
+
+  console.log("Seeding canonical metric registry...");
+  for (const metric of CANONICAL_METRICS) {
+    await prisma.metricDefinition.upsert({
+      where: { slug: metric.slug },
+      update: { ...metric, methodologyVersion: "1.0", isActive: true },
+      create: { ...metric, methodologyVersion: "1.0", isActive: true },
+    });
+  }
+  console.log(`  ✓ ${CANONICAL_METRICS.length} canonical metrics ready`);
 
   console.log("Seeding super admin (optional)...");
   await seedSuperAdmin();

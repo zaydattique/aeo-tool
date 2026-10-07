@@ -11,6 +11,7 @@ on:
       - "types/**"
       - "next.config.ts"
       - "package.json"
+      - "prisma/**"
       - ".github/workflows/phase2-security-boundary.yml"
   push:
     branches:
@@ -20,20 +21,37 @@ on:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: aeo_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d aeo_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/aeo_test
       NEXTAUTH_SECRET: test-nextauth-secret-for-ci
       NEXTAUTH_URL: http://localhost:3000
       NEXT_PUBLIC_APP_URL: http://localhost:3000
-      RATE_LIMIT_REQUIRE_REDIS: "false"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-      - run: npm install
-      - run: npx prisma generate
-      - run: npx prisma validate
+      - name: Install dependencies without lifecycle scripts
+        run: npm install --ignore-scripts
+      - name: Generate Prisma client
+        run: npx prisma generate
+      - name: Validate Prisma schema
+        run: npx prisma validate
+      - name: Apply migrations to clean PostgreSQL
+        run: npx prisma migrate deploy
       - run: npx tsc --noEmit
       - run: npm test
       - run: npm run build

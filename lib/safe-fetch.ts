@@ -156,7 +156,7 @@ function createPinnedAgent(addresses: { address: string; family: number }[]): Ag
         const matches = addresses.filter((entry) => !options.family || entry.family === options.family);
         if (!matches.length) return callback(new Error("Pinned DNS address unavailable"), "");
         if (options.all) return callback(null, matches);
-        return callback(null, matches[0]);
+        return callback(null, matches[0].address, matches[0].family);
       },
     },
   });
@@ -165,32 +165,6 @@ function createPinnedAgent(addresses: { address: string; family: number }[]): Ag
 /** Resolve hostname and reject if ANY address is blocked. */
 export async function assertPublicHostname(hostname: string): Promise<void> {
   await resolvePublicAddresses(hostname);
-}
-  const host = hostname.toLowerCase().replace(/^\[|\]$/g, "");
-
-  if (isIP(host) !== 0) {
-    if (isBlockedIp(host)) {
-      throw new Error("Blocked address (private/reserved IP)");
-    }
-    return;
-  }
-
-  let addresses: { address: string; family: number }[];
-  try {
-    addresses = await dns.lookup(host, { all: true });
-  } catch {
-    throw new Error(`DNS lookup failed for ${host}`);
-  }
-
-  if (!addresses.length) {
-    throw new Error(`No addresses resolved for ${host}`);
-  }
-
-  for (const { address } of addresses) {
-    if (isBlockedIp(address)) {
-      throw new Error(`Resolved to blocked address: ${address}`);
-    }
-  }
 }
 
 export type SafeFetchOptions = {
