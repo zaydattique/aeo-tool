@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const metadata: Metadata = {
   title: "Client AEO portal",
@@ -29,6 +30,8 @@ export default async function ClientPortalPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
+  const rl = await rateLimit(`public-portal:${token}`, 60, 60_000);
+  if (!rl.ok) notFound();
 
   const client = await prisma.client.findFirst({
     where: {
