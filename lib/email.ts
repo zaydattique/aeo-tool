@@ -4,6 +4,8 @@
  * Fallback: console.log (dev / no key).
  */
 
+import { prisma } from "@/lib/prisma";
+
 export type SendEmailInput = {
   to: string | string[];
   subject: string;
@@ -15,13 +17,15 @@ export async function sendEmail(
   input: SendEmailInput
 ): Promise<{ ok: boolean; id?: string; mode: "resend" | "console" }> {
   const to = Array.isArray(input.to) ? input.to : [input.to];
-  const from =
-    process.env.EMAIL_FROM || "AEO Command <onboarding@resend.dev>";
+  const { getProviderRuntime } = await import("./provider-control");
+  const resendRuntime = await getProviderRuntime("resend");
+  const from = process.env.EMAIL_FROM || "Threezero AEO <onboarding@resend.dev>";
+  const delivery = await prisma.emailDelivery.create({ data: { provider: resendRuntime ? "resend" : "console", toAddress: to.join(","), fromAddress: from, subject: input.subject, status: "QUEUED" } });
 
-  if (process.env.RESEND_API_KEY) {
+  if (resendRuntime) {
     try {
       const { Resend } = await import("resend");
-      const resend = new Resend(process.env.RESEND_API_KEY);
+      const resend = new Resend(resendRuntime.credential);
       const result = await resend.emails.send({
         from,
         to,
@@ -31,8 +35,10 @@ export async function sendEmail(
       });
       if (result.error) {
         console.error("[email] Resend error:", result.error);
+        await prisma.emailDelivery.update({ where: { id: delivery.id }, data: { status: "FAILED", error: result.error.message } });
         return { ok: false, mode: "resend" };
       }
+      await prisma.emailDelivery.update({ where: { id: delivery.id }, data: { status: "SENT", providerId: result.data?.id ?? null, sentAt: new Date() } });
       return { ok: true, id: result.data?.id, mode: "resend" };
     } catch (err) {
       console.error("[email] Resend failed:", err);
@@ -46,6 +52,7 @@ export async function sendEmail(
     subject: input.subject,
     text: input.text || input.html.replace(/<[^>]+>/g, " ").slice(0, 500),
   });
+  await prisma.emailDelivery.update({ where: { id: delivery.id }, data: { status: "SENT", sentAt: new Date() } });
   return { ok: true, mode: "console" };
 }
 
