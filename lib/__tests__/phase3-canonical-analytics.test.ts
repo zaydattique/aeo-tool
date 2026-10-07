@@ -1,3 +1,4 @@
+import { describe, expect, it } from "vitest";
 import { CANONICAL_METRICS, assertCanonicalMetricRegistry } from "../analytics/registry";
 import { weightedMean, rate, correlation } from "../analytics/calculations";
 import { paginateMetricHistory, sortMetricHistory } from "../analytics/history";
