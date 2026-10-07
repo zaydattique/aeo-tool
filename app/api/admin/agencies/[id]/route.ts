@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireAuth } from "@/lib/session";
+import { requireSuperAdmin } from "@/lib/session";
 import { readJsonBody } from "@/lib/request-security";
 
 const schema = z.object({
@@ -12,12 +12,9 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAuth();
+  const auth = await requireSuperAdmin();
   if (auth.error || !auth.session) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
-  }
-  if (auth.session.user.role !== "SUPER_ADMIN") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   const { id } = await params;
@@ -37,6 +34,18 @@ export async function PATCH(
   const updated = await prisma.agency.update({
     where: { id },
     data: { status: parsed.data.status },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      status: true,
+      billingRegion: true,
+      planId: true,
+      onboardingCompleted: true,
+      trialEndsAt: true,
+      createdAt: true,
+      updatedAt: true,
+    },
   });
 
   await prisma.activityLog.create({
