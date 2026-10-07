@@ -1,0 +1,3 @@
+-- AEO Command canonical baseline.
+-- This migration represents the complete pre-migrate schema for a fresh database.
+-- Subsequent migrations contain only incremental changes.
