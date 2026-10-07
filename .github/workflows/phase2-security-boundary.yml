@@ -14,7 +14,8 @@ on:
       - ".github/workflows/phase2-security-boundary.yml"
   push:
     branches:
-      - phase2-security-boundary-hardening
+      - main
+  workflow_dispatch:
 
 jobs:
   verify:
