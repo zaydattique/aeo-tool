@@ -1051,3 +1051,23 @@ ALTER TABLE "BrandEvidence" ADD CONSTRAINT "BrandEvidence_agencyId_fkey" FOREIGN
 -- AddForeignKey
 ALTER TABLE "BrandEvidence" ADD CONSTRAINT "BrandEvidence_clientId_fkey" FOREIGN KEY ("clientId") REFERENCES "Client"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
+
+-- Preserve the production concurrency invariant that Prisma schema cannot express.
+CREATE UNIQUE INDEX "Scan_one_active_per_client"
+ON "Scan" ("clientId")
+WHERE "status" IN ('QUEUED', 'RUNNING');
+
+-- Metric observations are historical evidence, not mutable state.
+CREATE OR REPLACE FUNCTION prevent_metric_observation_mutation()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  RAISE EXCEPTION 'METRIC_OBSERVATION_IMMUTABLE';
+END;
+$$;
+
+CREATE TRIGGER metric_observation_immutable
+BEFORE UPDATE OR DELETE ON "MetricObservation"
+FOR EACH ROW
+EXECUTE FUNCTION prevent_metric_observation_mutation();
