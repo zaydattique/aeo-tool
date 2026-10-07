@@ -1566,3 +1566,26 @@ Phase 3 (canonical analytics and brand intelligence data foundation) is certifie
 - CI explicitly gates Prisma generate/validate, clean migration deployment, TypeScript, tests, and production build
 
 Certification status: **PASS**. The application remains pre-launch; this certification means the Phase 3 code and database foundation are production-readiness gates, not that the product is already live.
+
+
+## Phase 4 implementation checkpoint
+
+Phase 4 implementation is complete on branch `phase4-ai-visibility-intelligence` and PR verification passed on clean PostgreSQL.
+
+Implemented:
+
+- normalized AI response records by engine and model
+- structured citation evidence with URL/domain history
+- immutable prompt-engine observations
+- explicit LIVE, CACHED, and ESTIMATED state
+- confidence and methodology metadata
+- deterministic prompt intent classification
+- recommendation and answer-position signals
+- share-of-voice and volatility calculation contracts
+- tenant-scoped cursor-paginated evidence API
+- database update guards for Phase 4 evidence
+- deterministic Phase 4 normalization tests
+
+Verification run `37689877250` passed every gate: dependency installation, Prisma generate, Prisma validate, clean migration deployment, TypeScript, full test suite, and production build.
+
+**Phase 4 status: PR VERIFIED, awaiting explicit merge approval.** Do not mark Phase 4 certified or begin Phase 5 from this branch until the PR is approved, merged, and the merged main branch is re-verified.
