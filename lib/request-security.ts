@@ -12,11 +12,6 @@ export async function readJsonBody<T>(
   req: NextRequest,
   maxBytes = DEFAULT_MAX_JSON_BODY_BYTES
 ): Promise<T> {
-  const contentType = req.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase();
-  if (contentType !== "application/json") {
-    throw new Error("UNSUPPORTED_CONTENT_TYPE");
-  }
-
   const reader = req.body?.getReader();
   if (!reader) throw new Error("INVALID_REQUEST_BODY");
 
