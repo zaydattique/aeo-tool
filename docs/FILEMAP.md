@@ -105,3 +105,14 @@ Do not add placeholder paths for features that have not been implemented.
 - `prisma/migrations/20261007010000_hash_public_capability_tokens/migration.sql` - hashes existing portal, report, and invite capability tokens during schema migration.
 - `app/not-found.tsx`, `app/error.tsx`, `app/global-error.tsx` - safe accessible error boundaries.
 - `.github/workflows/phase2-security-boundary.yml` - Phase 2 security verification gate.
+
+
+## Phase 4 AI visibility additions
+
+- `lib/visibility-normalization.ts` - canonical normalization, citation extraction, prompt intent classification, share-of-voice, and volatility.
+- `lib/visibility-check.ts` - live provider checks, caching, timeout, and heuristic fallback inputs.
+- `lib/visibility-job.ts` - durable visibility execution and normalized evidence persistence.
+- `app/api/clients/[id]/visibility/evidence/route.ts` - tenant-scoped cursor-paginated engine evidence API.
+- `prisma/schema.prisma` - AIResponse, CitationEvidence, and PromptEngineObservation models.
+- `prisma/migrations/20261008020000_phase4_ai_visibility_evidence/migration.sql` - Phase 4 evidence tables, indexes, foreign keys, and mutation guards.
+- `lib/__tests__/phase4-visibility-normalization.test.ts` - deterministic Phase 4 normalization and scoring contracts.

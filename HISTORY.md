@@ -490,3 +490,28 @@ This is not a promise of instant ranking. Search engines and AI systems independ
 The website is blocked from public production if there is an accidental noindex, crawler block, wrong canonical, broken sitemap, inaccessible important content, serious structured-data issue, contradictory entity information, serious mobile/performance failure, critical accessibility failure, placeholder content, missing legal requirements, or unresolved P0/P1 SEO/AEO/GEO issue.
 
 Actual rankings and AI citations will be measured after launch rather than guaranteed in advance.
+
+
+### 2026-10-07 - Phase 4 AI visibility evidence foundation
+
+**Goal**
+
+Make AI visibility a durable intelligence layer rather than a JSON-only snapshot. Provider output must retain provenance, engine state, citations, confidence, and historical evidence without allowing in-place rewrites.
+
+**Implemented**
+
+- Added normalized `AIResponse` records for engine/model answer evidence.
+- Added structured `CitationEvidence` records for cited URLs and domains.
+- Added immutable `PromptEngineObservation` records for mention, recommendation, competitor, position, score, state, and confidence.
+- Added deterministic normalization, citation extraction, prompt classification, share-of-voice, and volatility helpers.
+- Added tenant-safe paginated evidence retrieval.
+- Added database update triggers that reject evidence mutation.
+- Added clean migration and CI verification.
+
+**Verification**
+
+PR run `37689877250` passed Prisma generation and validation, clean PostgreSQL migration deployment, TypeScript, tests, and production build.
+
+**Status**
+
+Implementation verified on the Phase 4 branch. Explicit owner merge approval is still required by the project execution contract.
