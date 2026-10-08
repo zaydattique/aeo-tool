@@ -247,6 +247,9 @@ model Client {
   aiResponses            AIResponse[]
   citationEvidence       CitationEvidence[]
   promptEngineObservations PromptEngineObservation[]
+  crawlRuns CrawlRun[]
+  crawlPages CrawlPage[]
+  crawlIssues CrawlIssue[]
 
   @@index([agencyId])
   @@index([agencyId, deletedAt])
@@ -275,6 +278,7 @@ model Scan {
   agency          Agency     @relation(fields: [agencyId], references: [id])
   client          Client     @relation(fields: [clientId], references: [id])
   actions         Action[]
+  crawlRuns       CrawlRun[]
 
   @@index([agencyId])
   @@index([clientId])
