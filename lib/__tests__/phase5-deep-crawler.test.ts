@@ -2,6 +2,8 @@ import { describe, expect, it, vi, beforeEach } from "vitest";
 
 const responses = new Map<string, { status: number; url: string; text: string; contentType?: string }>();
 
+vi.mock("../url", () => ({ validateWebsiteUrl: (url: string) => ({ ok: true, url }) }));
+
 vi.mock("../safe-fetch", () => ({
   safeFetch: vi.fn(async (url: string) => {
     const r = responses.get(url);
