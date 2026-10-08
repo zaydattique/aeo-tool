@@ -161,6 +161,9 @@ model Agency {
   aiResponses AIResponse[]
   citationEvidence CitationEvidence[]
   promptEngineObservations PromptEngineObservation[]
+  crawlRuns CrawlRun[]
+  crawlPages CrawlPage[]
+  crawlIssues CrawlIssue[]
 
   @@index([status])
   @@index([deletedAt])
@@ -244,6 +247,9 @@ model Client {
   aiResponses            AIResponse[]
   citationEvidence       CitationEvidence[]
   promptEngineObservations PromptEngineObservation[]
+  crawlRuns CrawlRun[]
+  crawlPages CrawlPage[]
+  crawlIssues CrawlIssue[]
 
   @@index([agencyId])
   @@index([agencyId, deletedAt])
@@ -272,6 +278,7 @@ model Scan {
   agency          Agency     @relation(fields: [agencyId], references: [id])
   client          Client     @relation(fields: [clientId], references: [id])
   actions         Action[]
+  crawlRuns       CrawlRun[]
 
   @@index([agencyId])
   @@index([clientId])
@@ -882,3 +889,92 @@ model PromptEngineObservation {
   @@index([engine, observedAt])
 }
 
+
+
+model CrawlRun {
+  id              String   @id @default(cuid())
+  agencyId        String
+  clientId        String
+  scanId          String?  @unique
+  startUrl        String
+  status          String   @default("RUNNING")
+  pagesCrawled    Int      @default(0)
+  pagesFailed     Int      @default(0)
+  linksDiscovered Int      @default(0)
+  maxPages        Int
+  maxDepth        Int
+  durationMs      Int?
+  robotsAllowed   Boolean?
+  sitemapFound    Boolean @default(false)
+  llmsTxtFound    Boolean @default(false)
+  startedAt       DateTime @default(now())
+  completedAt     DateTime?
+  methodologyVersion String @default("5.0")
+  agency          Agency  @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  client          Client  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  scan            Scan?   @relation(fields: [scanId], references: [id], onDelete: SetNull)
+  pages           CrawlPage[]
+  issues          CrawlIssue[]
+  @@index([agencyId, clientId, startedAt, id])
+  @@index([clientId, status, startedAt])
+}
+
+model CrawlPage {
+  id                 String   @id @default(cuid())
+  runId              String
+  agencyId           String
+  clientId           String
+  url                String
+  canonicalUrl       String?
+  finalUrl           String?
+  depth              Int
+  statusCode         Int?
+  responseMs         Int?
+  responseBytes      Int?
+  contentType        String?
+  title              String?
+  metaDescription    String?
+  h1Count            Int      @default(0)
+  h2Count            Int      @default(0)
+  wordCount          Int      @default(0)
+  internalLinks      Int      @default(0)
+  externalLinks      Int      @default(0)
+  indexable           Boolean?
+  robotsNoindex      Boolean?
+  pageType           String?
+  duplicateHash      String?
+  structuredData     Json?
+  entitySignals      Json?
+  contentSignals     Json?
+  technicalSignals   Json?
+  fetchedAt          DateTime @default(now())
+  run                CrawlRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  agency             Agency @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  client             Client @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  issues             CrawlIssue[]
+  @@unique([runId, url])
+  @@index([agencyId, clientId, fetchedAt, id])
+  @@index([clientId, statusCode])
+  @@index([clientId, duplicateHash])
+  @@index([runId, depth, id])
+}
+
+model CrawlIssue {
+  id          String   @id @default(cuid())
+  runId       String
+  pageId      String?
+  agencyId    String
+  clientId    String
+  code        String
+  severity    String
+  title       String
+  evidence    Json
+  createdAt   DateTime @default(now())
+  run         CrawlRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  page        CrawlPage? @relation(fields: [pageId], references: [id], onDelete: Cascade)
+  agency      Agency   @relation(fields: [agencyId], references: [id], onDelete: Cascade)
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  @@index([agencyId, clientId, severity, createdAt, id])
+  @@index([runId, severity, code])
+  @@index([pageId])
+}
