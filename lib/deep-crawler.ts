@@ -200,5 +200,27 @@ export async function deepCrawlWebsite(startUrl:string, overrides:CrawlConfig={}
     pages.push(page); allIssues.push(...issues);
     if(item.depth<cfg.maxDepth) for(const u of internal){ const clean=new URL(u); clean.hash=""; if(clean.origin===origin&&!seen.has(clean.toString())) queue.push({url:clean.toString(),depth:item.depth+1}); }
   }
+  const byHash = new Map<string, CrawlPageResult[]>();
+  for (const p of pages) { if (p.duplicateHash) byHash.set(p.duplicateHash, [...(byHash.get(p.duplicateHash) || []), p]); }
+  for (const group of byHash.values()) if (group.length > 1) for (const p of group) {
+    const i = issue("DUPLICATE_CONTENT_PATTERN","MEDIUM","Multiple crawled pages share the same normalized content hash",{duplicateCount:group.length,hash:p.duplicateHash});
+    p.issues.push(i); allIssues.push(i);
+  }
+  const statusByUrl = new Map(pages.map((p) => [p.url, p.statusCode]));
+  for (const p of pages) for (const u of p.links) {
+    const status = statusByUrl.get(u);
+    if (status !== undefined && status >= 400) {
+      const i = issue("BROKEN_INTERNAL_LINK","HIGH","Internal link points to an error page",{target:u,statusCode:status});
+      p.issues.push(i); allIssues.push(i);
+    }
+  }
+  if (sitemapUrls.length) {
+    const crawled = new Set(pages.map((p) => p.url));
+    const missing = sitemapUrls.filter((u) => { try { return new URL(u).origin === origin && !crawled.has(u); } catch { return false; } }).length;
+    if (pages[0] && missing > 0) {
+      const i = issue("SITEMAP_COVERAGE_GAP","MEDIUM","Sitemap contains URLs not observed in the bounded crawl",{missingUrls:missing,sitemapUrls:sitemapUrls.length});
+      pages[0].issues.push(i); allIssues.push(i);
+    }
+  }
   return {startUrl:root.toString(),pages,issues:allIssues,robots:{fetched:Boolean(robotsContent),allowed:robotsAllowed,content:robotsContent},sitemap:{found:sitemapUrls.length>0,urls:sitemapUrls.slice(0,5000)},llmsTxt:{found:llmsFound},durationMs:Date.now()-started,truncated:queue.length>0};
 }
