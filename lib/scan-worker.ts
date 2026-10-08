@@ -1,5 +1,5 @@
 import { prisma } from "./prisma";
-import { crawlWebsite } from "./crawl";
+import { deepCrawlWebsite } from "./deep-crawler";
 import { analyzeForAeo } from "./ai-analysis";
 import { mapIssuesToActionDrafts } from "./action-mapper";
 import { validateWebsiteUrl } from "./url";
@@ -116,7 +116,52 @@ export async function runScan(scanId: string) {
       );
     }
 
-    const crawl = await crawlWebsite(urlCheck.url);
+    const deep = await deepCrawlWebsite(urlCheck.url);
+    const first = deep.pages[0];
+    const crawl = {
+      url: deep.startUrl, title: first?.title ?? null, description: first?.metaDescription ?? null,
+      markdown: null, html: null, links: deep.pages.flatMap((p) => p.links).slice(0, 2000),
+      metadata: { methodologyVersion: "5.0", pagesCrawled: deep.pages.length, pagesFailed: deep.pages.filter((p) => p.statusCode === 0).length, sitemapFound: deep.sitemap.found, sitemapUrlCount: deep.sitemap.urls.length, robotsFetched: deep.robots.fetched, robotsAllowed: deep.robots.allowed, llmsTxtFound: deep.llmsTxt.found, truncated: deep.truncated },
+      signals: {
+        hasTitle: Boolean(first?.title), titleLength: first?.title?.length ?? 0, hasMetaDescription: Boolean(first?.metaDescription),
+        metaDescriptionLength: first?.metaDescription?.length ?? 0, h1Count: first?.h1Count ?? 0, h2Count: first?.h2Count ?? 0, h3Count: 0,
+        wordCount: first?.wordCount ?? 0, hasCanonical: Boolean(first?.canonicalUrl), hasOpenGraph: false, hasTwitterCard: false,
+        hasJsonLd: Boolean((first?.structuredData as { validBlocks?: number } | undefined)?.validBlocks),
+        jsonLdTypes: (first?.structuredData as { types?: string[] } | undefined)?.types ?? [],
+        hasFaqSchema: ((first?.structuredData as { types?: string[] } | undefined)?.types ?? []).includes("FAQPage"),
+        hasOrgSchema: ((first?.structuredData as { types?: string[] } | undefined)?.types ?? []).some((x) => x === "Organization" || x === "LocalBusiness"),
+        hasArticleSchema: ((first?.structuredData as { types?: string[] } | undefined)?.types ?? []).some((x) => x === "Article" || x === "BlogPosting"),
+        hasLlmsTxtLink: false, imageCount: 0, imagesWithAlt: 0, internalLinkCount: first?.internalLinks ?? 0, externalLinkCount: first?.externalLinks ?? 0,
+        hasViewport: true, hasLang: true, contentPreview: "",
+      },
+      provider: "basic" as const, durationMs: deep.durationMs,
+    };
+
+    const crawlRun = await prisma.crawlRun.create({ data: {
+      agencyId: scan.agencyId, clientId: scan.client.id, scanId: scan.id, startUrl: deep.startUrl, status: "COMPLETED",
+      pagesCrawled: deep.pages.length, pagesFailed: deep.pages.filter((p) => p.statusCode === 0).length,
+      linksDiscovered: deep.pages.reduce((n, p) => n + p.links.length, 0),
+      maxPages: Number(process.env.CRAWL_MAX_PAGES || 100), maxDepth: Number(process.env.CRAWL_MAX_DEPTH || 3),
+      durationMs: deep.durationMs, robotsAllowed: deep.robots.allowed, sitemapFound: deep.sitemap.found,
+      llmsTxtFound: deep.llmsTxt.found, completedAt: new Date(),
+    }});
+    if (deep.pages.length) {
+      await prisma.crawlPage.createMany({ data: deep.pages.map((p) => ({
+        runId: crawlRun.id, agencyId: scan.agencyId, clientId: scan.client.id, url: p.url, canonicalUrl: p.canonicalUrl, finalUrl: p.finalUrl,
+        depth: p.depth, statusCode: p.statusCode, responseMs: p.responseMs, responseBytes: p.responseBytes, contentType: p.contentType,
+        title: p.title, metaDescription: p.metaDescription, h1Count: p.h1Count, h2Count: p.h2Count, wordCount: p.wordCount,
+        internalLinks: p.internalLinks, externalLinks: p.externalLinks, indexable: p.indexable, robotsNoindex: p.robotsNoindex,
+        pageType: p.pageType, duplicateHash: p.duplicateHash, structuredData: p.structuredData, entitySignals: p.entitySignals,
+        contentSignals: p.contentSignals, technicalSignals: p.technicalSignals,
+      }))});
+      const stored = await prisma.crawlPage.findMany({ where: { runId: crawlRun.id }, select: { id: true, url: true } });
+      const idByUrl = new Map(stored.map((p) => [p.url, p.id]));
+      const issues = deep.pages.flatMap((p) => p.issues.map((i) => ({
+        runId: crawlRun.id, pageId: idByUrl.get(p.url), agencyId: scan.agencyId, clientId: scan.client.id,
+        code: i.code, severity: i.severity, title: i.title, evidence: i.evidence,
+      })));
+      if (issues.length) await prisma.crawlIssue.createMany({ data: issues });
+    }
 
     await updateStage(scanId, "EXTRACT", 40, {
       rawCrawlData: {
