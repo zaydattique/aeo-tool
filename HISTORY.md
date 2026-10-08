@@ -515,3 +515,32 @@ PR run `37689877250` passed Prisma generation and validation, clean PostgreSQL m
 **Status**
 
 Implementation verified on the Phase 4 branch. Explicit owner merge approval is still required by the project execution contract.
+
+### 2026-10-08 - Phase 5 deep crawler and technical intelligence
+
+**Goal**
+
+Turn the scan crawler into a bounded technical intelligence system that records evidence instead of reducing a site to a single homepage snapshot.
+
+**Implemented**
+
+- bounded same-origin crawling with page/depth/time budgets
+- SSRF-safe fetching and redirect controls
+- robots.txt, sitemap and llms.txt signals
+- HTTP status and fetch failure evidence
+- technical metadata and indexability checks
+- JSON-LD validation/type extraction
+- entity, organization, local-business, product, author and publisher signals
+- content depth, question-answer, freshness and citation-worthiness signals
+- duplicate-content and broken-internal-link detection
+- persisted CrawlRun/CrawlPage/CrawlIssue records
+- tenant-safe crawl history API
+- controlled crawler fixture tests
+
+**Verification**
+
+CI run `37751297315` passed Prisma generation and validation, clean PostgreSQL migration deployment, TypeScript, all 93 tests, and production build.
+
+**Status**
+
+Phase 5 is verified on the branch and PR #33 is ready for explicit merge approval.
