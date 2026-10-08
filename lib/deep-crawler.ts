@@ -183,7 +183,7 @@ export async function deepCrawlWebsite(startUrl:string, overrides:CrawlConfig={}
     const external=links.filter(u=>new URL(u).hostname!==root.hostname);
     const structured=extractStructured(html); const entities=entitySignals(html,res.url,structured); const content=contentSignals(html,wordCount);
     const issues:CrawlPageResult["issues"]=[];
-    if(res.statusCode>=400) issues.push(issue("HTTP_ERROR","HIGH","HTTP error response",{statusCode:res.statusCode}));
+    if(res.status>=400) issues.push(issue("HTTP_ERROR","HIGH","HTTP error response",{statusCode:res.status}));
     if(!title) issues.push(issue("MISSING_TITLE","HIGH","Missing title",{})); else if(title.length>60) issues.push(issue("TITLE_TOO_LONG","MEDIUM","Title is longer than typical search display",{length:title.length}));
     if(!desc) issues.push(issue("MISSING_META_DESCRIPTION","MEDIUM","Missing meta description",{}));
     if(h1===0) issues.push(issue("MISSING_H1","MEDIUM","No H1 heading found",{})); if(h1>1) issues.push(issue("MULTIPLE_H1","LOW","Multiple H1 headings found",{count:h1}));
