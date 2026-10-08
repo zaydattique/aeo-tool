@@ -116,3 +116,12 @@ Do not add placeholder paths for features that have not been implemented.
 - `prisma/schema.prisma` - AIResponse, CitationEvidence, and PromptEngineObservation models.
 - `prisma/migrations/20261008020000_phase4_ai_visibility_evidence/migration.sql` - Phase 4 evidence tables, indexes, foreign keys, and mutation guards.
 - `lib/__tests__/phase4-visibility-normalization.test.ts` - deterministic Phase 4 normalization and scoring contracts.
+
+## Phase 5 deep crawler additions
+
+- `lib/deep-crawler.ts` - bounded crawler, technical extraction, robots/sitemap/llms.txt, duplicate/broken-link detection.
+- `lib/scan-worker.ts` - persists Phase 5 crawl evidence during the durable scan pipeline.
+- `app/api/clients/[id]/crawl/route.ts` - tenant-scoped crawl history retrieval.
+- `prisma/schema.prisma` - CrawlRun, CrawlPage, and CrawlIssue models.
+- `prisma/migrations/20261008030000_phase5_deep_crawler_technical_intelligence/migration.sql` - crawl evidence persistence schema.
+- `lib/__tests__/phase5-deep-crawler.test.ts` - controlled crawler fixture tests.
