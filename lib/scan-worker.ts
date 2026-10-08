@@ -4,7 +4,7 @@ import { analyzeForAeo } from "./ai-analysis";
 import { mapIssuesToActionDrafts } from "./action-mapper";
 import { validateWebsiteUrl } from "./url";
 import { consumeProviderBudget } from "./provider-budget";
-import type { ActionPriority, ActionCategory, ActionEffort } from "@prisma/client";
+import type { ActionPriority, ActionCategory, ActionEffort, Prisma } from "@prisma/client";
 
 /**
  * Scan pipeline: CRAWL → EXTRACT → AI_ANALYSIS → ACTION_GENERATION → COMPLETED
@@ -120,7 +120,7 @@ export async function runScan(scanId: string) {
     const first = deep.pages[0];
     const crawl = {
       url: deep.startUrl, title: first?.title ?? null, description: first?.metaDescription ?? null,
-      markdown: null, html: null, links: deep.pages.flatMap((p) => p.links).slice(0, 2000),
+      markdown: null as string | null, html: null as string | null, links: deep.pages.flatMap((p) => p.links).slice(0, 2000),
       metadata: { methodologyVersion: "5.0", pagesCrawled: deep.pages.length, pagesFailed: deep.pages.filter((p) => p.statusCode === 0).length, sitemapFound: deep.sitemap.found, sitemapUrlCount: deep.sitemap.urls.length, robotsFetched: deep.robots.fetched, robotsAllowed: deep.robots.allowed, llmsTxtFound: deep.llmsTxt.found, truncated: deep.truncated },
       signals: {
         hasTitle: Boolean(first?.title), titleLength: first?.title?.length ?? 0, hasMetaDescription: Boolean(first?.metaDescription),
@@ -152,13 +152,13 @@ export async function runScan(scanId: string) {
         title: p.title, metaDescription: p.metaDescription, h1Count: p.h1Count, h2Count: p.h2Count, wordCount: p.wordCount,
         internalLinks: p.internalLinks, externalLinks: p.externalLinks, indexable: p.indexable, robotsNoindex: p.robotsNoindex,
         pageType: p.pageType, duplicateHash: p.duplicateHash, structuredData: p.structuredData, entitySignals: p.entitySignals,
-        contentSignals: p.contentSignals, technicalSignals: p.technicalSignals,
+        contentSignals: p.contentSignals, technicalSignals: p.technicalSignals as Prisma.InputJsonValue,
       }))});
       const stored = await prisma.crawlPage.findMany({ where: { runId: crawlRun.id }, select: { id: true, url: true } });
       const idByUrl = new Map(stored.map((p) => [p.url, p.id]));
       const issues = deep.pages.flatMap((p) => p.issues.map((i) => ({
         runId: crawlRun.id, pageId: idByUrl.get(p.url), agencyId: scan.agencyId, clientId: scan.client.id,
-        code: i.code, severity: i.severity, title: i.title, evidence: i.evidence,
+        code: i.code, severity: i.severity, title: i.title, evidence: i.evidence as Prisma.InputJsonValue,
       })));
       if (issues.length) await prisma.crawlIssue.createMany({ data: issues });
     }
