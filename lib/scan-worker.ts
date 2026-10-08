@@ -151,8 +151,8 @@ export async function runScan(scanId: string) {
         depth: p.depth, statusCode: p.statusCode, responseMs: p.responseMs, responseBytes: p.responseBytes, contentType: p.contentType,
         title: p.title, metaDescription: p.metaDescription, h1Count: p.h1Count, h2Count: p.h2Count, wordCount: p.wordCount,
         internalLinks: p.internalLinks, externalLinks: p.externalLinks, indexable: p.indexable, robotsNoindex: p.robotsNoindex,
-        pageType: p.pageType, duplicateHash: p.duplicateHash, structuredData: p.structuredData, entitySignals: p.entitySignals,
-        contentSignals: p.contentSignals, technicalSignals: p.technicalSignals as Prisma.InputJsonValue,
+        pageType: p.pageType, duplicateHash: p.duplicateHash, structuredData: p.structuredData as Prisma.InputJsonValue, entitySignals: p.entitySignals as Prisma.InputJsonValue,
+        contentSignals: p.contentSignals as Prisma.InputJsonValue, technicalSignals: p.technicalSignals as Prisma.InputJsonValue,
       }))});
       const stored = await prisma.crawlPage.findMany({ where: { runId: crawlRun.id }, select: { id: true, url: true } });
       const idByUrl = new Map(stored.map((p) => [p.url, p.id]));
